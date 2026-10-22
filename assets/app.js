@@ -159,7 +159,7 @@ function scoreAttempt(att) {
 // ---------- Layout ----------
 const NAV = {
   app: [['dashboard', 'Dashboard', 'layout-dashboard', 'dashboard.html'], ['materi', 'Materi', 'book-open', 'materi.html'], ['simulasi', 'Simulasi Test', 'timer', 'simulasi.html'], ['hasil', 'Hasil & Review', 'bar-chart-3', 'hasil.html']],
-  admin: [['ringkasan', 'Ringkasan', 'layout-dashboard', 'admin.html#ringkasan'], ['materi', 'Kelola Materi', 'book-open', 'admin.html#materi'], ['soal', 'Kelola Soal', 'file-question', 'admin.html#soal'], ['siswa', 'Siswa & Akses', 'users', 'admin.html#siswa']],
+  admin: [['ringkasan', 'Ringkasan', 'layout-dashboard', 'admin.html#ringkasan'], ['materi', 'Kelola Materi', 'book-open', 'admin.html#materi'], ['soal', 'Kelola Soal', 'file-question', 'admin.html#soal'], ['siswa', 'Siswa & Akses', 'users', 'admin.html#siswa'], ['master', 'Master Test', 'layers', 'admin.html#master']],
 };
 const logo = (sub = '') => `<a href="dashboard.html" class="flex items-center gap-2.5 font-bold text-slate-900">
   <span class="grid h-9 w-9 place-items-center rounded-xl bg-brand-600 text-white shadow-sm"><i data-lucide="graduation-cap" class="h-5 w-5"></i></span>

@@ -11,7 +11,7 @@ const DB = {
     hours: 'Senin–Sabtu, 08.00–20.00 WIB',
   },
 
-  // Master ujian. Tambah ujian baru cukup di sini.
+  // Master ujian. Tambah ujian baru cukup di sini (atau lewat Admin → Master Test).
   // rgb = warna aksen ujian; active=false → tampil "Segera hadir" untuk siswa.
   exams: {
     toefl: {
