@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trial Class — EnglishOn</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com/3.4.16"></script>
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+<script src="data/dummy.js"></script>
+<script src="assets/app.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js"></script>
+</head>
+<body data-shell="app" data-active="booking" data-title="Trial Class">
+<main x-data="booking()">
+  <div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 to-slate-800 p-6 text-white shadow-soft sm:p-8">
+    <i data-lucide="calendar-check" class="absolute -right-8 -top-8 h-48 w-48 text-white/5"></i>
+    <span class="rounded-full bg-amber-400 px-3 py-1 text-xs font-bold text-amber-950">GRATIS</span>
+    <h2 class="mt-3 text-2xl font-bold sm:text-3xl">Booking Trial Class di <span x-text="DB.contact.name"></span></h2>
+    <p class="mt-2 max-w-2xl text-slate-300">Speaking dan penilaian Writing butuh tutor sungguhan. Coba 1 sesi gratis langsung di kantor kami atau online, lalu dapatkan feedback personal untuk skor targetmu.</p>
+  </div>
+
+  <div class="mt-6 grid gap-6 lg:grid-cols-3">
+    <!-- Form -->
+    <div class="lg:col-span-2">
+      <form x-show="!done" @submit.prevent="submit()" class="space-y-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-soft sm:p-8">
+        <div>
+          <h3 class="font-semibold">1. Pilih kelas</h3>
+          <div class="mt-3 grid gap-3 sm:grid-cols-3">
+            <template x-for="c in DB.trialClasses" :key="c.id">
+              <button type="button" @click="f.cls = c.id" class="rounded-xl border-2 p-4 text-left transition" :class="f.cls===c.id ? 'border-accent bg-accent-soft' : 'border-slate-200 hover:border-slate-300'">
+                <span class="grid h-9 w-9 place-items-center rounded-lg bg-white text-accent shadow-sm"><i :data-lucide="c.icon" class="h-5 w-5"></i></span>
+                <p class="mt-3 text-sm font-semibold" x-text="c.title"></p>
+                <p class="mt-1 text-xs leading-relaxed text-slate-500" x-text="c.desc"></p>
+              </button>
+            </template>
+          </div>
+        </div>
+
+        <div>
+          <h3 class="font-semibold">2. Tempat</h3>
+          <div class="mt-3 grid gap-3 sm:grid-cols-2">
+            <template x-for="m in [['Offline (kantor)', 'map-pin', 'Datang ke kantor EnglishOn Ponorogo'], ['Online (Zoom)', 'video', 'Dari rumah via Zoom']]" :key="m[0]">
+              <button type="button" @click="f.mode = m[0]" class="flex items-center gap-3 rounded-xl border-2 p-4 text-left transition" :class="f.mode===m[0] ? 'border-accent bg-accent-soft' : 'border-slate-200 hover:border-slate-300'">
+                <span class="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-white text-accent shadow-sm"><i :data-lucide="m[1]" class="h-5 w-5"></i></span>
+                <span><span class="block text-sm font-semibold" x-text="m[0]"></span><span class="block text-xs text-slate-500" x-text="m[2]"></span></span>
+              </button>
+            </template>
+          </div>
+        </div>
+
+        <div>
+          <h3 class="font-semibold">3. Jadwal</h3>
+          <div class="thin-scroll mt-3 flex gap-2 overflow-x-auto pb-1">
+            <template x-for="d in days" :key="d.key">
+              <button type="button" @click="f.date = d.key" class="w-16 shrink-0 rounded-xl border-2 py-2 text-center transition" :class="f.date===d.key ? 'border-accent bg-accent text-white' : 'border-slate-200 hover:border-slate-300'">
+                <span class="block text-[11px] uppercase" :class="f.date===d.key ? 'text-white/80' : 'text-slate-500'" x-text="d.dow"></span>
+                <span class="block text-lg font-bold" x-text="d.day"></span>
+                <span class="block text-[11px]" :class="f.date===d.key ? 'text-white/80' : 'text-slate-500'" x-text="d.mon"></span>
+              </button>
+            </template>
+          </div>
+          <div class="mt-3 flex flex-wrap gap-2">
+            <template x-for="s in DB.trialSlots" :key="s">
+              <button type="button" @click="f.slot = s" class="rounded-lg border-2 px-4 py-2 text-sm font-semibold transition" :class="f.slot===s ? 'border-accent bg-accent-soft text-accent' : 'border-slate-200 text-slate-600 hover:border-slate-300'" x-text="s + ' WIB'"></button>
+            </template>
+          </div>
+        </div>
+
+        <div>
+          <h3 class="font-semibold">4. Data diri</h3>
+          <div class="mt-3 grid gap-3 sm:grid-cols-2">
+            <input x-model="f.name" required placeholder="Nama lengkap" class="rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-accent focus:ring-4 focus:ring-accent/10">
+            <input x-model="f.wa" required type="tel" placeholder="No. WhatsApp" class="rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-accent focus:ring-4 focus:ring-accent/10">
+            <textarea x-model="f.note" rows="2" placeholder="Catatan (opsional), mis. target skor atau kendala" class="rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-accent focus:ring-4 focus:ring-accent/10 sm:col-span-2"></textarea>
+          </div>
+        </div>
+
+        <div class="flex flex-col gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:items-center">
+          <p class="flex-1 text-sm text-slate-500" x-text="summary || 'Lengkapi pilihan kelas, tempat, dan jadwal.'"></p>
+          <button :disabled="!ready" class="rounded-xl bg-accent px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-accent/20 transition hover:bg-accent-dark disabled:cursor-not-allowed disabled:opacity-40">Booking Sekarang</button>
+        </div>
+      </form>
+
+      <!-- Sukses -->
+      <div x-show="done" x-cloak class="rounded-2xl border border-emerald-200 bg-white p-8 text-center shadow-soft">
+        <span class="mx-auto grid h-16 w-16 place-items-center rounded-full bg-emerald-100 text-emerald-600"><i data-lucide="check" class="h-8 w-8"></i></span>
+        <h3 class="mt-4 text-xl font-bold">Booking diterima!</h3>
+        <p class="mx-auto mt-2 max-w-md text-slate-500">Tim EnglishOn akan menghubungimu via WhatsApp untuk konfirmasi jadwal.</p>
+        <div class="mx-auto mt-5 max-w-sm rounded-xl bg-slate-50 p-4 text-left text-sm" x-html="summaryHtml"></div>
+        <div class="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
+          <a :href="waLink('Halo EnglishOn, saya sudah booking trial class: ' + summary)" target="_blank" class="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white hover:bg-emerald-700"><i data-lucide="message-circle" class="h-4 w-4"></i>Konfirmasi via WhatsApp</a>
+          <a href="dashboard.html" class="rounded-xl border border-slate-200 px-5 py-3 text-sm font-semibold hover:bg-slate-50">Kembali ke Dashboard</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Info kantor -->
+    <aside class="space-y-4">
+      <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-soft">
+        <h3 class="font-semibold" x-text="DB.contact.name"></h3>
+        <div class="mt-4 space-y-3 text-sm text-slate-600">
+          <p class="flex gap-3"><i data-lucide="map-pin" class="mt-0.5 h-4 w-4 shrink-0 text-accent"></i><span x-text="DB.contact.address"></span></p>
+          <p class="flex gap-3"><i data-lucide="clock" class="mt-0.5 h-4 w-4 shrink-0 text-accent"></i><span x-text="DB.contact.hours"></span></p>
+          <p class="flex gap-3"><i data-lucide="phone" class="mt-0.5 h-4 w-4 shrink-0 text-accent"></i><span x-text="DB.contact.waLabel"></span></p>
+        </div>
+        <div class="mt-4 grid h-36 place-items-center rounded-xl bg-slate-100 text-xs text-slate-400">Peta lokasi (Google Maps)</div>
+        <a :href="waLink('Halo EnglishOn, saya ingin bertanya tentang kelas.')" target="_blank" class="mt-4 flex items-center justify-center gap-2 rounded-xl bg-emerald-600 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700"><i data-lucide="message-circle" class="h-4 w-4"></i>Chat WhatsApp</a>
+      </div>
+      <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-soft">
+        <h3 class="font-semibold">Yang kamu dapat</h3>
+        <ul class="mt-3 space-y-2 text-sm text-slate-600">
+          <template x-for="t in ['Tes Speaking langsung dengan tutor', 'Penilaian Writing dengan rubrik resmi', 'Rekomendasi program belajar', 'Info membuka akses penuh platform']"><li class="flex gap-2"><i data-lucide="check-circle" class="mt-0.5 h-4 w-4 shrink-0 text-emerald-500"></i><span x-text="t"></span></li></template>
+        </ul>
+      </div>
+    </aside>
+  </div>
+</main>
+
+<script>
+function booking() {
+  const days = [];
+  for (let d = new Date(), n = 0; days.length < 10 && n < 14; n++) {
+    d.setDate(d.getDate() + 1);
+    if (d.getDay() === 0) continue; // Minggu libur
+    days.push({ key: d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }), dow: d.toLocaleDateString('id-ID', { weekday: 'short' }), day: d.getDate(), mon: d.toLocaleDateString('id-ID', { month: 'short' }) });
+  }
+  const pre = DB.trialClasses.some(c => c.id === qs('kelas')) ? qs('kelas') : '';
+  return {
+    days, done: false,
+    f: { cls: pre, mode: '', date: '', slot: '', name: DB.user.name, wa: '', note: '' },
+    get ready() { const f = this.f; return f.cls && f.mode && f.date && f.slot && f.name.trim() && f.wa.trim(); },
+    get summary() {
+      const f = this.f, c = DB.trialClasses.find(x => x.id === f.cls);
+      return c && f.mode && f.date && f.slot ? `${c.title}, ${f.mode}, ${f.date} pukul ${f.slot} WIB` : '';
+    },
+    get summaryHtml() {
+      const f = this.f, c = DB.trialClasses.find(x => x.id === f.cls);
+      return c ? [['Kelas', c.title], ['Tempat', f.mode], ['Jadwal', f.date + ', ' + f.slot + ' WIB'], ['Nama', f.name]].map(([k, v]) => `<p class="flex justify-between gap-3 py-1"><span class="text-slate-500">${k}</span><b class="text-right">${v.replace(/</g, '&lt;')}</b></p>`).join('') : '';
+    },
+    submit() { if (this.ready) { this.done = true; scrollTo({ top: 0, behavior: 'smooth' }); } },
+  };
+}
+</script>
+</body>
+</html>

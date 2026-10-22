@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Detail Materi — EnglishOn</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com/3.4.16"></script>
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+<script src="data/dummy.js"></script>
+<script src="assets/app.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js"></script>
+</head>
+<body data-shell="app" data-active="materi" data-title="Materi">
+<main x-data="detail()">
+  <!-- Breadcrumb -->
+  <nav class="flex flex-wrap items-center gap-1.5 text-sm text-slate-500">
+    <a href="materi.html" class="hover:text-slate-900">Materi</a><i data-lucide="chevron-right" class="h-4 w-4"></i>
+    <a :href="'materi.html?section=' + c.section" class="hover:text-slate-900" x-text="sec.short"></a><i data-lucide="chevron-right" class="h-4 w-4"></i>
+    <span class="font-medium text-slate-900" x-text="c.title"></span>
+  </nav>
+
+  <div class="mt-5 grid gap-6 lg:grid-cols-[280px_1fr]">
+    <!-- Sidebar sub-bab -->
+    <aside class="lg:sticky lg:top-24 lg:self-start">
+      <div class="rounded-2xl border border-slate-200 bg-white shadow-soft" x-data="{ open: window.innerWidth >= 1024 }">
+        <button @click="open=!open" class="flex w-full items-center gap-3 p-5 text-left lg:pointer-events-none">
+          <span class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-accent-soft text-accent"><i :data-lucide="sec.icon" class="h-5 w-5"></i></span>
+          <div class="min-w-0 flex-1"><p class="text-xs font-medium uppercase tracking-wider text-slate-400" x-text="sec.short"></p><p class="truncate font-semibold" x-text="c.title"></p></div>
+          <span class="inline-block text-slate-400 transition lg:hidden" :class="open && 'rotate-180'"><i data-lucide="chevron-down" class="h-5 w-5"></i></span>
+        </button>
+        <div x-show="open" class="border-t border-slate-100 p-3 lg:!block">
+          <div class="px-2 pb-3 pt-1">
+            <div class="mb-1.5 flex justify-between text-xs"><span class="text-slate-500">Progres bab</span><b x-text="progress + '%'"></b></div>
+            <div class="h-1.5 overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full bg-accent transition-all" :style="'width:' + progress + '%'"></div></div>
+          </div>
+          <template x-for="(s, i) in c.subs" :key="i">
+            <button @click="go(i)" class="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition" :class="i===cur ? 'bg-accent-soft font-semibold text-accent' : 'text-slate-600 hover:bg-slate-50'">
+              <span class="grid h-6 w-6 shrink-0 place-items-center rounded-full text-xs font-semibold" :class="seen.includes(i) ? 'bg-emerald-500 text-white' : (i===cur ? 'bg-accent text-white' : 'bg-slate-100 text-slate-500')" x-text="seen.includes(i) && i!==cur ? '✓' : i+1"></span>
+              <span x-text="s.title"></span>
+            </button>
+          </template>
+          <a href="#latihan" class="mt-1 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-slate-600 transition hover:bg-slate-50">
+            <span class="grid h-6 w-6 place-items-center rounded-full bg-amber-100 text-amber-700"><i data-lucide="pencil" class="h-3.5 w-3.5"></i></span>Latihan Soal <span class="ml-auto rounded-md bg-slate-100 px-1.5 text-xs" x-text="items.length"></span>
+          </a>
+          <div class="mt-3 border-t border-slate-100 px-2 pt-3">
+            <p class="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-400">Bab lain di section ini</p>
+            <template x-for="o in others" :key="o.id">
+              <a :href="'materi-detail.html?id=' + o.id" class="block truncate rounded-lg py-1.5 text-sm text-slate-600 hover:text-accent" x-text="o.title"></a>
+            </template>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <div class="min-w-0 space-y-6">
+      <!-- Konten -->
+      <article class="rounded-2xl border border-slate-200 bg-white p-6 shadow-soft sm:p-8">
+        <p class="text-sm font-medium text-accent" x-text="'Sub-bab ' + (cur + 1) + ' dari ' + c.subs.length"></p>
+        <h2 class="mt-1 text-2xl font-bold tracking-tight" x-text="c.subs[cur].title"></h2>
+        <div class="content mt-4" x-html="c.subs[cur].html"></div>
+        <div class="mt-8 flex items-center justify-between gap-3 border-t border-slate-100 pt-5">
+          <button @click="go(cur-1)" :disabled="cur===0" class="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold transition hover:bg-slate-50 disabled:opacity-40"><i data-lucide="arrow-left" class="h-4 w-4"></i> <span class="hidden sm:inline">Sebelumnya</span></button>
+          <button x-show="cur < c.subs.length-1" @click="go(cur+1)" class="inline-flex items-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-accent-dark">Sub-bab berikutnya <i data-lucide="arrow-right" class="h-4 w-4"></i></button>
+          <a x-show="cur === c.subs.length-1" href="#latihan" class="inline-flex items-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-accent-dark">Kerjakan Latihan <i data-lucide="arrow-down" class="h-4 w-4"></i></a>
+        </div>
+      </article>
+
+      <!-- Latihan -->
+      <section id="latihan" class="scroll-mt-24">
+        <div class="mb-4 flex flex-wrap items-end justify-between gap-3">
+          <div><h3 class="text-lg font-bold">Latihan Soal</h3><p class="text-sm text-slate-500">Pilih jawaban, pembahasan langsung muncul.</p></div>
+          <div class="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm shadow-sm">
+            <span>Benar <b class="text-emerald-600" x-text="score"></b> / <span x-text="items.length"></span></span>
+            <button x-show="Object.keys(ans).length" @click="ans={}; fill={}" class="flex items-center gap-1 text-slate-500 hover:text-slate-900"><i data-lucide="rotate-ccw" class="h-3.5 w-3.5"></i>Ulangi</button>
+          </div>
+        </div>
+
+        <div x-show="!items.length" class="rounded-2xl border-2 border-dashed border-slate-200 bg-white p-10 text-center text-sm text-slate-500">Belum ada latihan untuk bab ini.</div>
+
+        <div class="space-y-4">
+          <template x-for="(q, n) in items" :key="q.id">
+            <div class="rounded-2xl border bg-white p-5 shadow-soft transition sm:p-6" :class="q.id in ans ? (isCorrect(q, ans[q.id]) ? 'border-emerald-200' : 'border-rose-200') : 'border-slate-200'">
+              <div class="flex flex-wrap items-center gap-2 text-xs">
+                <span class="rounded-md bg-slate-900 px-2 py-0.5 font-semibold text-white" x-text="'Soal ' + (n+1)"></span>
+                <span class="rounded-md bg-slate-100 px-2 py-0.5 text-slate-600" x-text="q.topic"></span>
+                <span class="rounded-md px-2 py-0.5 capitalize" :class="diffClass[q.difficulty]" x-text="q.difficulty"></span>
+              </div>
+
+              <!-- Konteks audio / passage -->
+              <div x-show="q.clip" class="mt-4 flex flex-wrap items-center gap-3 rounded-xl bg-slate-50 p-3" x-data="{ t: false, playing: false }">
+                <button @click="playing=true; playClip(DB.clips[q.clip], () => playing=false)" :disabled="playing" class="flex items-center gap-2 rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"><i data-lucide="volume-2" class="h-3.5 w-3.5"></i><span x-text="playing ? 'Memutar…' : 'Putar audio'"></span></button>
+                <button @click="t=!t" class="text-xs font-medium text-slate-600 hover:text-slate-900" x-text="t ? 'Sembunyikan transkrip' : 'Lihat transkrip'"></button>
+                <div x-show="t" class="w-full space-y-1 text-sm text-slate-600">
+                  <template x-for="l in (DB.clips[q.clip]?.lines || [])"><p><b x-text="l[0] + ':'"></b> <span x-text="l[1]"></span></p></template>
+                </div>
+              </div>
+              <details x-show="q.passage" class="mt-4 rounded-xl bg-slate-50 p-3 text-sm">
+                <summary class="cursor-pointer font-medium text-slate-700" x-text="'Baca passage: ' + (DB.passages[q.passage]?.title || '')"></summary>
+                <div class="passage mt-3 max-h-72 overflow-y-auto pr-2 leading-relaxed text-slate-600 thin-scroll" x-html="DB.passages[q.passage]?.html"></div>
+              </details>
+
+              <p x-show="q.instr" class="mt-4 text-xs font-semibold uppercase tracking-wide text-slate-500" x-text="q.instr"></p>
+              <p class="stem mt-3 font-medium leading-relaxed text-slate-900" x-html="stemHTML(q)"></p>
+
+              <!-- Pilihan ganda -->
+              <div x-show="q.type !== 'fill'" class="mt-4 grid gap-2">
+                <template x-for="(o, j) in (q.options || [])" :key="j">
+                  <button @click="if (!(q.id in ans)) ans[q.id] = j" :disabled="q.id in ans"
+                    class="flex items-center gap-3 rounded-xl border-2 px-4 py-3 text-left text-sm transition"
+                    :class="!(q.id in ans) ? 'border-slate-200 hover:border-accent/50 hover:bg-accent-soft' : j===q.answer ? 'border-emerald-500 bg-emerald-50 text-emerald-900' : j===ans[q.id] ? 'border-rose-500 bg-rose-50 text-rose-900' : 'border-slate-100 text-slate-400'">
+                    <span class="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-xs font-bold"
+                      :class="!(q.id in ans) ? 'bg-slate-100 text-slate-600' : j===q.answer ? 'bg-emerald-500 text-white' : j===ans[q.id] ? 'bg-rose-500 text-white' : 'bg-slate-100'" x-text="L(j)"></span>
+                    <span x-text="o"></span>
+                  </button>
+                </template>
+              </div>
+              <!-- Isian -->
+              <form x-show="q.type === 'fill'" @submit.prevent="if ((fill[q.id]||'').trim()) ans[q.id] = fill[q.id]" class="mt-4 flex gap-2">
+                <input x-model="fill[q.id]" :disabled="q.id in ans" placeholder="Ketik jawaban…" class="w-full max-w-xs rounded-xl border-2 border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-accent disabled:bg-slate-50">
+                <button x-show="!(q.id in ans)" class="rounded-xl bg-accent px-4 text-sm font-semibold text-white hover:bg-accent-dark">Cek</button>
+              </form>
+
+              <!-- Feedback -->
+              <div x-show="q.id in ans" x-transition class="mt-4 rounded-xl p-4 text-sm" :class="isCorrect(q, ans[q.id]) ? 'bg-emerald-50 text-emerald-900' : 'bg-rose-50 text-rose-900'">
+                <p class="flex items-center gap-2 font-semibold">
+                  <span x-text="isCorrect(q, ans[q.id]) ? '✅ Benar!' : '❌ Kurang tepat.'"></span>
+                  <span x-show="!isCorrect(q, ans[q.id])" class="font-normal" x-text="'Jawaban benar: ' + correctText(q)"></span>
+                </p>
+                <p class="mt-2 leading-relaxed text-slate-700"><b>Pembahasan:</b> <span x-html="q.explain"></span></p>
+              </div>
+            </div>
+          </template>
+        </div>
+
+        <div x-show="items.length && Object.keys(ans).length === items.length" x-transition class="mt-6 flex flex-col items-center gap-3 rounded-2xl bg-gradient-to-br from-accent to-accent-dark p-6 text-center text-white sm:flex-row sm:text-left">
+          <span class="text-4xl">🎉</span>
+          <div class="flex-1"><p class="text-lg font-bold">Latihan selesai! Skor kamu <span x-text="score + '/' + items.length"></span></p><p class="text-sm text-white/80">Lanjut ke bab berikutnya atau uji dengan simulasi test.</p></div>
+          <a :href="next ? 'materi-detail.html?id=' + next.id : 'simulasi.html'" class="rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-accent" x-text="next ? 'Bab berikutnya →' : 'Ke Simulasi →'"></a>
+        </div>
+      </section>
+    </div>
+  </div>
+</main>
+
+<script>
+function detail() {
+  const c = chapterById(qs('id')) || DB.chapters.find(x => x.exam === getExam());
+  if (c.exam !== getExam()) document.documentElement.dataset.exam = c.exam;
+  const same = DB.chapters.filter(x => x.exam === c.exam && x.section === c.section);
+  const list = DB.chapters.filter(x => x.exam === c.exam);
+  document.title = c.title + ' — EnglishOn';
+  return {
+    c, sec: sectionMeta(c.exam, c.section), cur: 0, seen: [0], ans: {}, fill: {},
+    items: DB.questions.filter(q => q.chapter === c.id),
+    others: same.filter(x => x.id !== c.id),
+    next: list[list.indexOf(c) + 1],
+    get score() { return this.items.filter(q => q.id in this.ans && isCorrect(q, this.ans[q.id])).length; },
+    get progress() { return Math.round(this.seen.length / this.c.subs.length * 70 + Object.keys(this.ans).length / (this.items.length || 1) * 30); },
+    go(i) { if (i < 0 || i >= c.subs.length) return; this.cur = i; if (!this.seen.includes(i)) this.seen.push(i); window.scrollTo({ top: 0, behavior: 'smooth' }); },
+  };
+}
+</script>
+</body>
+</html>

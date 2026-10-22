@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hasil Test — EnglishOn</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com/3.4.16"></script>
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="data/dummy.js"></script>
+<script src="assets/app.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js"></script>
+</head>
+<body data-shell="app" data-active="hasil" data-title="Hasil Test">
+<main x-data="hasil()" class="space-y-6">
+  <div x-show="sample" class="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+    <i data-lucide="info" class="mt-0.5 h-4 w-4 shrink-0"></i>
+    <p>Ini <b>contoh hasil</b> (data dummy). <a href="simulasi.html" class="font-semibold underline">Kerjakan simulasi</a> untuk melihat hasilmu sendiri di halaman ini.</p>
+  </div>
+
+  <!-- Skor utama -->
+  <div class="grid gap-6 lg:grid-cols-3">
+    <div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-accent to-accent-dark p-6 text-white shadow-soft sm:p-8 lg:col-span-2">
+      <i data-lucide="award" class="absolute -bottom-8 -right-8 h-48 w-48 text-white/10"></i>
+      <div class="relative flex flex-col gap-6 sm:flex-row sm:items-center">
+        <!-- Gauge -->
+        <div class="relative mx-auto h-40 w-40 shrink-0 sm:mx-0">
+          <svg viewBox="0 0 120 120" class="h-full w-full -rotate-90"><circle cx="60" cy="60" r="52" fill="none" stroke="rgba(255,255,255,.18)" stroke-width="10"/>
+            <circle cx="60" cy="60" r="52" fill="none" stroke="white" stroke-width="10" stroke-linecap="round" :stroke-dasharray="326.7" :stroke-dashoffset="326.7 * (1 - pct)" style="transition: stroke-dashoffset 1.2s ease"/></svg>
+          <div class="absolute inset-0 grid place-items-center text-center"><div><p class="text-4xl font-extrabold" x-text="main"></p><p class="text-xs text-white/70" x-text="scale"></p></div></div>
+        </div>
+        <div class="text-center sm:text-left">
+          <p class="text-sm font-medium text-white/70" x-text="res.pkg.name"></p>
+          <h2 class="mt-1 text-2xl font-bold sm:text-3xl" x-text="res.total !== null ? (exam==='ielts' ? 'Overall Band ' + main : 'Skor Total ' + main) : res.sections[0].meta.short + ': ' + main"></h2>
+          <p class="mt-2 text-white/80"><span x-show="cefr !== '—'">Setara CEFR <b x-text="cefr"></b> · </span><span x-text="targetText"></span></p>
+          <p x-show="pending && res.total !== null" class="mt-1 text-xs text-white/70">Overall sementara dari Listening & Reading. Writing dinilai tutor, Speaking lewat trial class.</p>
+          <div class="mt-4 flex flex-wrap justify-center gap-2 text-xs sm:justify-start">
+            <span class="flex items-center gap-1.5 rounded-lg bg-white/15 px-2.5 py-1.5"><i data-lucide="calendar" class="h-3.5 w-3.5"></i><span x-text="new Date(att.date).toLocaleDateString('id-ID', { dateStyle: 'long' })"></span></span>
+            <span class="flex items-center gap-1.5 rounded-lg bg-white/15 px-2.5 py-1.5"><i data-lucide="clock" class="h-3.5 w-3.5"></i><span x-text="Math.max(1, Math.round(att.duration / 60)) + ' menit pengerjaan'"></span></span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-6 shadow-soft">
+      <h3 class="font-semibold">Langkah selanjutnya</h3>
+      <a href="review.html" class="flex items-center gap-3 rounded-xl bg-accent px-4 py-3 text-sm font-semibold text-white transition hover:bg-accent-dark"><i data-lucide="list-checks" class="h-5 w-5"></i>Review & Pembahasan<i data-lucide="arrow-right" class="ml-auto h-4 w-4"></i></a>
+      <a href="review.html?filter=wrong" class="flex items-center gap-3 rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold transition hover:bg-slate-50"><i data-lucide="circle-x" class="h-5 w-5 text-rose-500"></i>Lihat soal yang salah <span class="ml-auto rounded-md bg-rose-50 px-2 text-xs text-rose-600" x-text="wrongCount"></span></a>
+      <a x-show="!access.locked" :href="'test.html?pkg=' + res.pkg.id" class="flex items-center gap-3 rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold transition hover:bg-slate-50"><i data-lucide="rotate-ccw" class="h-5 w-5 text-slate-500"></i>Ulangi test ini</a>
+      <a x-show="access.locked" :href="waLink('Halo EnglishOn, saya ingin membuka akses simulasi berikutnya.')" target="_blank" class="flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800 transition hover:bg-amber-100"><i data-lucide="lock" class="h-5 w-5"></i><span>Simulasi berikutnya terkunci<span class="block text-xs font-normal">Hubungi EnglishOn untuk membuka</span></span></a>
+      <a href="dashboard.html" class="mt-auto text-center text-sm font-medium text-slate-500 hover:text-slate-900">Kembali ke Dashboard</a>
+    </div>
+  </div>
+
+  <!-- Breakdown per section -->
+  <div>
+    <h3 class="mb-3 font-semibold">Skor per Section</h3>
+    <div class="grid gap-4 sm:grid-cols-2" :class="res.sections.length > 3 ? 'xl:grid-cols-4' : 'xl:grid-cols-3'">
+      <template x-for="s in res.sections" :key="s.id">
+        <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-soft">
+          <div class="flex items-center gap-3">
+            <span class="grid h-10 w-10 place-items-center rounded-xl bg-accent-soft text-accent"><i :data-lucide="s.meta.icon" class="h-5 w-5"></i></span>
+            <div class="min-w-0"><p class="truncate text-sm font-semibold" x-text="s.meta.name"></p><p class="text-xs text-slate-500" x-text="exam==='ielts' ? 'Band 1–9' : 'Skala 31–' + TOEFL_MAX[s.id]"></p></div>
+          </div>
+          <template x-if="!s.pending">
+            <div>
+              <p class="mt-4 text-4xl font-extrabold tracking-tight" x-text="fmtScore(s.score)"></p>
+              <div class="mt-3 h-2 overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full bg-accent" :style="'width:' + secPct(s) + '%'"></div></div>
+            </div>
+          </template>
+          <template x-if="s.pending">
+            <div>
+              <p class="mt-4 flex items-center gap-2 text-lg font-bold text-amber-600"><i data-lucide="hourglass" class="h-5 w-5"></i>Dinilai tutor</p>
+              <a href="booking.html?kelas=writing" class="mt-2 inline-block text-xs font-semibold text-accent hover:underline">Booking review Writing →</a>
+            </div>
+          </template>
+          <p class="mt-2 text-xs text-slate-500" x-text="s.detail"></p>
+        </div>
+      </template>
+    </div>
+  </div>
+
+  <!-- Speaking & Writing bersama tutor -->
+  <a x-show="exam === 'ielts'" href="booking.html?kelas=speaking" class="group flex flex-col gap-4 rounded-2xl border-2 border-dashed border-accent/30 bg-accent-soft p-5 transition hover:border-accent sm:flex-row sm:items-center">
+    <span class="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-white text-accent shadow-sm"><i data-lucide="calendar-check" class="h-5 w-5"></i></span>
+    <div class="flex-1"><p class="font-semibold">Lengkapi skor Speaking & Writing bersama tutor</p><p class="mt-0.5 text-sm text-slate-600">Booking trial class gratis di EnglishOn Ponorogo untuk tes Speaking dan penilaian essay Writing.</p></div>
+    <span class="inline-flex items-center gap-1.5 text-sm font-semibold text-accent">Booking <i data-lucide="arrow-right" class="h-4 w-4 transition group-hover:translate-x-1"></i></span>
+  </a>
+
+  <div x-show="res.topics.length" class="grid gap-6 lg:grid-cols-5">
+    <!-- Grafik topik -->
+    <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-soft lg:col-span-3">
+      <h3 class="font-semibold">Akurasi per Topik</h3>
+      <p class="text-sm text-slate-500">Persentase jawaban benar untuk setiap topik soal.</p>
+      <div class="mt-4" :style="'height:' + Math.max(220, res.topics.length * 34) + 'px'"><canvas id="topicChart"></canvas></div>
+    </div>
+
+    <!-- Analisis kelemahan -->
+    <div class="space-y-4 lg:col-span-2">
+      <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-soft">
+        <h3 class="flex items-center gap-2 font-semibold"><i data-lucide="target" class="h-5 w-5 text-rose-500"></i>Analisis Kelemahan</h3>
+        <div class="mt-4 space-y-3">
+          <template x-for="t in res.weak" :key="t.topic">
+            <div class="rounded-xl border border-rose-100 bg-rose-50/60 p-4">
+              <p class="text-sm text-slate-800">Kamu lemah di <b x-text="t.topic"></b></p>
+              <p class="mt-1 text-xs text-slate-500" x-text="t.section + ' · benar ' + t.correct + ' dari ' + t.total + ' soal (' + Math.round(t.ratio*100) + '%)'"></p>
+              <a :href="'materi-detail.html?id=' + t.chapter" class="mt-2 block text-xs font-semibold text-accent hover:underline" x-text="'Pelajari bab: ' + (chapterById(t.chapter)?.title || '') + ' →'"></a>
+            </div>
+          </template>
+          <div x-show="!res.weak.length" class="rounded-xl bg-emerald-50 p-4 text-sm text-emerald-700">Tidak ada topik dengan akurasi di bawah 60%. Pertahankan!</div>
+        </div>
+      </div>
+      <div x-show="res.strong.length" class="rounded-2xl border border-slate-200 bg-white p-6 shadow-soft">
+        <h3 class="flex items-center gap-2 font-semibold"><i data-lucide="badge-check" class="h-5 w-5 text-emerald-500"></i>Kekuatanmu</h3>
+        <div class="mt-3 flex flex-wrap gap-2"><template x-for="t in res.strong" :key="t.topic"><span class="rounded-lg bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700" x-text="t.topic"></span></template></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+function hasil() {
+  const mine = loadAttempt(), exam = getExam();
+  const att = mine && mine.pkg.startsWith(exam) ? mine : DB.sampleAttempts[exam];
+  const res = scoreAttempt(att), ielts = exam === 'ielts';
+  const main = res.total ?? res.sections[0].score; // null = paket Writing saja (menunggu tutor)
+  const fmtScore = v => v == null ? '—' : ielts ? v.toFixed(1) : v;
+  const cefr = main == null ? '—' : ielts ? (main >= 7 ? 'C1' : main >= 5.5 ? 'B2' : main >= 4 ? 'B1' : 'A2')
+    : res.total === null ? '—' : (main >= 627 ? 'C1' : main >= 543 ? 'B2' : main >= 460 ? 'B1' : 'A2');
+  const target = DB.user.target[exam];
+  const wrongCount = res.sections.reduce((a, s) => a + (s.total ? s.total - s.correct : 0), 0);
+  return {
+    att, res, exam, sample: att !== mine, wrongCount, cefr, fmtScore,
+    main: fmtScore(main), pending: res.sections.some(s => s.pending),
+    scale: ielts ? 'dari 9.0' : res.total !== null ? '310–677' : '31–' + TOEFL_MAX[res.sections[0].id],
+    pct: main == null ? 0 : ielts ? main / 9 : res.total !== null ? (main - 310) / 367 : (main - 31) / 37,
+    targetText: main == null ? 'Menunggu penilaian tutor' : res.total === null ? 'Tes per section' : main >= target ? 'Target ' + target + ' tercapai 🎉' : 'Kurang ' + (ielts ? (target - main).toFixed(1) : target - main) + ' dari target ' + target,
+    secPct: s => ielts ? s.score / 9 * 100 : (s.score - 31) / (TOEFL_MAX[s.id] - 31) * 100,
+    init() {
+      if (!res.topics.length) return;
+      new Chart(document.getElementById('topicChart'), {
+        type: 'bar',
+        data: { labels: res.topics.map(t => t.topic), datasets: [{ data: res.topics.map(t => Math.round(t.ratio * 100)), borderRadius: 6, barThickness: 16,
+          backgroundColor: res.topics.map(t => t.ratio < .6 ? '#f43f5e' : t.ratio < 1 ? '#f59e0b' : '#10b981') }] },
+        options: { indexAxis: 'y', maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => c.raw + '% benar' } } },
+          scales: { x: { min: 0, max: 100, ticks: { callback: v => v + '%' } }, y: { grid: { display: false } } } },
+      });
+    },
+  };
+}
+</script>
+</body>
+</html>

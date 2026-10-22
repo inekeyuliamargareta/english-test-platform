@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dashboard — EnglishOn</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com/3.4.16"></script>
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="data/dummy.js"></script>
+<script src="assets/app.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js"></script>
+</head>
+<body data-shell="app" data-active="dashboard" data-title="Dashboard">
+<main x-data="dash()">
+
+  <!-- Skeleton -->
+  <div x-show="loading" class="space-y-6">
+    <div class="skel h-8 w-64"></div>
+    <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"><template x-for="i in 4"><div class="skel h-28"></div></template></div>
+    <div class="grid gap-6 lg:grid-cols-3"><div class="skel h-72 lg:col-span-2"></div><div class="skel h-72"></div></div>
+  </div>
+
+  <div x-show="!loading" x-cloak class="space-y-6">
+    <!-- Sapaan -->
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <div>
+        <h2 class="text-2xl font-bold tracking-tight">Halo, <span x-text="DB.user.name.split(' ')[0]"></span> 👋</h2>
+        <p class="mt-1 text-slate-500">Kamu sedang mempersiapkan <b class="text-accent" x-text="E.name"></b>. Tetap konsisten, targetmu tinggal sedikit lagi!</p>
+      </div>
+      <a :href="'materi-detail.html?id=' + cont.id" class="inline-flex items-center justify-center gap-2 rounded-xl bg-accent px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-accent-dark"><i data-lucide="play" class="h-4 w-4"></i> Lanjutkan Belajar</a>
+    </div>
+
+    <!-- Statistik -->
+    <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-soft">
+        <div class="flex items-center justify-between"><p class="text-sm text-slate-500">Skor simulasi terakhir</p><span class="grid h-9 w-9 place-items-center rounded-xl bg-accent-soft text-accent"><i data-lucide="award" class="h-5 w-5"></i></span></div>
+        <p class="mt-3 text-3xl font-bold" x-text="lastScore"></p>
+        <p class="mt-1 flex items-center gap-1 text-xs font-medium text-emerald-600"><i data-lucide="trending-up" class="h-3.5 w-3.5"></i><span x-text="delta + ' dari test sebelumnya'"></span></p>
+      </div>
+      <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-soft">
+        <div class="flex items-center justify-between"><p class="text-sm text-slate-500">Target skor</p><span class="grid h-9 w-9 place-items-center rounded-xl bg-amber-50 text-amber-600"><i data-lucide="target" class="h-5 w-5"></i></span></div>
+        <p class="mt-3 text-3xl font-bold" x-text="exam === 'ielts' ? DB.user.target.ielts.toFixed(1) : DB.user.target.toefl"></p>
+        <p class="mt-1 text-xs text-slate-500" x-text="gap"></p>
+      </div>
+      <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-soft">
+        <div class="flex items-center justify-between"><p class="text-sm text-slate-500">Bab selesai</p><span class="grid h-9 w-9 place-items-center rounded-xl bg-emerald-50 text-emerald-600"><i data-lucide="book-check" class="h-5 w-5"></i></span></div>
+        <p class="mt-3 text-3xl font-bold"><span x-text="chapters.filter(c => c.status === 'done').length"></span><span class="text-lg font-medium text-slate-400"> / <span x-text="chapters.length"></span></span></p>
+        <p class="mt-1 text-xs text-slate-500" x-text="chapters.filter(c => c.status === 'progress').length + ' bab sedang dipelajari'"></p>
+      </div>
+      <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-soft">
+        <div class="flex items-center justify-between"><p class="text-sm text-slate-500">Soal dikerjakan</p><span class="grid h-9 w-9 place-items-center rounded-xl bg-violet-50 text-violet-600"><i data-lucide="list-checks" class="h-5 w-5"></i></span></div>
+        <p class="mt-3 text-3xl font-bold">312</p>
+        <p class="mt-1 text-xs text-slate-500">Akurasi rata-rata 71%</p>
+      </div>
+    </div>
+
+    <!-- Kuota simulasi & trial class -->
+    <div class="grid gap-4 md:grid-cols-2">
+      <div class="flex items-center gap-4 rounded-2xl border p-5 shadow-soft" :class="access.locked ? 'border-amber-200 bg-amber-50' : 'border-emerald-200 bg-emerald-50'">
+        <span class="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-white shadow-sm" :class="access.locked ? 'text-amber-600' : 'text-emerald-600'" x-html="ico(access.locked ? 'lock' : 'gift', 'h-5 w-5')"></span>
+        <div class="flex-1 text-sm">
+          <p class="font-semibold" x-text="access.full ? 'Akses penuh aktif' : access.locked ? 'Simulasi gratis sudah terpakai' : '1x simulasi gratis tersedia'"></p>
+          <p class="text-slate-600" x-text="access.locked ? 'Datang ke kantor atau hubungi EnglishOn untuk membuka simulasi & fitur lainnya.' : 'Coba simulasi test dengan timer seperti ujian asli.'"></p>
+        </div>
+        <a x-show="!access.locked" href="simulasi.html" class="shrink-0 rounded-xl bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-700">Mulai</a>
+        <a x-show="access.locked" :href="waLink('Halo EnglishOn, saya ingin membuka akses penuh platform.')" target="_blank" class="shrink-0 rounded-xl bg-amber-500 px-3 py-2 text-xs font-semibold text-white hover:bg-amber-600">Hubungi</a>
+      </div>
+      <a href="booking.html" class="group flex items-center gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-soft transition hover:border-accent/40">
+        <span class="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-accent-soft text-accent"><i data-lucide="calendar-check" class="h-5 w-5"></i></span>
+        <div class="flex-1 text-sm"><p class="font-semibold">Trial class Speaking gratis</p><p class="text-slate-600">Latihan Speaking & review Writing bersama tutor di EnglishOn Ponorogo.</p></div>
+        <i data-lucide="arrow-right" class="h-4 w-4 shrink-0 text-slate-400 transition group-hover:translate-x-1"></i>
+      </a>
+    </div>
+
+    <div class="grid gap-6 lg:grid-cols-3">
+      <!-- Lanjutkan belajar -->
+      <div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-accent to-accent-dark p-6 text-white shadow-soft lg:col-span-2">
+        <i data-lucide="book-open" class="absolute -bottom-6 -right-6 h-40 w-40 text-white/10"></i>
+        <p class="text-sm font-medium text-white/70">Lanjutkan dari terakhir kali</p>
+        <h3 class="mt-1 text-2xl font-bold" x-text="cont.title"></h3>
+        <p class="mt-1 max-w-lg text-sm text-white/80" x-text="cont.desc"></p>
+        <div class="mt-5 flex max-w-md items-center gap-3">
+          <div class="h-2 flex-1 overflow-hidden rounded-full bg-white/20"><div class="h-full rounded-full bg-white" :style="'width:' + cont.progress + '%'"></div></div>
+          <span class="text-sm font-semibold" x-text="cont.progress + '%'"></span>
+        </div>
+        <div class="mt-6 flex flex-wrap gap-3">
+          <a :href="'materi-detail.html?id=' + cont.id" class="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-accent transition hover:bg-white/90">Lanjutkan Bab <i data-lucide="arrow-right" class="h-4 w-4"></i></a>
+          <a href="simulasi.html" class="inline-flex items-center gap-2 rounded-xl bg-white/15 px-4 py-2.5 text-sm font-semibold transition hover:bg-white/25"><i data-lucide="timer" class="h-4 w-4"></i> Mulai Simulasi</a>
+        </div>
+      </div>
+
+      <!-- Progres per section -->
+      <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-soft">
+        <div class="flex items-center justify-between"><h3 class="font-semibold">Progres per Section</h3><a href="materi.html" class="text-sm font-medium text-accent hover:underline">Detail</a></div>
+        <div class="mt-5 space-y-5">
+          <template x-for="s in sections" :key="s.id">
+            <div>
+              <div class="mb-2 flex items-center justify-between text-sm">
+                <span class="flex items-center gap-2 font-medium"><i :data-lucide="s.icon" class="h-4 w-4 text-slate-400"></i><span x-text="s.short"></span></span>
+                <span class="whitespace-nowrap text-xs text-slate-500"><b class="text-slate-900" x-text="s.progress + '%'"></b> · <span x-text="s.done + '/' + s.total + ' bab'"></span></span>
+              </div>
+              <div class="h-2 overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full bg-accent transition-all duration-700" :style="'width:' + s.progress + '%'"></div></div>
+            </div>
+          </template>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid gap-6 lg:grid-cols-3">
+      <!-- Grafik -->
+      <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-soft lg:col-span-2">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div><h3 class="font-semibold">Riwayat Skor Simulasi</h3><p class="text-sm text-slate-500" x-text="hist.length + ' simulasi terakhir · ' + E.name"></p></div>
+          <span class="inline-flex items-center gap-1.5 rounded-lg bg-slate-50 px-2.5 py-1 text-xs text-slate-500"><span class="h-0.5 w-4 border-t-2 border-dashed border-amber-500"></span>Target</span>
+        </div>
+        <div class="mt-4 h-64"><canvas id="histChart"></canvas></div>
+      </div>
+
+      <!-- Hasil terakhir -->
+      <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-soft">
+        <div class="flex items-center justify-between"><h3 class="font-semibold">Simulasi Terakhir</h3><span class="text-xs text-slate-400" x-text="new Date(att.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })"></span></div>
+        <p class="mt-1 text-sm text-slate-500" x-text="res.pkg.name"></p>
+        <div class="mt-4 space-y-3">
+          <template x-for="s in res.sections" :key="s.id">
+            <div class="flex items-center gap-3 rounded-xl bg-slate-50 p-3">
+              <span class="grid h-9 w-9 place-items-center rounded-lg bg-white text-slate-500 shadow-sm"><i :data-lucide="s.meta.icon" class="h-4 w-4"></i></span>
+              <div class="min-w-0 flex-1"><p class="truncate text-sm font-medium" x-text="s.meta.short"></p><p class="text-xs text-slate-500" x-text="s.detail"></p></div>
+              <span class="text-lg font-bold" x-text="s.score == null ? 'Tutor' : exam === 'ielts' ? s.score.toFixed(1) : s.score"></span>
+            </div>
+          </template>
+        </div>
+        <a href="hasil.html" class="mt-4 flex items-center justify-center gap-2 rounded-xl border border-slate-200 py-2.5 text-sm font-semibold transition hover:bg-slate-50">Lihat Hasil Lengkap <i data-lucide="arrow-right" class="h-4 w-4"></i></a>
+      </div>
+    </div>
+
+    <div class="grid gap-6 lg:grid-cols-2">
+      <!-- Rekomendasi -->
+      <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-soft">
+        <h3 class="flex items-center gap-2 font-semibold"><i data-lucide="lightbulb" class="h-5 w-5 text-amber-500"></i> Rekomendasi untukmu</h3>
+        <p class="mt-1 text-sm text-slate-500">Berdasarkan hasil simulasi terakhir.</p>
+        <div class="mt-4 space-y-3">
+          <template x-for="t in res.weak.slice(0, 3)" :key="t.topic">
+            <a :href="'materi-detail.html?id=' + t.chapter" class="group flex items-center gap-3 rounded-xl border border-slate-100 p-3 transition hover:border-accent/30 hover:bg-accent-soft">
+              <span class="grid h-10 w-10 place-items-center rounded-lg bg-rose-50 text-rose-600"><i data-lucide="alert-triangle" class="h-5 w-5"></i></span>
+              <div class="min-w-0 flex-1"><p class="text-sm font-medium">Perkuat <span x-text="t.topic"></span></p><p class="text-xs text-slate-500" x-text="t.section + ' · akurasi ' + Math.round(t.ratio * 100) + '%'"></p></div>
+              <i data-lucide="chevron-right" class="h-4 w-4 text-slate-400 transition group-hover:translate-x-1"></i>
+            </a>
+          </template>
+          <div x-show="!res.weak.length" class="rounded-xl bg-emerald-50 p-4 text-sm text-emerald-700">Mantap! Tidak ada topik lemah di simulasi terakhir.</div>
+        </div>
+      </div>
+      <!-- Aktivitas -->
+      <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-soft">
+        <h3 class="font-semibold">Aktivitas Terbaru</h3>
+        <ol class="mt-4 space-y-4">
+          <template x-for="a in DB.recentActivity">
+            <li class="flex gap-3">
+              <span class="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-slate-100 text-slate-500"><i :data-lucide="a.icon" class="h-4 w-4"></i></span>
+              <div class="flex-1 text-sm"><p x-html="a.text"></p><p class="text-xs text-slate-400" x-text="a.time"></p></div>
+            </li>
+          </template>
+        </ol>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+function dash() {
+  const exam = getExam(), E = DB.exams[exam];
+  const mine = loadAttempt();
+  // hanya Full Test yang punya skor total untuk dibandingkan dengan riwayat
+  const att = mine && mine.pkg === exam + '-full' ? mine : DB.sampleAttempts[exam];
+  const res = scoreAttempt(att);
+  const chapters = DB.chapters.filter(c => c.exam === exam && !sectionMeta(exam, c.section).booking);
+  const hist = [...DB.history[exam]], f = v => exam === 'ielts' ? Number(v).toFixed(1) : v;
+  const last = res.total ?? res.sections[0].score, prev = hist.at(att === mine ? -1 : -2)[1];
+  if (att === mine && res.total) hist.push(['Terbaru', last]);
+  return {
+    exam, E, att, res, chapters, hist, loading: true,
+    cont: chapters.find(c => c.status === 'progress') || chapters[0],
+    sections: E.sections.filter(s => !s.booking).map(s => {
+      const cs = chapters.filter(c => c.section === s.id);
+      return { ...s, total: cs.length, done: cs.filter(c => c.status === 'done').length, progress: Math.round(cs.reduce((a, c) => a + c.progress, 0) / (cs.length || 1)) };
+    }),
+    lastScore: f(last),
+    delta: (last >= prev ? '+' : '') + f(+(last - prev).toFixed(1)),
+    gap: last >= DB.user.target[exam] ? 'Target tercapai 🎉' : 'Kurang ' + f(+(DB.user.target[exam] - last).toFixed(1)) + ' lagi',
+    init() { setTimeout(() => { this.loading = false; this.$nextTick(() => this.drawChart()); }, 550); },
+    drawChart() {
+      const color = exam === 'ielts' ? '#9f1239' : '#2563eb';
+      const ctx = document.getElementById('histChart');
+      const grad = ctx.getContext('2d').createLinearGradient(0, 0, 0, 250);
+      grad.addColorStop(0, color + '33'); grad.addColorStop(1, color + '00');
+      new Chart(ctx, {
+        type: 'line',
+        data: { labels: hist.map(h => h[0]), datasets: [
+          { label: 'Skor', data: hist.map(h => h[1]), borderColor: color, backgroundColor: grad, fill: true, tension: .35, pointRadius: 4, pointBackgroundColor: '#fff', pointBorderWidth: 2 },
+          { label: 'Target', data: hist.map(() => DB.user.target[exam]), borderColor: '#f59e0b', borderDash: [6, 6], borderWidth: 2, pointRadius: 0 },
+        ] },
+        options: { maintainAspectRatio: false, plugins: { legend: { display: false } }, interaction: { intersect: false, mode: 'index' },
+          scales: { y: exam === 'ielts' ? { min: 4, max: 8, ticks: { stepSize: .5 } } : { min: 440, max: 580 }, x: { grid: { display: false } } } },
+      });
+    },
+  };
+}
+</script>
+</body>
+</html>

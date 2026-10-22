@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Review & Pembahasan — EnglishOn</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com/3.4.16"></script>
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+<script src="data/dummy.js"></script>
+<script src="assets/app.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js"></script>
+</head>
+<body data-shell="app" data-active="hasil" data-title="Review & Pembahasan">
+<main x-data="review()">
+  <a href="hasil.html" class="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-900"><i data-lucide="arrow-left" class="h-4 w-4"></i>Kembali ke hasil</a>
+  <div class="mt-3 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+    <div><h2 class="text-2xl font-bold tracking-tight">Review & Pembahasan</h2><p class="text-sm text-slate-500" x-text="pkg.name + ' · ' + items.length + ' soal/task'"></p></div>
+  </div>
+
+  <!-- Filter -->
+  <div class="sticky top-16 z-10 -mx-4 mt-5 border-b border-slate-200 bg-slate-50/95 px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
+    <div class="flex flex-col gap-3 md:flex-row md:items-center">
+      <div class="flex gap-1 rounded-xl bg-white p-1 shadow-sm ring-1 ring-slate-200">
+        <template x-for="f in filters" :key="f[0]">
+          <button @click="filter=f[0]" class="flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium transition" :class="filter===f[0] ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-50'">
+            <span x-text="f[1]"></span><span class="rounded-md px-1.5 text-xs" :class="filter===f[0] ? 'bg-white/20' : 'bg-slate-100'" x-text="count(f[0])"></span>
+          </button>
+        </template>
+      </div>
+      <div class="thin-scroll flex gap-2 overflow-x-auto md:ml-auto">
+        <button @click="sec='all'" class="whitespace-nowrap rounded-lg px-3 py-1.5 text-sm transition" :class="sec==='all' ? 'bg-accent text-white' : 'bg-white text-slate-600 ring-1 ring-slate-200'">Semua section</button>
+        <template x-for="s in pkg.sections" :key="s[0]"><button @click="sec=s[0]" class="whitespace-nowrap rounded-lg px-3 py-1.5 text-sm transition" :class="sec===s[0] ? 'bg-accent text-white' : 'bg-white text-slate-600 ring-1 ring-slate-200'" x-text="sectionMeta(pkg.exam, s[0]).short"></button></template>
+      </div>
+    </div>
+  </div>
+
+  <div class="mt-6 space-y-4">
+    <template x-for="it in list" :key="it.id">
+      <article class="rounded-2xl border bg-white p-5 shadow-soft sm:p-6" :class="it.kind==='q' ? (it.ok ? 'border-emerald-200' : 'border-rose-200') : 'border-slate-200'">
+        <div class="flex flex-wrap items-center gap-2 text-xs">
+          <span class="rounded-md bg-slate-900 px-2 py-0.5 font-semibold text-white" x-text="it.label"></span>
+          <span class="rounded-md bg-slate-100 px-2 py-0.5 text-slate-600" x-text="it.secName"></span>
+          <span x-show="it.topic" class="rounded-md bg-slate-100 px-2 py-0.5 text-slate-600" x-text="it.topic"></span>
+          <span x-show="flags.includes(it.id)" class="rounded-md bg-amber-100 px-2 py-0.5 font-semibold text-amber-700">⚑ Ditandai</span>
+          <span x-show="it.kind==='q'" class="ml-auto rounded-md px-2 py-0.5 font-semibold" :class="it.ok ? 'bg-emerald-100 text-emerald-700' : it.blank ? 'bg-slate-200 text-slate-600' : 'bg-rose-100 text-rose-700'" x-text="it.ok ? '✓ Benar' : it.blank ? 'Tidak dijawab' : '✗ Salah'"></span>
+        </div>
+
+        <!-- Soal pilihan ganda / isian -->
+        <template x-if="it.kind==='q'">
+          <div>
+            <details x-show="it.clip" class="mt-4 rounded-xl bg-slate-50 p-3 text-sm"><summary class="cursor-pointer font-medium text-slate-700">🎧 Transkrip audio</summary>
+              <div class="mt-2 space-y-1 text-slate-600"><template x-for="l in (DB.clips[it.clip]?.lines || [])"><p><b x-text="l[0] + ':'"></b> <span x-text="l[1]"></span></p></template></div></details>
+            <details x-show="it.passage" class="mt-4 rounded-xl bg-slate-50 p-3 text-sm"><summary class="cursor-pointer font-medium text-slate-700" x-text="'📄 Passage: ' + (DB.passages[it.passage]?.title || '')"></summary>
+              <div class="passage thin-scroll mt-2 max-h-72 overflow-y-auto pr-2 leading-relaxed text-slate-600" x-html="DB.passages[it.passage]?.html"></div></details>
+            <p class="stem mt-4 font-medium leading-relaxed" x-html="stemHTML(it)"></p>
+            <div x-show="it.type!=='fill'" class="mt-4 grid gap-2">
+              <template x-for="(o, j) in (it.options || [])" :key="j">
+                <div class="flex items-center gap-3 rounded-xl border-2 px-4 py-2.5 text-sm" :class="j===it.answer ? 'border-emerald-500 bg-emerald-50' : j===it.user ? 'border-rose-400 bg-rose-50' : 'border-slate-100 text-slate-500'">
+                  <span class="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-xs font-bold" :class="j===it.answer ? 'bg-emerald-500 text-white' : j===it.user ? 'bg-rose-500 text-white' : 'bg-slate-100'" x-text="L(j)"></span>
+                  <span class="flex-1" x-text="o"></span>
+                  <span x-show="j===it.user" class="text-xs font-semibold" :class="j===it.answer ? 'text-emerald-700' : 'text-rose-600'">Jawabanmu</span>
+                  <span x-show="j===it.answer" class="text-xs font-semibold text-emerald-700">Kunci</span>
+                </div>
+              </template>
+            </div>
+            <div x-show="it.type==='fill'" class="mt-4 grid gap-2 text-sm sm:grid-cols-2">
+              <div class="rounded-xl border-2 px-4 py-2.5" :class="it.ok ? 'border-emerald-500 bg-emerald-50' : 'border-rose-400 bg-rose-50'"><p class="text-xs text-slate-500">Jawabanmu</p><p class="font-semibold" x-text="it.user || '—'"></p></div>
+              <div class="rounded-xl border-2 border-emerald-500 bg-emerald-50 px-4 py-2.5"><p class="text-xs text-slate-500">Kunci</p><p class="font-semibold" x-text="[].concat(it.answer).join(' / ')"></p></div>
+            </div>
+            <div class="mt-4 rounded-xl bg-amber-50 p-4 text-sm leading-relaxed text-slate-700">
+              <p class="mb-1 flex items-center gap-1.5 font-semibold text-slate-900"><i data-lucide="lightbulb" class="h-4 w-4 text-amber-500"></i>Pembahasan</p>
+              <p x-html="it.explain"></p>
+              <a :href="'materi-detail.html?id=' + it.chapter" class="mt-2 inline-flex text-xs font-semibold text-accent hover:underline">Pelajari materi terkait →</a>
+            </div>
+          </div>
+        </template>
+
+        <!-- Writing -->
+        <template x-if="it.kind==='writing'">
+          <div class="mt-4 space-y-3">
+            <div class="text-sm leading-relaxed text-slate-700" x-html="it.prompt"></div>
+            <div class="rounded-xl border border-slate-200 p-4">
+              <div class="mb-2 flex items-center justify-between text-xs"><span class="font-semibold text-slate-500">JAWABANMU</span><span class="rounded-md px-2 py-0.5 font-semibold" :class="words(it.user) >= it.minWords ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'" x-text="words(it.user) + ' kata (min. ' + it.minWords + ')'"></span></div>
+              <p class="whitespace-pre-line text-sm leading-relaxed" x-text="it.user || '(Tidak ada jawaban)'"></p>
+            </div>
+            <details class="rounded-xl bg-emerald-50 p-4 text-sm"><summary class="cursor-pointer font-semibold text-emerald-800">Contoh jawaban (Band 8)</summary><p class="mt-2 leading-relaxed text-slate-700" x-text="it.sample"></p></details>
+            <div class="flex flex-col gap-3 rounded-xl bg-amber-50 p-4 text-sm text-slate-700 sm:flex-row sm:items-center">
+              <p class="flex-1"><b>Menunggu penilaian tutor.</b> Essay dinilai tutor EnglishOn berdasarkan Task Achievement, Coherence & Cohesion, Lexical Resource, dan Grammatical Range & Accuracy.</p>
+              <a href="booking.html?kelas=writing" class="shrink-0 rounded-lg bg-accent px-3 py-2 text-center text-xs font-semibold text-white hover:bg-accent-dark">Booking review Writing</a>
+            </div>
+          </div>
+        </template>
+      </article>
+    </template>
+
+    <div x-show="!list.length" class="flex flex-col items-center rounded-2xl border-2 border-dashed border-slate-200 bg-white px-6 py-16 text-center">
+      <span class="grid h-14 w-14 place-items-center rounded-2xl bg-emerald-50 text-emerald-500"><i data-lucide="party-popper" class="h-7 w-7"></i></span>
+      <h4 class="mt-4 font-semibold" x-text="filter==='wrong' ? 'Tidak ada jawaban salah!' : 'Tidak ada soal di filter ini'"></h4>
+      <p class="mt-1 text-sm text-slate-500">Pilih filter lain untuk melihat soal.</p>
+    </div>
+  </div>
+</main>
+
+<script>
+function review() {
+  const mine = loadAttempt(), exam = getExam();
+  const att = mine && mine.pkg.startsWith(exam) ? mine : DB.sampleAttempts[exam];
+  const pkg = DB.packages.find(p => p.id === att.pkg), A = att.answers;
+  const items = pkg.sections.flatMap(([sid]) => sectionItems(exam, sid).map((it, i) => {
+    const user = A[it.id], blank = !isAnswered(it, user);
+    return { ...it, user, blank, ok: it.kind === 'q' && !blank && isCorrect(it, user), secName: sectionMeta(exam, sid).short, label: (it.kind === 'q' ? 'Soal ' : 'Task ') + (i + 1) };
+  }));
+  return {
+    pkg, items, flags: att.flags || [], filter: ['all', 'wrong', 'flag'].includes(qs('filter')) ? qs('filter') : 'all', sec: 'all',
+    filters: [['all', 'Semua'], ['wrong', 'Salah'], ['flag', 'Ditandai']],
+    match(it, f) { return f === 'all' || (f === 'wrong' && it.kind === 'q' && !it.ok) || (f === 'flag' && this.flags.includes(it.id)); },
+    count(f) { return this.items.filter(it => (this.sec === 'all' || this.secOf(it) === this.sec) && this.match(it, f)).length; },
+    secOf: it => it.kind === 'writing' ? 'writing' : it.section,
+    get list() { return this.items.filter(it => (this.sec === 'all' || this.secOf(it) === this.sec) && this.match(it, this.filter)); },
+  };
+}
+</script>
+</body>
+</html>

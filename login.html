@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Masuk — EnglishOn</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com/3.4.16"></script>
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+<script src="data/dummy.js"></script>
+<script src="assets/app.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js"></script>
+</head>
+<body class="bg-white">
+<div class="grid min-h-screen lg:grid-cols-2" x-data="{ mode: qs('mode') === 'register' ? 'register' : 'login', show: false, loading: false, exam: activeExams()[0].key,
+  submit() { this.loading = true; if (this.mode === 'register') try { localStorage.setItem('exam', this.exam); } catch {} setTimeout(() => location.href = 'dashboard.html', 800); } }">
+
+  <!-- Panel brand -->
+  <div class="relative hidden overflow-hidden bg-gradient-to-br from-brand-600 via-brand-700 to-indigo-900 p-12 text-white lg:flex lg:flex-col">
+    <div class="absolute -right-24 -top-24 h-96 w-96 rounded-full bg-white/10"></div>
+    <div class="absolute -bottom-32 -left-16 h-80 w-80 rounded-full bg-ielts-500/20"></div>
+    <a href="index.html" class="relative flex items-center gap-2.5 text-lg font-bold"><span class="grid h-9 w-9 place-items-center rounded-xl bg-white text-brand-600"><i data-lucide="graduation-cap" class="h-5 w-5"></i></span>EnglishOn</a>
+    <div class="relative my-auto max-w-md">
+      <h2 class="text-4xl font-bold leading-tight">Persiapan TOEFL & IELTS bersama EnglishOn Ponorogo.</h2>
+      <p class="mt-4 text-brand-100">Materi per bab, bank soal dengan pembahasan, dan simulasi test seperti ujian asli. Speaking & Writing dibimbing langsung oleh tutor.</p>
+      <ul class="mt-8 space-y-3 text-sm text-brand-50">
+        <li class="flex items-center gap-3"><span class="grid h-8 w-8 place-items-center rounded-lg bg-white/15"><i data-lucide="gift" class="h-4 w-4"></i></span>1x simulasi test gratis untuk akun baru</li>
+        <li class="flex items-center gap-3"><span class="grid h-8 w-8 place-items-center rounded-lg bg-white/15"><i data-lucide="map-pin" class="h-4 w-4"></i></span><span x-text="DB.contact.address"></span></li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Form -->
+  <div class="flex flex-col px-4 py-8 sm:px-8">
+    <a href="index.html" class="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-900"><i data-lucide="arrow-left" class="h-4 w-4"></i> Kembali ke beranda</a>
+    <div class="mx-auto my-auto w-full max-w-sm py-10">
+      <h1 class="text-2xl font-bold tracking-tight" x-text="mode === 'login' ? 'Selamat datang kembali 👋' : 'Buat akun gratis'"></h1>
+      <p class="mt-2 text-sm text-slate-500" x-text="mode === 'login' ? 'Masuk untuk melanjutkan belajar.' : 'Daftar dan dapatkan 1x simulasi test gratis.'"></p>
+
+      <div class="mt-6 grid grid-cols-2 rounded-xl bg-slate-100 p-1 text-sm font-semibold">
+        <button @click="mode='login'" class="rounded-lg py-2 transition" :class="mode==='login' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500'">Masuk</button>
+        <button @click="mode='register'" class="rounded-lg py-2 transition" :class="mode==='register' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500'">Daftar</button>
+      </div>
+
+      <form @submit.prevent="submit()" class="mt-6 space-y-4">
+        <div x-show="mode==='register'" x-cloak>
+          <label class="mb-1.5 block text-sm font-medium">Nama lengkap</label>
+          <div class="relative"><i data-lucide="user" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"></i>
+            <input type="text" placeholder="Nama sesuai KTP" class="w-full rounded-xl border border-slate-200 py-2.5 pl-10 pr-3 text-sm outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-100"></div>
+        </div>
+        <div x-show="mode==='register'" x-cloak>
+          <label class="mb-1.5 block text-sm font-medium">No. WhatsApp</label>
+          <div class="relative"><i data-lucide="phone" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"></i>
+            <input type="tel" placeholder="08xx-xxxx-xxxx" class="w-full rounded-xl border border-slate-200 py-2.5 pl-10 pr-3 text-sm outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-100"></div>
+        </div>
+        <div>
+          <label class="mb-1.5 block text-sm font-medium">Email</label>
+          <div class="relative"><i data-lucide="mail" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"></i>
+            <input type="email" placeholder="nama@email.com" class="w-full rounded-xl border border-slate-200 py-2.5 pl-10 pr-3 text-sm outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-100"></div>
+        </div>
+        <div>
+          <div class="mb-1.5 flex justify-between"><label class="text-sm font-medium">Kata sandi</label><a href="#" x-show="mode==='login'" class="text-sm font-medium text-brand-600 hover:underline">Lupa?</a></div>
+          <div class="relative"><i data-lucide="lock" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"></i>
+            <input :type="show ? 'text' : 'password'" placeholder="Minimal 8 karakter" class="w-full rounded-xl border border-slate-200 py-2.5 pl-10 pr-10 text-sm outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-100">
+            <button type="button" @click="show=!show" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600" aria-label="Tampilkan sandi"><i data-lucide="eye" class="h-4 w-4"></i></button></div>
+        </div>
+        <div x-show="mode==='register'" x-cloak>
+          <label class="mb-1.5 block text-sm font-medium">Ujian yang dipersiapkan</label>
+          <div class="grid grid-cols-2 gap-2 text-sm">
+            <template x-for="e in Object.values(DB.exams)" :key="e.key">
+              <label class="flex items-center gap-2 rounded-xl border border-slate-200 p-3" :class="e.active ? 'cursor-pointer has-[:checked]:border-brand-600 has-[:checked]:bg-brand-50' : 'cursor-not-allowed opacity-50'">
+                <input type="radio" name="ex" :value="e.key" x-model="exam" :disabled="!e.active" class="accent-brand-600">
+                <span><span x-text="e.name"></span><span x-show="!e.active" class="block text-[11px] text-slate-500">Segera hadir</span></span>
+              </label>
+            </template>
+          </div>
+        </div>
+        <button type="submit" :disabled="loading" class="flex w-full items-center justify-center gap-2 rounded-xl bg-brand-600 py-3 text-sm font-semibold text-white shadow-sm shadow-brand-600/30 transition hover:bg-brand-700 disabled:opacity-70">
+          <svg x-show="loading" x-cloak class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-opacity=".3" stroke-width="4"/><path d="M22 12a10 10 0 0 0-10-10" stroke="currentColor" stroke-width="4"/></svg>
+          <span x-text="loading ? 'Memproses…' : (mode === 'login' ? 'Masuk' : 'Buat Akun')"></span>
+        </button>
+      </form>
+      <p class="mt-6 text-center text-sm text-slate-500">Butuh bantuan? <a :href="waLink('Halo EnglishOn, saya butuh bantuan untuk masuk ke akun.')" target="_blank" class="font-semibold text-brand-600 hover:underline">Hubungi EnglishOn</a></p>
+      <p class="mt-2 text-center text-xs text-slate-400">Mockup: tombol apa pun akan membawa ke dashboard demo.</p>
+    </div>
+  </div>
+</div>
+</body>
+</html>
