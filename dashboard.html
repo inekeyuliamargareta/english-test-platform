@@ -7,7 +7,6 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com/3.4.16"></script>
 <script src="https://cdn.jsdelivr.net/npm/lucide@0.460.0/dist/umd/lucide.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <script src="data/dummy.js"></script>
 <script src="assets/app.js"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js"></script>
@@ -56,8 +55,7 @@
       </div>
     </div>
 
-    <!-- Kuota simulasi & trial class -->
-    <div class="grid gap-4 md:grid-cols-2">
+    <!-- Kuota simulasi -->
       <div class="flex items-center gap-4 rounded-2xl border p-5 shadow-soft" :class="access.locked ? 'border-amber-200 bg-amber-50' : 'border-emerald-200 bg-emerald-50'">
         <span class="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-white shadow-sm" :class="access.locked ? 'text-amber-600' : 'text-emerald-600'" x-html="ico(access.locked ? 'lock' : 'gift', 'h-5 w-5')"></span>
         <div class="flex-1 text-sm">
@@ -67,12 +65,6 @@
         <a x-show="!access.locked" href="simulasi.html" class="shrink-0 rounded-xl bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-700">Mulai</a>
         <a x-show="access.locked" :href="waLink('Halo EnglishOn, saya ingin membuka akses penuh platform.')" target="_blank" class="shrink-0 rounded-xl bg-amber-500 px-3 py-2 text-xs font-semibold text-white hover:bg-amber-600">Hubungi</a>
       </div>
-      <a href="booking.html" class="group flex items-center gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-soft transition hover:border-accent/40">
-        <span class="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-accent-soft text-accent"><i data-lucide="calendar-check" class="h-5 w-5"></i></span>
-        <div class="flex-1 text-sm"><p class="font-semibold">Trial class Speaking gratis</p><p class="text-slate-600">Latihan Speaking & review Writing bersama tutor di EnglishOn Ponorogo.</p></div>
-        <i data-lucide="arrow-right" class="h-4 w-4 shrink-0 text-slate-400 transition group-hover:translate-x-1"></i>
-      </a>
-    </div>
 
     <div class="grid gap-6 lg:grid-cols-3">
       <!-- Lanjutkan belajar -->
@@ -108,16 +100,7 @@
       </div>
     </div>
 
-    <div class="grid gap-6 lg:grid-cols-3">
-      <!-- Grafik -->
-      <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-soft lg:col-span-2">
-        <div class="flex flex-wrap items-center justify-between gap-2">
-          <div><h3 class="font-semibold">Riwayat Skor Simulasi</h3><p class="text-sm text-slate-500" x-text="hist.length + ' simulasi terakhir · ' + E.name"></p></div>
-          <span class="inline-flex items-center gap-1.5 rounded-lg bg-slate-50 px-2.5 py-1 text-xs text-slate-500"><span class="h-0.5 w-4 border-t-2 border-dashed border-amber-500"></span>Target</span>
-        </div>
-        <div class="mt-4 h-64"><canvas id="histChart"></canvas></div>
-      </div>
-
+    <div class="grid gap-6 lg:grid-cols-2">
       <!-- Hasil terakhir -->
       <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-soft">
         <div class="flex items-center justify-between"><h3 class="font-semibold">Simulasi Terakhir</h3><span class="text-xs text-slate-400" x-text="new Date(att.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })"></span></div>
@@ -132,24 +115,6 @@
           </template>
         </div>
         <a href="hasil.html" class="mt-4 flex items-center justify-center gap-2 rounded-xl border border-slate-200 py-2.5 text-sm font-semibold transition hover:bg-slate-50">Lihat Hasil Lengkap <i data-lucide="arrow-right" class="h-4 w-4"></i></a>
-      </div>
-    </div>
-
-    <div class="grid gap-6 lg:grid-cols-2">
-      <!-- Rekomendasi -->
-      <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-soft">
-        <h3 class="flex items-center gap-2 font-semibold"><i data-lucide="lightbulb" class="h-5 w-5 text-amber-500"></i> Rekomendasi untukmu</h3>
-        <p class="mt-1 text-sm text-slate-500">Berdasarkan hasil simulasi terakhir.</p>
-        <div class="mt-4 space-y-3">
-          <template x-for="t in res.weak.slice(0, 3)" :key="t.topic">
-            <a :href="'materi-detail.html?id=' + t.chapter" class="group flex items-center gap-3 rounded-xl border border-slate-100 p-3 transition hover:border-accent/30 hover:bg-accent-soft">
-              <span class="grid h-10 w-10 place-items-center rounded-lg bg-rose-50 text-rose-600"><i data-lucide="alert-triangle" class="h-5 w-5"></i></span>
-              <div class="min-w-0 flex-1"><p class="text-sm font-medium">Perkuat <span x-text="t.topic"></span></p><p class="text-xs text-slate-500" x-text="t.section + ' · akurasi ' + Math.round(t.ratio * 100) + '%'"></p></div>
-              <i data-lucide="chevron-right" class="h-4 w-4 text-slate-400 transition group-hover:translate-x-1"></i>
-            </a>
-          </template>
-          <div x-show="!res.weak.length" class="rounded-xl bg-emerald-50 p-4 text-sm text-emerald-700">Mantap! Tidak ada topik lemah di simulasi terakhir.</div>
-        </div>
       </div>
       <!-- Aktivitas -->
       <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-soft">
@@ -174,36 +139,20 @@ function dash() {
   // hanya Full Test yang punya skor total untuk dibandingkan dengan riwayat
   const att = mine && mine.pkg === exam + '-full' ? mine : DB.sampleAttempts[exam];
   const res = scoreAttempt(att);
-  const chapters = DB.chapters.filter(c => c.exam === exam && !sectionMeta(exam, c.section).booking);
+  const chapters = DB.chapters.filter(c => c.exam === exam);
   const hist = [...DB.history[exam]], f = v => exam === 'ielts' ? Number(v).toFixed(1) : v;
   const last = res.total ?? res.sections[0].score, prev = hist.at(att === mine ? -1 : -2)[1];
-  if (att === mine && res.total) hist.push(['Terbaru', last]);
   return {
-    exam, E, att, res, chapters, hist, loading: true,
+    exam, E, att, res, chapters, loading: true,
     cont: chapters.find(c => c.status === 'progress') || chapters[0],
-    sections: E.sections.filter(s => !s.booking).map(s => {
+    sections: E.sections.map(s => {
       const cs = chapters.filter(c => c.section === s.id);
       return { ...s, total: cs.length, done: cs.filter(c => c.status === 'done').length, progress: Math.round(cs.reduce((a, c) => a + c.progress, 0) / (cs.length || 1)) };
     }),
     lastScore: f(last),
     delta: (last >= prev ? '+' : '') + f(+(last - prev).toFixed(1)),
     gap: last >= DB.user.target[exam] ? 'Target tercapai 🎉' : 'Kurang ' + f(+(DB.user.target[exam] - last).toFixed(1)) + ' lagi',
-    init() { setTimeout(() => { this.loading = false; this.$nextTick(() => this.drawChart()); }, 550); },
-    drawChart() {
-      const color = exam === 'ielts' ? '#9f1239' : '#2563eb';
-      const ctx = document.getElementById('histChart');
-      const grad = ctx.getContext('2d').createLinearGradient(0, 0, 0, 250);
-      grad.addColorStop(0, color + '33'); grad.addColorStop(1, color + '00');
-      new Chart(ctx, {
-        type: 'line',
-        data: { labels: hist.map(h => h[0]), datasets: [
-          { label: 'Skor', data: hist.map(h => h[1]), borderColor: color, backgroundColor: grad, fill: true, tension: .35, pointRadius: 4, pointBackgroundColor: '#fff', pointBorderWidth: 2 },
-          { label: 'Target', data: hist.map(() => DB.user.target[exam]), borderColor: '#f59e0b', borderDash: [6, 6], borderWidth: 2, pointRadius: 0 },
-        ] },
-        options: { maintainAspectRatio: false, plugins: { legend: { display: false } }, interaction: { intersect: false, mode: 'index' },
-          scales: { y: exam === 'ielts' ? { min: 4, max: 8, ticks: { stepSize: .5 } } : { min: 440, max: 580 }, x: { grid: { display: false } } } },
-      });
-    },
+    init() { setTimeout(() => this.loading = false, 550); },
   };
 }
 </script>

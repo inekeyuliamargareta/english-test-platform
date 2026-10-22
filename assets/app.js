@@ -28,9 +28,8 @@ const lockedHTML = (title = 'Simulasi gratis sudah terpakai') => `
     <span class="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-amber-100 text-amber-600"><i data-lucide="lock" class="h-8 w-8"></i></span>
     <h2 class="mt-5 text-xl font-bold sm:text-2xl">${title}</h2>
     <p class="mt-2 text-slate-500">Akun gratis mendapat <b>1x simulasi test</b>. Untuk membuka simulasi berikutnya dan fitur lainnya, datang ke kantor atau hubungi ${DB.contact.name}.</p>
-    <div class="mt-6 grid gap-3 sm:grid-cols-2">
+    <div class="mt-6">
       <a href="${waLink('Halo EnglishOn, saya ingin membuka akses penuh simulasi test di platform.')}" target="_blank" class="flex items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3 text-sm font-semibold text-white hover:bg-emerald-700"><i data-lucide="message-circle" class="h-4 w-4"></i>Hubungi via WhatsApp</a>
-      <a href="booking.html" class="flex items-center justify-center gap-2 rounded-xl border border-slate-200 py-3 text-sm font-semibold hover:bg-slate-50"><i data-lucide="calendar-check" class="h-4 w-4"></i>Booking Trial Class</a>
     </div>
     <div class="mt-5 flex items-start gap-3 rounded-xl bg-slate-50 p-4 text-left text-sm text-slate-600">
       <i data-lucide="map-pin" class="mt-0.5 h-4 w-4 shrink-0 text-slate-400"></i>
@@ -142,17 +141,11 @@ function loadAttempt() {
 }
 function scoreAttempt(att) {
   const pkg = DB.packages.find(p => p.id === att.pkg), exam = pkg.exam, A = att.answers || {};
-  const topics = {};
   const sections = pkg.sections.map(([id]) => {
     const meta = sectionMeta(exam, id), items = sectionItems(exam, id);
     // Writing tidak dinilai otomatis: menunggu penilaian tutor
     if (meta.tutor) return { id, meta, score: null, pending: true, detail: items.map(t => `${t.title}: ${words(A[t.id])} kata`).join(' · ') };
-    let correct = 0;
-    items.forEach(q => {
-      const ok = isCorrect(q, A[q.id]); if (ok) correct++;
-      const t = topics[q.topic] ||= { topic: q.topic, chapter: q.chapter, section: meta.short, correct: 0, total: 0 };
-      t.total++; if (ok) t.correct++;
-    });
+    const correct = items.filter(q => isCorrect(q, A[q.id])).length;
     const r = correct / items.length;
     const score = exam === 'toefl' ? Math.round(31 + r * (TOEFL_MAX[id] - 31)) : ieltsBand(r);
     return { id, meta, score, correct, total: items.length, ratio: r, detail: `${correct} dari ${items.length} benar` };
@@ -160,14 +153,13 @@ function scoreAttempt(att) {
   const scored = sections.filter(x => x.score !== null);
   let total = null;
   if (pkg.type === 'full') total = exam === 'toefl' ? Math.round(scored.reduce((s, x) => s + x.score, 0) * 10 / 3) : halfRound(scored.reduce((s, x) => s + x.score, 0) / scored.length);
-  const tl = Object.values(topics).map(t => ({ ...t, ratio: t.correct / t.total })).sort((a, b) => a.ratio - b.ratio);
-  return { pkg, exam, sections, total, topics: tl, weak: tl.filter(t => t.ratio < .6), strong: tl.filter(t => t.ratio === 1) };
+  return { pkg, exam, sections, total };
 }
 
 // ---------- Layout ----------
 const NAV = {
-  app: [['dashboard', 'Dashboard', 'layout-dashboard', 'dashboard.html'], ['materi', 'Materi', 'book-open', 'materi.html'], ['simulasi', 'Simulasi Test', 'timer', 'simulasi.html'], ['bank', 'Bank Soal', 'library', 'bank-soal.html'], ['hasil', 'Hasil & Review', 'bar-chart-3', 'hasil.html'], ['booking', 'Trial Class', 'calendar-check', 'booking.html']],
-  admin: [['ringkasan', 'Ringkasan', 'layout-dashboard', 'admin.html#ringkasan'], ['materi', 'Kelola Materi', 'book-open', 'admin.html#materi'], ['soal', 'Kelola Soal', 'file-question', 'admin.html#soal'], ['paket', 'Paket Test', 'package', 'admin.html#paket'], ['siswa', 'Siswa & Akses', 'users', 'admin.html#siswa'], ['booking', 'Booking Trial', 'calendar-check', 'admin.html#booking'], ['master', 'Master Test', 'layers', 'admin.html#master']],
+  app: [['dashboard', 'Dashboard', 'layout-dashboard', 'dashboard.html'], ['materi', 'Materi', 'book-open', 'materi.html'], ['simulasi', 'Simulasi Test', 'timer', 'simulasi.html'], ['hasil', 'Hasil & Review', 'bar-chart-3', 'hasil.html']],
+  admin: [['ringkasan', 'Ringkasan', 'layout-dashboard', 'admin.html#ringkasan'], ['materi', 'Kelola Materi', 'book-open', 'admin.html#materi'], ['soal', 'Kelola Soal', 'file-question', 'admin.html#soal'], ['siswa', 'Siswa & Akses', 'users', 'admin.html#siswa']],
 };
 const logo = (sub = '') => `<a href="dashboard.html" class="flex items-center gap-2.5 font-bold text-slate-900">
   <span class="grid h-9 w-9 place-items-center rounded-xl bg-brand-600 text-white shadow-sm"><i data-lucide="graduation-cap" class="h-5 w-5"></i></span>

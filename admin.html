@@ -17,7 +17,7 @@
   <!-- ================= RINGKASAN ================= -->
   <section x-show="tab==='ringkasan'" class="space-y-6">
     <div><h2 class="text-2xl font-bold tracking-tight">Ringkasan</h2><p class="text-sm text-slate-500">Kondisi platform per 21 Oktober 2026.</p></div>
-    <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <div class="grid gap-4 sm:grid-cols-2">
       <template x-for="s in stats" :key="s[0]">
         <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-soft">
           <div class="flex items-center justify-between"><p class="text-sm text-slate-500" x-text="s[0]"></p><span class="grid h-9 w-9 place-items-center rounded-xl" :class="s[3]"><i :data-lucide="s[2]" class="h-5 w-5"></i></span></div>
@@ -25,8 +25,7 @@
         </div>
       </template>
     </div>
-    <div class="grid gap-6 lg:grid-cols-3">
-      <div class="rounded-2xl border border-slate-200 bg-white shadow-soft lg:col-span-2">
+      <div class="rounded-2xl border border-slate-200 bg-white shadow-soft">
         <div class="flex items-center justify-between p-5"><h3 class="font-semibold">Hasil test terbaru</h3><a href="#siswa" class="text-sm font-medium text-brand-600 hover:underline">Semua siswa</a></div>
         <div class="overflow-x-auto"><table class="w-full text-sm">
           <thead class="bg-slate-50 text-left text-xs uppercase tracking-wider text-slate-500"><tr><th class="px-5 py-3">Siswa</th><th class="px-5 py-3">Ujian</th><th class="px-5 py-3">Skor</th><th class="px-5 py-3">Waktu</th></tr></thead>
@@ -36,15 +35,6 @@
             </template>
           </tbody></table></div>
       </div>
-      <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-soft">
-        <h3 class="font-semibold">Topik paling sulit</h3><p class="text-sm text-slate-500">Rata-rata akurasi semua siswa</p>
-        <div class="mt-4 space-y-4">
-          <template x-for="t in [['Inversion', 38], ['Subject-Verb Agreement', 46], ['True/False/Not Given', 52], ['Detail (Talks)', 57], ['Sentence Completion', 61]]">
-            <div><div class="mb-1 flex justify-between text-sm"><span x-text="t[0]"></span><b x-text="t[1] + '%'"></b></div><div class="h-2 rounded-full bg-slate-100"><div class="h-full rounded-full" :class="t[1] < 50 ? 'bg-rose-500' : 'bg-amber-500'" :style="'width:' + t[1] + '%'"></div></div></div>
-          </template>
-        </div>
-      </div>
-    </div>
   </section>
 
   <!-- ================= MATERI ================= -->
@@ -84,7 +74,7 @@
   <!-- ================= SOAL ================= -->
   <section x-show="tab==='soal'" x-cloak class="space-y-5">
     <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-      <div><h2 class="text-2xl font-bold tracking-tight">Kelola Soal</h2><p class="text-sm text-slate-500" x-text="questions.length + ' soal di bank soal'"></p></div>
+      <div><h2 class="text-2xl font-bold tracking-tight">Kelola Soal</h2><p class="text-sm text-slate-500" x-text="questions.length + ' soal terdaftar'"></p></div>
       <button @click="openQuestion()" class="inline-flex items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-brand-700"><i data-lucide="plus" class="h-4 w-4"></i>Tambah Soal</button>
     </div>
     <div class="flex flex-col gap-2 sm:flex-row">
@@ -113,29 +103,6 @@
       </table>
       <p x-show="!questionList.length" class="p-10 text-center text-sm text-slate-500">Tidak ada soal yang cocok.</p>
     </div></div>
-  </section>
-
-  <!-- ================= PAKET ================= -->
-  <section x-show="tab==='paket'" x-cloak class="space-y-5">
-    <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-      <div><h2 class="text-2xl font-bold tracking-tight">Paket Test</h2><p class="text-sm text-slate-500">Atur paket simulasi yang tampil di lobby siswa.</p></div>
-      <button @click="flash('Form paket baru akan tersedia di versi final')" class="inline-flex items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-brand-700"><i data-lucide="plus" class="h-4 w-4"></i>Buat Paket</button>
-    </div>
-    <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-      <template x-for="p in packages" :key="p.id">
-        <div class="flex flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-soft">
-          <div class="flex items-start justify-between gap-3">
-            <div><span class="rounded-md px-2 py-0.5 text-xs font-semibold text-white" :style="examStyle(p.exam)" x-text="DB.exams[p.exam].name"></span><h4 class="mt-2 font-semibold" x-text="p.name"></h4></div>
-            <button @click="p.off = !p.off; flash(p.name + (p.off ? ' dinonaktifkan' : ' diaktifkan'))" class="relative h-6 w-11 shrink-0 rounded-full transition" :class="p.off ? 'bg-slate-200' : 'bg-emerald-500'" :title="p.off ? 'Nonaktif' : 'Aktif'"><span class="absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all" :class="p.off ? 'left-0.5' : 'left-[22px]'"></span></button>
-          </div>
-          <div class="mt-4 flex flex-wrap gap-1.5"><template x-for="s in p.sections"><span class="rounded-lg bg-slate-100 px-2 py-1 text-xs text-slate-600" x-text="sectionMeta(p.exam, s[0]).short + ' · ' + s[1] + 'm'"></span></template></div>
-          <div class="mt-4 flex items-center justify-between border-t border-slate-100 pt-4 text-xs text-slate-500">
-            <span x-text="p.sections.reduce((a, s) => a + s[1], 0) + ' menit · ' + p.sections.reduce((a, s) => a + sectionItems(p.exam, s[0]).length, 0) + ' soal'"></span>
-            <span x-text="(p.id.length * 37 % 400 + 40) + ' peserta'"></span>
-          </div>
-        </div>
-      </template>
-    </div>
   </section>
 
   <!-- ================= SISWA ================= -->
@@ -168,97 +135,6 @@
       </table>
     </div></div>
   </section>
-
-  <!-- ================= BOOKING TRIAL ================= -->
-  <section x-show="tab==='booking'" x-cloak class="space-y-5">
-    <div><h2 class="text-2xl font-bold tracking-tight">Booking Trial Class</h2><p class="text-sm text-slate-500">Permintaan trial class dari siswa (Speaking, review Writing, strategi TOEFL).</p></div>
-    <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-soft"><div class="overflow-x-auto">
-      <table class="w-full text-sm">
-        <thead class="bg-slate-50 text-left text-xs uppercase tracking-wider text-slate-500"><tr><th class="px-5 py-3">Siswa</th><th class="px-5 py-3">Kelas</th><th class="px-5 py-3">Jadwal</th><th class="px-5 py-3">Tempat</th><th class="px-5 py-3">Status</th><th class="px-5 py-3"></th></tr></thead>
-        <tbody class="divide-y divide-slate-100">
-          <template x-for="b in bookings" :key="b.name + b.date">
-            <tr class="hover:bg-slate-50">
-              <td class="px-5 py-3"><p class="whitespace-nowrap font-medium" x-text="b.name"></p><p class="text-xs text-slate-500" x-text="b.wa"></p></td>
-              <td class="whitespace-nowrap px-5 py-3" x-text="DB.trialClasses.find(c => c.id === b.cls)?.title"></td>
-              <td class="whitespace-nowrap px-5 py-3" x-text="b.date + ', ' + b.slot"></td>
-              <td class="whitespace-nowrap px-5 py-3 text-slate-600" x-text="b.mode"></td>
-              <td class="px-5 py-3">
-                <select x-model="b.status" @change="flash('Status booking ' + b.name + ': ' + b.status)" class="rounded-lg border px-2 py-1 text-xs font-semibold outline-none" :class="{ baru: 'border-amber-200 bg-amber-50 text-amber-700', dikonfirmasi: 'border-brand-200 bg-brand-50 text-brand-700', selesai: 'border-emerald-200 bg-emerald-50 text-emerald-700' }[b.status]">
-                  <option value="baru">Baru</option><option value="dikonfirmasi">Dikonfirmasi</option><option value="selesai">Selesai</option>
-                </select>
-              </td>
-              <td class="px-5 py-3 text-right"><button @click="flash('Membuka WhatsApp ' + b.name + ' (mockup)')" class="inline-flex items-center gap-1 whitespace-nowrap text-xs font-semibold text-emerald-600 hover:underline"><i data-lucide="message-circle" class="h-3.5 w-3.5"></i>Chat</button></td>
-            </tr>
-          </template>
-        </tbody>
-      </table>
-    </div></div>
-  </section>
-
-  <!-- ================= MASTER TEST ================= -->
-  <section x-show="tab==='master'" x-cloak class="space-y-5">
-    <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-      <div><h2 class="text-2xl font-bold tracking-tight">Master Test</h2><p class="text-sm text-slate-500">Jenis ujian yang tersedia di platform. Ujian nonaktif tampil sebagai "Segera hadir" bagi siswa.</p></div>
-      <button @click="openExam()" class="inline-flex items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-brand-700"><i data-lucide="plus" class="h-4 w-4"></i>Tambah Jenis Ujian</button>
-    </div>
-    <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-      <template x-for="e in exams" :key="e.key">
-        <div class="flex flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-soft">
-          <div class="flex items-start gap-3">
-            <span class="grid h-11 w-11 shrink-0 place-items-center rounded-xl text-white" :style="'background-color: rgb(' + e.rgb + ')'"><i data-lucide="layers" class="h-5 w-5"></i></span>
-            <div class="min-w-0 flex-1"><h4 class="font-semibold" x-text="e.name"></h4><p class="text-xs text-slate-500" x-text="'Kode: ' + e.key + ' · Skala ' + e.scale"></p></div>
-            <button @click="e.active = !e.active; flash(e.name + (e.active ? ' diaktifkan' : ' dinonaktifkan') + ' (mockup)')" class="relative h-6 w-11 shrink-0 rounded-full transition" :class="e.active ? 'bg-emerald-500' : 'bg-slate-200'" :title="e.active ? 'Aktif' : 'Nonaktif'"><span class="absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all" :class="e.active ? 'left-[22px]' : 'left-0.5'"></span></button>
-          </div>
-          <div class="mt-4 space-y-1.5">
-            <template x-for="s in e.sections" :key="s.id">
-              <div class="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-sm">
-                <span x-text="s.name"></span>
-                <span class="rounded-md px-1.5 py-0.5 text-[11px] font-semibold" :class="s.booking ? 'bg-amber-100 text-amber-700' : s.tutor ? 'bg-violet-100 text-violet-700' : 'bg-white text-slate-500'" x-text="s.booking ? 'Trial class' : s.tutor ? 'Dinilai tutor' : 'Online'"></span>
-              </div>
-            </template>
-          </div>
-          <div class="mt-4 flex items-center justify-between border-t border-slate-100 pt-4 text-xs text-slate-500">
-            <span x-text="DB.packages.filter(p => p.exam === e.key).length + ' paket · ' + DB.questions.filter(q => q.exam === e.key).length + ' soal · ' + DB.chapters.filter(c => c.exam === e.key).length + ' bab'"></span>
-            <span class="rounded-full px-2 py-0.5 font-semibold" :class="e.active ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'" x-text="e.active ? 'Aktif' : 'Segera hadir'"></span>
-          </div>
-          <button @click="openExam(e)" class="mt-3 rounded-xl border border-slate-200 py-2 text-sm font-semibold hover:bg-slate-50">Edit</button>
-        </div>
-      </template>
-    </div>
-  </section>
-
-  <!-- ================= Modal form ujian ================= -->
-  <div x-show="eForm" x-cloak class="fixed inset-0 z-50 grid place-items-center p-4">
-    <div class="absolute inset-0 bg-slate-900/40" @click="eForm=null"></div>
-    <template x-if="eForm">
-      <form @submit.prevent="saveExam()" class="thin-scroll relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl">
-        <h3 class="text-lg font-bold" x-text="eForm.isNew ? 'Tambah Jenis Ujian' : 'Edit ' + eForm.name"></h3>
-        <div class="mt-5 space-y-4 text-sm">
-          <label class="block"><span class="mb-1.5 block font-medium">Nama ujian</span><input x-model="eForm.name" required placeholder="mis. English General Test" class="w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand-500"></label>
-          <div class="grid grid-cols-3 gap-3">
-            <label class="block"><span class="mb-1.5 block font-medium">Kode</span><input x-model="eForm.key" :disabled="!eForm.isNew" required placeholder="general" class="w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand-500 disabled:bg-slate-50"></label>
-            <label class="block"><span class="mb-1.5 block font-medium">Skala skor</span><input x-model="eForm.scale" placeholder="0–100" class="w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand-500"></label>
-            <label class="block"><span class="mb-1.5 block font-medium">Warna</span><input type="color" x-model="eForm.color" class="h-[42px] w-full cursor-pointer rounded-xl border border-slate-200 p-1"></label>
-          </div>
-          <div>
-            <span class="mb-1.5 block font-medium">Section</span>
-            <div class="space-y-2">
-              <template x-for="(s, i) in eForm.sections" :key="i">
-                <div class="flex gap-2">
-                  <input x-model="s.name" required placeholder="Nama section" class="min-w-0 flex-1 rounded-xl border border-slate-200 px-3 py-2 outline-none focus:border-brand-500">
-                  <select x-model="s.mode" class="rounded-xl border border-slate-200 px-2 py-2 text-xs"><option value="online">Online</option><option value="tutor">Dinilai tutor</option><option value="booking">Trial class</option></select>
-                  <button type="button" @click="eForm.sections.splice(i, 1)" class="rounded-lg px-2 text-slate-400 hover:bg-slate-100 hover:text-rose-500"><i data-lucide="x" class="h-4 w-4"></i></button>
-                </div>
-              </template>
-            </div>
-            <button type="button" @click="eForm.sections.push({ name: '', mode: 'online' })" class="mt-2 text-sm font-medium text-brand-600 hover:underline">+ Tambah section</button>
-          </div>
-          <label class="flex items-center gap-2"><input type="checkbox" x-model="eForm.active" class="h-4 w-4 accent-brand-600">Aktif (tampil untuk siswa)</label>
-        </div>
-        <div class="mt-6 flex justify-end gap-3"><button type="button" @click="eForm=null" class="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold hover:bg-slate-50">Batal</button><button class="rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-700">Simpan</button></div>
-      </form>
-    </template>
-  </div>
 
   <!-- ================= Slide-over form soal ================= -->
   <div x-show="qForm" x-cloak class="fixed inset-0 z-50">
@@ -396,19 +272,16 @@
 
 <script>
 function admin() {
-  const tabs = ['ringkasan', 'materi', 'soal', 'paket', 'siswa', 'booking', 'master'];
+  const tabs = ['ringkasan', 'materi', 'soal', 'siswa'];
   const fromHash = () => tabs.includes(location.hash.slice(1)) ? location.hash.slice(1) : 'ringkasan';
   return {
     tab: fromHash(), toast: '', del: null, qForm: null, cForm: null, student: null,
     mq: '', mexam: 'all', sq: '', sexam: 'all',
     chapters: DB.chapters.map(c => ({ ...c })), questions: DB.questions.map(q => ({ ...q })),
-    packages: DB.packages.map(p => ({ ...p, off: false })), bookings: DB.bookings, eForm: null,
     // baris akun demo (siswa yang sedang login) mengikuti status akses di browser ini
     students: DB.students.map(s => ({ ...s, full: s.email === DB.user.email ? access.full : s.full })),
-    exams: Object.values(DB.exams).map(e => ({ ...e, sections: e.sections.map(s => ({ ...s })) })),
     typeLabel: { mc: 'Pilihan ganda', error: 'Written expression', fill: 'Isian singkat' },
-    stats: [['Total siswa', '1.248', 'users', 'bg-brand-50 text-brand-600', '+86 bulan ini'], ['Soal di bank', '1.532', 'file-question', 'bg-violet-50 text-violet-600', '+124 bulan ini'],
-      ['Test dikerjakan', '4.917', 'timer', 'bg-amber-50 text-amber-600', '+612 minggu ini'], ['Rata-rata kenaikan', '+68', 'trending-up', 'bg-emerald-50 text-emerald-600', 'poin TOEFL ITP']],
+    stats: [['Jumlah siswa', '1.248', 'users', 'bg-brand-50 text-brand-600', '+86 bulan ini'], ['Jumlah soal', '1.532', 'file-question', 'bg-violet-50 text-violet-600', '+124 bulan ini']],
     get chapterList() { const k = this.mq.toLowerCase(); return this.chapters.filter(c => (this.mexam === 'all' || c.exam === this.mexam) && c.title.toLowerCase().includes(k)); },
     get questionList() { const k = this.sq.toLowerCase(); return this.questions.filter(q => (this.sexam === 'all' || q.exam === this.sexam) && (q.q + q.topic).toLowerCase().includes(k)); },
     fmtScore: s => s.last == null ? '—' : s.exam === 'ielts' ? s.last.toFixed(1) : s.last,
@@ -428,18 +301,6 @@ function admin() {
       s.full = !s.full;
       if (s.email === DB.user.email) try { s.full ? localStorage.setItem('fullAccess', '1') : localStorage.removeItem('fullAccess'); } catch {}
       this.flash(s.name + (s.full ? ': akses penuh dibuka' : ': kembali ke akun gratis'));
-    },
-    openExam(e) {
-      const hex = rgb => '#' + rgb.split(' ').map(n => (+n).toString(16).padStart(2, '0')).join('');
-      this.eForm = e ? { ...e, isNew: false, color: hex(e.rgb), sections: e.sections.map(s => ({ name: s.name, mode: s.booking ? 'booking' : s.tutor ? 'tutor' : 'online' })) }
-        : { isNew: true, key: '', name: '', scale: '0–100', color: '#7c3aed', active: false, sections: [{ name: 'Grammar', mode: 'online' }, { name: 'Speaking', mode: 'booking' }] };
-    },
-    saveExam() {
-      const f = this.eForm, rgb = [1, 3, 5].map(i => parseInt(f.color.slice(i, i + 2), 16)).join(' ');
-      const data = { key: f.key.trim().toLowerCase(), name: f.name, scale: f.scale, active: f.active, rgb,
-        sections: f.sections.map(s => ({ id: s.name.toLowerCase().replace(/\W+/g, '-'), name: s.name, booking: s.mode === 'booking', tutor: s.mode === 'tutor' })) };
-      if (f.isNew) this.exams.push(data); else Object.assign(this.exams.find(e => e.key === f.key), data);
-      this.flash('Ujian "' + f.name + '" tersimpan (mockup)'); this.eForm = null;
     },
     flash(msg) { this.toast = msg; clearTimeout(this._t); this._t = setTimeout(() => this.toast = '', 2500); },
     askDelete(list, obj, label) { this.del = { list, obj, label }; },

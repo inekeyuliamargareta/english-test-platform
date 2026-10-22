@@ -11,9 +11,8 @@ const DB = {
     hours: 'Senin–Sabtu, 08.00–20.00 WIB',
   },
 
-  // Master ujian. Tambah ujian baru cukup di sini (atau lewat Admin → Master Test).
+  // Master ujian. Tambah ujian baru cukup di sini.
   // rgb = warna aksen ujian; active=false → tampil "Segera hadir" untuk siswa.
-  // Section dengan booking:true tidak diujikan online, siswa diarahkan booking trial class.
   exams: {
     toefl: {
       key: 'toefl', name: 'TOEFL ITP', full: 'TOEFL ITP (Institutional Testing Program)', active: true, rgb: '37 99 235', rgbDark: '29 78 216', rgbSoft: '239 246 255', scale: '310–677',
@@ -29,7 +28,6 @@ const DB = {
         { id: 'listening', name: 'Listening', short: 'Listening', icon: 'headphones', official: '40 soal · 30 menit' },
         { id: 'reading', name: 'Reading', short: 'Reading', icon: 'book-open', official: '40 soal · 60 menit' },
         { id: 'writing', name: 'Writing', short: 'Writing', icon: 'pen-line', official: '2 task · 60 menit', tutor: true },
-        { id: 'speaking', name: 'Speaking', short: 'Speaking', icon: 'mic', official: '3 part · 11–14 menit', booking: true },
       ],
     },
     general: {
@@ -38,17 +36,9 @@ const DB = {
         { id: 'grammar', name: 'Grammar & Vocabulary', short: 'Grammar', icon: 'spell-check', official: '30 soal · 25 menit' },
         { id: 'reading', name: 'Reading', short: 'Reading', icon: 'book-open', official: '20 soal · 30 menit' },
         { id: 'listening', name: 'Listening', short: 'Listening', icon: 'headphones', official: '20 soal · 20 menit' },
-        { id: 'speaking', name: 'Speaking', short: 'Speaking', icon: 'mic', official: 'Wawancara tutor', booking: true },
       ],
     },
   },
-
-  trialClasses: [
-    { id: 'speaking', title: 'Speaking (IELTS / Umum)', icon: 'mic', desc: 'Latihan Part 1–3 langsung dengan tutor, termasuk feedback pronunciation & fluency.' },
-    { id: 'writing', title: 'Writing Review', icon: 'pen-line', desc: 'Essay Task 1 & 2 dinilai tutor dengan rubrik resmi IELTS.' },
-    { id: 'toefl', title: 'Strategi TOEFL ITP', icon: 'target', desc: 'Kelas intensif strategi Listening, Structure, dan Reading.' },
-  ],
-  trialSlots: ['09.00', '13.00', '16.00', '19.00'],
 
   // ---------- MATERI ----------
   chapters: [
@@ -258,24 +248,6 @@ const DB = {
             <tr><td>Conclusion</td><td>Ulangi posisi dengan kata berbeda</td></tr></tbody></table>` },
       ],
     },
-    {
-      id: 'i-sp-p1', exam: 'ielts', section: 'speaking', title: 'Part 1 & 3: Answer Extension',
-      desc: 'Menjawab dengan alasan dan contoh, bukan satu kata.',
-      status: 'done', progress: 100, minutes: 15,
-      subs: [
-        { title: 'Rumus A-R-E', html: `<p><b>A</b>nswer → <b>R</b>eason → <b>E</b>xample.</p>
-          <div class="c-ex">"Do you like reading?" → "Yes, I do. <i>I mostly read novels because they help me relax</i>, for example, I just finished a mystery by Agatha Christie."</div>` },
-      ],
-    },
-    {
-      id: 'i-sp-p2', exam: 'ielts', section: 'speaking', title: 'Part 2: Cue Card',
-      desc: 'Memanfaatkan 1 menit persiapan untuk bicara lancar 2 menit.',
-      status: 'new', progress: 0, minutes: 20,
-      subs: [
-        { title: 'Persiapan 1 Menit', html: `<p>Tulis <b>kata kunci</b>, bukan kalimat lengkap. Buat 1 poin untuk tiap bullet di cue card ditambah satu cerita pribadi.</p>
-          <div class="c-tip">Gunakan past tense dengan konsisten jika cue card meminta pengalaman.</div>` },
-      ],
-    },
   ],
 
   // ---------- PASSAGE & AUDIO ----------
@@ -435,23 +407,6 @@ const DB = {
     { id: 'i-w5', exam: 'ielts', section: 'writing', chapter: 'i-wr-t2', topic: 'Task Response', difficulty: 'sedang', type: 'mc',
       q: '"Some people think university education should be free for everyone. To what extent do you agree?" Which is the strongest thesis statement?', options: ['There are many opinions about university education.', 'I completely agree that university should be free, as it widens access to opportunity and benefits the economy as a whole.', 'University is expensive in some countries and cheap in others.', 'This essay will talk about university.'], answer: 1,
       explain: 'Thesis yang kuat menyatakan <b>posisi yang jelas</b> (completely agree) dan <b>alasan utama</b> yang akan dikembangkan di body paragraph.' },
-
-    // IELTS Speaking (latihan strategi)
-    { id: 'i-sp1', exam: 'ielts', section: 'speaking', chapter: 'i-sp-p1', topic: 'Part 1 Answers', difficulty: 'mudah', type: 'mc',
-      q: 'Examiner: "Do you like reading?" Which answer is most suitable?', options: ['Yes.', 'Yes, I do. I mostly read novels because they help me relax after a long day.', 'Reading is an activity that people do with books.', 'No comment.'], answer: 1,
-      explain: 'Gunakan pola <b>Answer + Reason (+ Example)</b>. Jawaban satu kata menurunkan skor Fluency.' },
-    { id: 'i-sp2', exam: 'ielts', section: 'speaking', chapter: 'i-sp-p2', topic: 'Test Format', difficulty: 'mudah', type: 'mc',
-      q: 'In Speaking Part 2, how much time do you have to prepare before speaking?', options: ['30 seconds', '1 minute', '2 minutes', 'No preparation time'], answer: 1,
-      explain: 'Kandidat mendapat <b>1 menit</b> persiapan (boleh mencatat), lalu berbicara hingga <b>2 menit</b>.' },
-    { id: 'i-sp3', exam: 'ielts', section: 'speaking', chapter: 'i-sp-p2', topic: 'Fluency Strategies', difficulty: 'sedang', type: 'mc',
-      q: 'You forget the word "microwave" while speaking. What is the best strategy?', options: ['Stop and stay silent until you remember.', 'Say the word in your first language.', 'Paraphrase: "the machine we use to heat food quickly".', 'Ask the examiner for the word.'], answer: 2,
-      explain: '<b>Parafrase</b> menjaga kelancaran dan menunjukkan kemampuan Lexical Resource. Diam lama menurunkan skor Fluency.' },
-    { id: 'i-sp4', exam: 'ielts', section: 'speaking', chapter: 'i-sp-p1', topic: 'Part 3 Answers', difficulty: 'sedang', type: 'mc',
-      q: 'Part 3: "Why do some people prefer living in big cities?" Which response is strongest?', options: ['Because cities are big.', 'I live in a city.', 'Mainly for career opportunities. Big cities attract companies, so young graduates often move there. That said, the cost of living can be a serious drawback.', 'I don\'t know, maybe they like it.'], answer: 2,
-      explain: 'Part 3 menilai kemampuan berargumen: <b>alasan + penjelasan + sudut pandang lain</b> ("That said…").' },
-    { id: 'i-sp5', exam: 'ielts', section: 'speaking', chapter: 'i-sp-p1', topic: 'Fluency Strategies', difficulty: 'mudah', type: 'mc',
-      q: 'Which is the most natural way to buy time when you need to think?', options: ['Ummm… ummm… ummm…', 'That\'s an interesting question. Let me think about it for a second.', 'Next question, please.', 'I can\'t answer that.'], answer: 1,
-      explain: 'Ungkapan pengisi yang alami (<b>"That\'s an interesting question…"</b>) memberi waktu berpikir tanpa terdengar ragu.' },
   ],
 
   writingTasks: [
@@ -472,7 +427,7 @@ const DB = {
     { id: 'toefl-structure', exam: 'toefl', name: 'Structure Only', type: 'section', desc: 'Sentence completion dan error identification.', sections: [['structure', 25]] },
     { id: 'toefl-reading', exam: 'toefl', name: 'Reading Only', type: 'section', desc: 'Passage akademik dengan soal main idea, vocabulary, dan inference.', sections: [['reading', 55]] },
     { id: 'toefl-kilat', exam: 'toefl', name: 'Tes Kilat 4 Menit', type: 'section', badge: 'Demo', desc: 'Latihan singkat Structure untuk pemanasan (timer pendek).', sections: [['structure', 4]] },
-    { id: 'ielts-full', exam: 'ielts', name: 'Full Test IELTS Academic', type: 'full', badge: 'Paling populer', desc: 'Listening, Reading, dan Writing dalam satu sesi. Speaking dilakukan bersama tutor.',
+    { id: 'ielts-full', exam: 'ielts', name: 'Full Test IELTS Academic', type: 'full', badge: 'Paling populer', desc: 'Listening, Reading, dan Writing dalam satu sesi.',
       sections: [['listening', 30], ['reading', 60], ['writing', 60]] },
     { id: 'ielts-listening', exam: 'ielts', name: 'Listening Only', type: 'section', desc: 'Form completion dan multiple choice.', sections: [['listening', 30]] },
     { id: 'ielts-reading', exam: 'ielts', name: 'Reading Only', type: 'section', desc: 'True/False/Not Given, matching, dan sentence completion.', sections: [['reading', 60]] },
@@ -481,7 +436,7 @@ const DB = {
 
   rules: {
     toefl: ['Setiap section memiliki timer sendiri. Saat waktu habis, jawaban otomatis tersimpan dan berlanjut ke section berikutnya.', 'Audio Listening hanya dapat diputar <b>satu kali</b>.', 'Kamu bisa menandai soal ragu-ragu dan kembali sebelum section berakhir.', 'Tidak ada pengurangan nilai untuk jawaban salah, jadi jawab semua soal.'],
-    ielts: ['Listening: audio diputar satu kali. Ejaan yang salah dianggap salah.', 'Writing: Task 1 minimal 150 kata, Task 2 minimal 250 kata. Jawaban dinilai tutor EnglishOn.', 'Speaking tidak diujikan online. Booking trial class untuk tes Speaking bersama tutor.'],
+    ielts: ['Listening: audio diputar satu kali. Ejaan yang salah dianggap salah.', 'Writing: Task 1 minimal 150 kata, Task 2 minimal 250 kata. Jawaban dinilai tutor EnglishOn.'],
   },
 
   // ---------- RIWAYAT & HASIL ----------
@@ -513,13 +468,7 @@ const DB = {
     { icon: 'check-circle', text: 'Menyelesaikan bab <b>Main Idea & Detail Questions</b>', time: '2 jam lalu' },
     { icon: 'timer', text: 'Simulasi <b>Full Test TOEFL ITP</b> — skor 537', time: '6 Okt' },
     { icon: 'book-open', text: 'Membuka bab <b>Subject-Verb Agreement</b>', time: '5 Okt' },
-    { icon: 'flag', text: 'Menandai 3 soal di Bank Soal untuk diulang', time: '3 Okt' },
-  ],
-
-  testimonials: [
-    { name: 'Dimas Pratama', role: 'Mahasiswa S2', score: 'TOEFL ITP 487 → 573', text: 'Pembahasan per soal dalam bahasa Indonesia bikin saya akhirnya paham kenapa jawaban saya salah, bukan cuma tahu kuncinya.' },
-    { name: 'Nadia Putri', role: 'Pejuang beasiswa', score: 'IELTS 6.0 → 7.0', text: 'Simulasi Reading dan Listening dengan timer terasa seperti ujian sungguhan. Saya jadi tidak kaget di hari tes.' },
-    { name: 'Andreas Wijaya', role: 'Karyawan swasta', score: 'TOEFL ITP 450 → 527', text: 'Analisis kelemahan per topik membantu saya fokus. Ternyata masalah utama saya di inversion dan parallel structure.' },
+    { icon: 'flag', text: 'Menandai 2 soal ragu-ragu saat simulasi', time: '3 Okt' },
   ],
 
   // full = akses penuh (dibuka admin setelah siswa datang ke kantor / menghubungi EnglishOn)
@@ -532,11 +481,5 @@ const DB = {
     { name: 'Bagus Setiawan', email: 'bagus.s@email.com', exam: 'toefl', last: 480, progress: 25, tests: 1, joined: '20 Agu 2026', full: false },
     { name: 'Clara Wibisono', email: 'clara.w@email.com', exam: 'ielts', last: 6.5, progress: 73, tests: 5, joined: '14 Jun 2026', full: true },
     { name: 'Fajar Nugroho', email: 'fajar.n@email.com', exam: 'toefl', last: null, progress: 8, tests: 0, joined: '15 Okt 2026', full: false },
-  ],
-
-  bookings: [
-    { name: 'Siti Rahmawati', wa: '0813-xxxx-2210', cls: 'speaking', date: '24 Okt 2026', slot: '16.00', mode: 'Offline (kantor)', status: 'baru' },
-    { name: 'Bagus Setiawan', wa: '0857-xxxx-9031', cls: 'toefl', date: '25 Okt 2026', slot: '09.00', mode: 'Online (Zoom)', status: 'dikonfirmasi' },
-    { name: 'Clara Wibisono', wa: '0812-xxxx-4478', cls: 'writing', date: '26 Okt 2026', slot: '19.00', mode: 'Online (Zoom)', status: 'dikonfirmasi' },
   ],
 };
