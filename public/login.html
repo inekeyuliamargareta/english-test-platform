@@ -7,13 +7,10 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com/3.4.16"></script>
 <script src="https://cdn.jsdelivr.net/npm/lucide@0.460.0/dist/umd/lucide.min.js"></script>
-<script src="data/dummy.js"></script>
 <script src="assets/app.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js"></script>
 </head>
 <body class="bg-white">
-<div class="grid min-h-screen lg:grid-cols-2" x-data="{ mode: qs('mode') === 'register' ? 'register' : 'login', show: false, loading: false, exam: activeExams()[0].key,
-  submit() { this.loading = true; if (this.mode === 'register') try { localStorage.setItem('exam', this.exam); } catch {} setTimeout(() => location.href = 'dashboard.html', 800); } }">
+<div class="grid min-h-screen lg:grid-cols-2" x-data="login()">
 
   <!-- Panel brand -->
   <div class="relative hidden overflow-hidden bg-gradient-to-br from-brand-600 via-brand-700 to-indigo-900 p-12 text-white lg:flex lg:flex-col">
@@ -46,22 +43,22 @@
         <div x-show="mode==='register'" x-cloak>
           <label class="mb-1.5 block text-sm font-medium">Nama lengkap</label>
           <div class="relative"><i data-lucide="user" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"></i>
-            <input type="text" placeholder="Nama sesuai KTP" class="w-full rounded-xl border border-slate-200 py-2.5 pl-10 pr-3 text-sm outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-100"></div>
+            <input x-model="f.name" :required="mode==='register'" type="text" autocomplete="name" placeholder="Nama sesuai KTP" class="w-full rounded-xl border border-slate-200 py-2.5 pl-10 pr-3 text-sm outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-100"></div>
         </div>
         <div x-show="mode==='register'" x-cloak>
           <label class="mb-1.5 block text-sm font-medium">No. WhatsApp</label>
           <div class="relative"><i data-lucide="phone" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"></i>
-            <input type="tel" placeholder="08xx-xxxx-xxxx" class="w-full rounded-xl border border-slate-200 py-2.5 pl-10 pr-3 text-sm outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-100"></div>
+            <input x-model="f.phone" type="tel" autocomplete="tel" placeholder="08xx-xxxx-xxxx" class="w-full rounded-xl border border-slate-200 py-2.5 pl-10 pr-3 text-sm outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-100"></div>
         </div>
         <div>
           <label class="mb-1.5 block text-sm font-medium">Email</label>
           <div class="relative"><i data-lucide="mail" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"></i>
-            <input type="email" placeholder="nama@email.com" class="w-full rounded-xl border border-slate-200 py-2.5 pl-10 pr-3 text-sm outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-100"></div>
+            <input x-model="f.email" required type="email" autocomplete="email" placeholder="nama@email.com" class="w-full rounded-xl border border-slate-200 py-2.5 pl-10 pr-3 text-sm outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-100"></div>
         </div>
         <div>
-          <div class="mb-1.5 flex justify-between"><label class="text-sm font-medium">Kata sandi</label><a href="#" x-show="mode==='login'" class="text-sm font-medium text-brand-600 hover:underline">Lupa?</a></div>
+          <div class="mb-1.5 flex justify-between"><label class="text-sm font-medium">Kata sandi</label><a :href="waLink('Halo EnglishOn, saya lupa kata sandi akun platform.')" target="_blank" x-show="mode==='login'" class="text-sm font-medium text-brand-600 hover:underline">Lupa?</a></div>
           <div class="relative"><i data-lucide="lock" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"></i>
-            <input :type="show ? 'text' : 'password'" placeholder="Minimal 8 karakter" class="w-full rounded-xl border border-slate-200 py-2.5 pl-10 pr-10 text-sm outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-100">
+            <input x-model="f.password" required :minlength="mode==='register' ? 8 : null" :type="show ? 'text' : 'password'" :autocomplete="mode==='login' ? 'current-password' : 'new-password'" placeholder="Minimal 8 karakter" class="w-full rounded-xl border border-slate-200 py-2.5 pl-10 pr-10 text-sm outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-100">
             <button type="button" @click="show=!show" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600" aria-label="Tampilkan sandi"><i data-lucide="eye" class="h-4 w-4"></i></button></div>
         </div>
         <div x-show="mode==='register'" x-cloak>
@@ -69,21 +66,40 @@
           <div class="grid grid-cols-2 gap-2 text-sm">
             <template x-for="e in Object.values(DB.exams)" :key="e.key">
               <label class="flex items-center gap-2 rounded-xl border border-slate-200 p-3" :class="e.active ? 'cursor-pointer has-[:checked]:border-brand-600 has-[:checked]:bg-brand-50' : 'cursor-not-allowed opacity-50'">
-                <input type="radio" name="ex" :value="e.key" x-model="exam" :disabled="!e.active" class="accent-brand-600">
+                <input type="radio" name="ex" :value="e.key" x-model="f.exam" :disabled="!e.active" class="accent-brand-600">
                 <span><span x-text="e.name"></span><span x-show="!e.active" class="block text-[11px] text-slate-500">Segera hadir</span></span>
               </label>
             </template>
           </div>
         </div>
+        <p x-show="error" x-cloak class="rounded-xl bg-rose-50 px-3 py-2.5 text-sm text-rose-700" x-text="error"></p>
         <button type="submit" :disabled="loading" class="flex w-full items-center justify-center gap-2 rounded-xl bg-brand-600 py-3 text-sm font-semibold text-white shadow-sm shadow-brand-600/30 transition hover:bg-brand-700 disabled:opacity-70">
           <svg x-show="loading" x-cloak class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-opacity=".3" stroke-width="4"/><path d="M22 12a10 10 0 0 0-10-10" stroke="currentColor" stroke-width="4"/></svg>
           <span x-text="loading ? 'Memproses…' : (mode === 'login' ? 'Masuk' : 'Buat Akun')"></span>
         </button>
       </form>
       <p class="mt-6 text-center text-sm text-slate-500">Butuh bantuan? <a :href="waLink('Halo EnglishOn, saya butuh bantuan untuk masuk ke akun.')" target="_blank" class="font-semibold text-brand-600 hover:underline">Hubungi EnglishOn</a></p>
-      <p class="mt-2 text-center text-xs text-slate-400">Mockup: tombol apa pun akan membawa ke dashboard demo.</p>
     </div>
   </div>
 </div>
+<script>
+function login() {
+  return {
+    mode: qs('mode') === 'register' ? 'register' : 'login', show: false, loading: false, error: '',
+    f: { name: '', phone: '', email: '', password: '', exam: activeExams()[0].key },
+    init() { if (DB.user) location.replace(DB.user.role === 'admin' ? 'admin.html' : 'dashboard.html'); this.$watch('mode', () => this.error = ''); },
+    async submit() {
+      this.loading = true; this.error = '';
+      try {
+        const { token: t } = await api('POST', '/auth/' + this.mode, this.f);
+        localStorage.setItem('token', t);
+        if (this.mode === 'register') localStorage.setItem('exam', this.f.exam);
+        const { user } = await api('GET', '/bootstrap');
+        location.href = user.role === 'admin' ? 'admin.html' : 'dashboard.html';
+      } catch (e) { this.error = e.message; this.loading = false; }
+    },
+  };
+}
+</script>
 </body>
 </html>

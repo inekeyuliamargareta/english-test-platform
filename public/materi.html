@@ -7,9 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com/3.4.16"></script>
 <script src="https://cdn.jsdelivr.net/npm/lucide@0.460.0/dist/umd/lucide.min.js"></script>
-<script src="data/dummy.js"></script>
 <script src="assets/app.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js"></script>
 </head>
 <body data-shell="app" data-active="materi" data-title="Materi">
 <main x-data="materi()">
@@ -98,14 +96,14 @@ function materi() {
   const all = DB.chapters.filter(c => c.exam === exam).map(c => ({ ...c, nq: DB.questions.filter(q => q.chapter === c.id).length }));
   return {
     E, all, sec: qs('section') || 'all', st: 'all', q: '', loading: true,
-    overall: Math.round(all.reduce((a, c) => a + c.progress, 0) / all.length),
+    overall: Math.round(all.reduce((a, c) => a + c.progress, 0) / (all.length || 1)),
     get groups() {
       const k = this.q.toLowerCase();
       return E.sections.filter(s => this.sec === 'all' || s.id === this.sec)
         .map(s => ({ ...s, items: all.filter(c => c.section === s.id && (this.st === 'all' || c.status === this.st) && (c.title + c.desc).toLowerCase().includes(k)) }))
         .filter(s => s.items.length);
     },
-    init() { setTimeout(() => this.loading = false, 450); },
+    init() { this.loading = false; },
   };
 }
 </script>

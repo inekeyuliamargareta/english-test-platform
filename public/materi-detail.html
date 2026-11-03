@@ -7,9 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com/3.4.16"></script>
 <script src="https://cdn.jsdelivr.net/npm/lucide@0.460.0/dist/umd/lucide.min.js"></script>
-<script src="data/dummy.js"></script>
 <script src="assets/app.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js"></script>
 </head>
 <body data-shell="app" data-active="materi" data-title="Materi">
 <main x-data="detail()">
@@ -72,7 +70,7 @@
           <div><h3 class="text-lg font-bold">Latihan Soal</h3><p class="text-sm text-slate-500">Pilih jawaban, pembahasan langsung muncul.</p></div>
           <div class="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm shadow-sm">
             <span>Benar <b class="text-emerald-600" x-text="score"></b> / <span x-text="items.length"></span></span>
-            <button x-show="Object.keys(ans).length" @click="ans={}; fill={}" class="flex items-center gap-1 text-slate-500 hover:text-slate-900"><i data-lucide="rotate-ccw" class="h-3.5 w-3.5"></i>Ulangi</button>
+            <button x-show="Object.keys(ans).length" @click="ans={}; fill={}; res={}" class="flex items-center gap-1 text-slate-500 hover:text-slate-900"><i data-lucide="rotate-ccw" class="h-3.5 w-3.5"></i>Ulangi</button>
           </div>
         </div>
 
@@ -80,7 +78,7 @@
 
         <div class="space-y-4">
           <template x-for="(q, n) in items" :key="q.id">
-            <div class="rounded-2xl border bg-white p-5 shadow-soft transition sm:p-6" :class="q.id in ans ? (isCorrect(q, ans[q.id]) ? 'border-emerald-200' : 'border-rose-200') : 'border-slate-200'">
+            <div class="rounded-2xl border bg-white p-5 shadow-soft transition sm:p-6" :class="res[q.id] ? (res[q.id].correct ? 'border-emerald-200' : 'border-rose-200') : 'border-slate-200'">
               <div class="flex flex-wrap items-center gap-2 text-xs">
                 <span class="rounded-md bg-slate-900 px-2 py-0.5 font-semibold text-white" x-text="'Soal ' + (n+1)"></span>
                 <span class="rounded-md bg-slate-100 px-2 py-0.5 text-slate-600" x-text="q.topic"></span>
@@ -106,34 +104,34 @@
               <!-- Pilihan ganda -->
               <div x-show="q.type !== 'fill'" class="mt-4 grid gap-2">
                 <template x-for="(o, j) in (q.options || [])" :key="j">
-                  <button @click="if (!(q.id in ans)) ans[q.id] = j" :disabled="q.id in ans"
+                  <button @click="check(q, j)" :disabled="q.id in ans"
                     class="flex items-center gap-3 rounded-xl border-2 px-4 py-3 text-left text-sm transition"
-                    :class="!(q.id in ans) ? 'border-slate-200 hover:border-accent/50 hover:bg-accent-soft' : j===q.answer ? 'border-emerald-500 bg-emerald-50 text-emerald-900' : j===ans[q.id] ? 'border-rose-500 bg-rose-50 text-rose-900' : 'border-slate-100 text-slate-400'">
+                    :class="!(q.id in ans) ? 'border-slate-200 hover:border-accent/50 hover:bg-accent-soft' : j===res[q.id]?.answer ? 'border-emerald-500 bg-emerald-50 text-emerald-900' : j===ans[q.id] ? 'border-rose-500 bg-rose-50 text-rose-900' : 'border-slate-100 text-slate-400'">
                     <span class="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-xs font-bold"
-                      :class="!(q.id in ans) ? 'bg-slate-100 text-slate-600' : j===q.answer ? 'bg-emerald-500 text-white' : j===ans[q.id] ? 'bg-rose-500 text-white' : 'bg-slate-100'" x-text="L(j)"></span>
+                      :class="!(q.id in ans) ? 'bg-slate-100 text-slate-600' : j===res[q.id]?.answer ? 'bg-emerald-500 text-white' : j===ans[q.id] ? 'bg-rose-500 text-white' : 'bg-slate-100'" x-text="L(j)"></span>
                     <span x-text="o"></span>
                   </button>
                 </template>
               </div>
               <!-- Isian -->
-              <form x-show="q.type === 'fill'" @submit.prevent="if ((fill[q.id]||'').trim()) ans[q.id] = fill[q.id]" class="mt-4 flex gap-2">
+              <form x-show="q.type === 'fill'" @submit.prevent="if ((fill[q.id]||'').trim()) check(q, fill[q.id])" class="mt-4 flex gap-2">
                 <input x-model="fill[q.id]" :disabled="q.id in ans" placeholder="Ketik jawaban…" class="w-full max-w-xs rounded-xl border-2 border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-accent disabled:bg-slate-50">
                 <button x-show="!(q.id in ans)" class="rounded-xl bg-accent px-4 text-sm font-semibold text-white hover:bg-accent-dark">Cek</button>
               </form>
 
               <!-- Feedback -->
-              <div x-show="q.id in ans" x-transition class="mt-4 rounded-xl p-4 text-sm" :class="isCorrect(q, ans[q.id]) ? 'bg-emerald-50 text-emerald-900' : 'bg-rose-50 text-rose-900'">
+              <div x-show="res[q.id]" x-transition class="mt-4 rounded-xl p-4 text-sm" :class="res[q.id]?.correct ? 'bg-emerald-50 text-emerald-900' : 'bg-rose-50 text-rose-900'">
                 <p class="flex items-center gap-2 font-semibold">
-                  <span x-text="isCorrect(q, ans[q.id]) ? '✅ Benar!' : '❌ Kurang tepat.'"></span>
-                  <span x-show="!isCorrect(q, ans[q.id])" class="font-normal" x-text="'Jawaban benar: ' + correctText(q)"></span>
+                  <span x-text="res[q.id]?.correct ? '✅ Benar!' : '❌ Kurang tepat.'"></span>
+                  <span x-show="res[q.id] && !res[q.id].correct" class="font-normal" x-text="'Jawaban benar: ' + (res[q.id] ? correctText({ ...q, answer: res[q.id].answer }) : '')"></span>
                 </p>
-                <p class="mt-2 leading-relaxed text-slate-700"><b>Pembahasan:</b> <span x-html="q.explain"></span></p>
+                <p class="mt-2 leading-relaxed text-slate-700"><b>Pembahasan:</b> <span x-html="res[q.id]?.explain"></span></p>
               </div>
             </div>
           </template>
         </div>
 
-        <div x-show="items.length && Object.keys(ans).length === items.length" x-transition class="mt-6 flex flex-col items-center gap-3 rounded-2xl bg-gradient-to-br from-accent to-accent-dark p-6 text-center text-white sm:flex-row sm:text-left">
+        <div x-show="items.length && Object.keys(res).length === items.length" x-transition class="mt-6 flex flex-col items-center gap-3 rounded-2xl bg-gradient-to-br from-accent to-accent-dark p-6 text-center text-white sm:flex-row sm:text-left">
           <span class="text-4xl">🎉</span>
           <div class="flex-1"><p class="text-lg font-bold">Latihan selesai! Skor kamu <span x-text="score + '/' + items.length"></span></p><p class="text-sm text-white/80">Lanjut ke bab berikutnya atau uji dengan simulasi test.</p></div>
           <a :href="next ? 'materi-detail.html?id=' + next.id : 'simulasi.html'" class="rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-accent" x-text="next ? 'Bab berikutnya →' : 'Ke Simulasi →'"></a>
@@ -146,18 +144,28 @@
 <script>
 function detail() {
   const c = chapterById(qs('id')) || DB.chapters.find(x => x.exam === getExam());
+  if (!c) { location.replace('materi.html'); return {}; }
   if (c.exam !== getExam()) document.documentElement.dataset.exam = c.exam;
   const same = DB.chapters.filter(x => x.exam === c.exam && x.section === c.section);
   const list = DB.chapters.filter(x => x.exam === c.exam);
   document.title = c.title + ' — EnglishOn';
   return {
-    c, sec: sectionMeta(c.exam, c.section), cur: 0, seen: [0], ans: {}, fill: {},
+    c, sec: sectionMeta(c.exam, c.section), cur: 0, seen: [0], ans: {}, fill: {}, res: {},
     items: DB.questions.filter(q => q.chapter === c.id),
     others: same.filter(x => x.id !== c.id),
     next: list[list.indexOf(c) + 1],
-    get score() { return this.items.filter(q => q.id in this.ans && isCorrect(q, this.ans[q.id])).length; },
-    get progress() { return Math.round(this.seen.length / this.c.subs.length * 70 + Object.keys(this.ans).length / (this.items.length || 1) * 30); },
-    go(i) { if (i < 0 || i >= c.subs.length) return; this.cur = i; if (!this.seen.includes(i)) this.seen.push(i); window.scrollTo({ top: 0, behavior: 'smooth' }); },
+    get score() { return Object.values(this.res).filter(r => r.correct).length; },
+    // 70% dari sub-bab yang dibaca + 30% dari latihan yang dijawab; tidak pernah turun dari progres tersimpan
+    get progress() { return Math.max(c.progress || 0, Math.round(this.seen.length / this.c.subs.length * 70 + Object.keys(this.res).length / (this.items.length || 1) * 30)); },
+    init() { this.save(); },
+    save() { if (this.progress > (this._saved ?? -1)) { this._saved = this.progress; api('PUT', '/progress/' + c.id, { progress: this.progress }).catch(() => {}); } },
+    go(i) { if (i < 0 || i >= c.subs.length) return; this.cur = i; if (!this.seen.includes(i)) this.seen.push(i); this.save(); window.scrollTo({ top: 0, behavior: 'smooth' }); },
+    async check(q, a) {
+      if (q.id in this.ans) return;
+      this.ans[q.id] = a;
+      try { this.res[q.id] = await api('POST', '/questions/' + q.id + '/check', { answer: a }); this.save(); }
+      catch (e) { delete this.ans[q.id]; alert(e.message); }
+    },
   };
 }
 </script>

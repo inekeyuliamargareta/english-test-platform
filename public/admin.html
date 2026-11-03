@@ -7,16 +7,14 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com/3.4.16"></script>
 <script src="https://cdn.jsdelivr.net/npm/lucide@0.460.0/dist/umd/lucide.min.js"></script>
-<script src="data/dummy.js"></script>
 <script src="assets/app.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js"></script>
 </head>
 <body data-shell="admin" data-active="ringkasan" data-title="Panel Admin">
 <main x-data="admin()">
 
   <!-- ================= RINGKASAN ================= -->
   <section x-show="tab==='ringkasan'" class="space-y-6">
-    <div><h2 class="text-2xl font-bold tracking-tight">Ringkasan</h2><p class="text-sm text-slate-500">Kondisi platform per 21 Oktober 2026.</p></div>
+    <div><h2 class="text-2xl font-bold tracking-tight">Ringkasan</h2><p class="text-sm text-slate-500" x-text="'Kondisi platform per ' + new Date().toLocaleDateString('id-ID', { dateStyle: 'long' }) + '.'"></p></div>
     <div class="grid gap-4 sm:grid-cols-2">
       <template x-for="s in stats" :key="s[0]">
         <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-soft">
@@ -30,10 +28,11 @@
         <div class="overflow-x-auto"><table class="w-full text-sm">
           <thead class="bg-slate-50 text-left text-xs uppercase tracking-wider text-slate-500"><tr><th class="px-5 py-3">Siswa</th><th class="px-5 py-3">Ujian</th><th class="px-5 py-3">Skor</th><th class="px-5 py-3">Waktu</th></tr></thead>
           <tbody class="divide-y divide-slate-100">
-            <template x-for="(s, i) in students.filter(s => s.last).slice(0, 5)" :key="s.email">
-              <tr class="hover:bg-slate-50"><td class="whitespace-nowrap px-5 py-3 font-medium" x-text="s.name"></td><td class="px-5 py-3"><span class="rounded-md px-2 py-0.5 text-xs font-semibold text-white" :style="examStyle(s.exam)" x-text="s.exam.toUpperCase()"></span></td><td class="px-5 py-3 font-semibold" x-text="fmtScore(s)"></td><td class="whitespace-nowrap px-5 py-3 text-slate-500" x-text="(i+1)*3 + ' jam lalu'"></td></tr>
+            <template x-for="r in recent" :key="r.id">
+              <tr class="hover:bg-slate-50"><td class="whitespace-nowrap px-5 py-3 font-medium" x-text="r.name"></td><td class="px-5 py-3"><span class="rounded-md px-2 py-0.5 text-xs font-semibold text-white" :style="examStyle(r.exam)" x-text="r.exam.toUpperCase()"></span></td><td class="px-5 py-3 font-semibold" x-text="fmtScore(r.score, r.exam)"></td><td class="whitespace-nowrap px-5 py-3 text-slate-500" x-text="ago(r.date)"></td></tr>
             </template>
-          </tbody></table></div>
+          </tbody></table>
+          <p x-show="!recent.length" class="p-8 text-center text-sm text-slate-500" x-text="loadingStudents ? 'Memuat…' : 'Belum ada siswa yang mengerjakan simulasi.'"></p></div>
       </div>
   </section>
 
@@ -109,17 +108,17 @@
   <section x-show="tab==='siswa'" x-cloak class="space-y-5">
     <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
       <div><h2 class="text-2xl font-bold tracking-tight">Siswa & Akses</h2><p class="text-sm text-slate-500">Akun baru mendapat 1x simulasi gratis. Buka <b>akses penuh</b> setelah siswa datang ke kantor atau menghubungi EnglishOn.</p></div>
-      <button @click="flash('Data siswa diekspor (mockup)')" class="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold hover:bg-slate-50"><i data-lucide="download" class="h-4 w-4"></i>Ekspor CSV</button>
+      <button @click="exportCsv()" class="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold hover:bg-slate-50"><i data-lucide="download" class="h-4 w-4"></i>Ekspor CSV</button>
     </div>
     <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-soft"><div class="overflow-x-auto">
       <table class="w-full text-sm">
         <thead class="bg-slate-50 text-left text-xs uppercase tracking-wider text-slate-500"><tr><th class="px-5 py-3">Siswa</th><th class="px-5 py-3">Ujian</th><th class="px-5 py-3">Skor terakhir</th><th class="px-5 py-3">Progres materi</th><th class="px-5 py-3 text-center">Test</th><th class="px-5 py-3">Akses</th><th class="px-5 py-3"></th></tr></thead>
         <tbody class="divide-y divide-slate-100">
-          <template x-for="s in students" :key="s.email">
+          <template x-for="s in students" :key="s.id">
             <tr class="hover:bg-slate-50">
               <td class="px-5 py-3"><div class="flex items-center gap-3"><span class="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-slate-100 text-xs font-semibold text-slate-600" x-text="s.name.split(' ').map(w => w[0]).join('')"></span><div><p class="whitespace-nowrap font-medium" x-text="s.name"></p><p class="text-xs text-slate-500" x-text="s.email"></p></div></div></td>
-              <td class="px-5 py-3"><span class="rounded-md px-2 py-0.5 text-xs font-semibold text-white" :style="examStyle(s.exam)" x-text="s.exam.toUpperCase()"></span></td>
-              <td class="px-5 py-3 font-semibold" x-text="fmtScore(s)"></td>
+              <td class="px-5 py-3"><span class="rounded-md px-2 py-0.5 text-xs font-semibold text-white" :style="examStyle(s.exam)" x-text="(s.exam || '-').toUpperCase()"></span></td>
+              <td class="px-5 py-3 font-semibold" x-text="fmtScore(s.last, s.lastExam)"></td>
               <td class="px-5 py-3"><div class="flex items-center gap-2"><div class="h-1.5 w-24 rounded-full bg-slate-100"><div class="h-full rounded-full bg-brand-600" :style="'width:' + s.progress + '%'"></div></div><span class="text-xs text-slate-500" x-text="s.progress + '%'"></span></div></td>
               <td class="px-5 py-3 text-center" x-text="s.tests"></td>
               <td class="px-5 py-3">
@@ -133,6 +132,7 @@
           </template>
         </tbody>
       </table>
+      <p x-show="!students.length" class="p-10 text-center text-sm text-slate-500" x-text="loadingStudents ? 'Memuat data siswa…' : 'Belum ada siswa terdaftar.'"></p>
     </div></div>
   </section>
 
@@ -148,7 +148,7 @@
           <div class="flex items-start gap-3">
             <span class="grid h-11 w-11 shrink-0 place-items-center rounded-xl text-white" :style="'background-color: rgb(' + e.rgb + ')'"><i data-lucide="layers" class="h-5 w-5"></i></span>
             <div class="min-w-0 flex-1"><h4 class="font-semibold" x-text="e.name"></h4><p class="text-xs text-slate-500" x-text="'Kode: ' + e.key + ' · Skala ' + e.scale"></p></div>
-            <button @click="e.active = !e.active; flash(e.name + (e.active ? ' diaktifkan' : ' dinonaktifkan') + ' (mockup)')" class="relative h-6 w-11 shrink-0 rounded-full transition" :class="e.active ? 'bg-emerald-500' : 'bg-slate-200'" :title="e.active ? 'Aktif' : 'Nonaktif'"><span class="absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all" :class="e.active ? 'left-[22px]' : 'left-0.5'"></span></button>
+            <button @click="toggleExam(e)" class="relative h-6 w-11 shrink-0 rounded-full transition" :class="e.active ? 'bg-emerald-500' : 'bg-slate-200'" :title="e.active ? 'Aktif' : 'Nonaktif'"><span class="absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all" :class="e.active ? 'left-[22px]' : 'left-0.5'"></span></button>
           </div>
           <div class="mt-4 space-y-1.5">
             <template x-for="s in e.sections" :key="s.id">
@@ -159,7 +159,7 @@
             </template>
           </div>
           <div class="mt-4 flex items-center justify-between border-t border-slate-100 pt-4 text-xs text-slate-500">
-            <span x-text="DB.packages.filter(p => p.exam === e.key).length + ' paket · ' + DB.questions.filter(q => q.exam === e.key).length + ' soal · ' + DB.chapters.filter(c => c.exam === e.key).length + ' bab'"></span>
+            <span x-text="DB.packages.filter(p => p.exam === e.key).length + ' paket · ' + questions.filter(q => q.exam === e.key).length + ' soal · ' + chapters.filter(c => c.exam === e.key).length + ' bab'"></span>
             <span class="rounded-full px-2 py-0.5 font-semibold" :class="e.active ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'" x-text="e.active ? 'Aktif' : 'Segera hadir'"></span>
           </div>
           <button @click="openExam(e)" class="mt-3 rounded-xl border border-slate-200 py-2 text-sm font-semibold hover:bg-slate-50">Edit</button>
@@ -169,9 +169,9 @@
   </section>
 
   <!-- ================= Modal form ujian ================= -->
-  <div x-show="eForm" x-cloak class="fixed inset-0 z-50 grid place-items-center p-4">
-    <div class="absolute inset-0 bg-slate-900/40" @click="eForm=null"></div>
-    <template x-if="eForm">
+  <div x-show="open==='e'" x-cloak class="fixed inset-0 z-50 grid place-items-center p-4">
+    <div class="absolute inset-0 bg-slate-900/40" @click="open=''"></div>
+    <template x-if="open==='e'">
       <form @submit.prevent="saveExam()" class="thin-scroll relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl">
         <h3 class="text-lg font-bold" x-text="eForm.isNew ? 'Tambah Jenis Ujian' : 'Edit ' + eForm.name"></h3>
         <div class="mt-5 space-y-4 text-sm">
@@ -196,19 +196,19 @@
           </div>
           <label class="flex items-center gap-2"><input type="checkbox" x-model="eForm.active" class="h-4 w-4 accent-brand-600">Aktif (tampil untuk siswa)</label>
         </div>
-        <div class="mt-6 flex justify-end gap-3"><button type="button" @click="eForm=null" class="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold hover:bg-slate-50">Batal</button><button class="rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-700">Simpan</button></div>
+        <div class="mt-6 flex justify-end gap-3"><button type="button" @click="open=''" class="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold hover:bg-slate-50">Batal</button><button class="rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-700">Simpan</button></div>
       </form>
     </template>
   </div>
 
   <!-- ================= Slide-over form soal ================= -->
-  <div x-show="qForm" x-cloak class="fixed inset-0 z-50">
-    <div x-show="qForm" x-transition.opacity class="absolute inset-0 bg-slate-900/40" @click="qForm=null"></div>
-    <div x-show="qForm" x-transition:enter="transition duration-200" x-transition:enter-start="translate-x-full" x-transition:leave="transition duration-150" x-transition:leave-end="translate-x-full"
+  <div x-show="open==='q'" x-cloak class="fixed inset-0 z-50">
+    <div x-show="open==='q'" x-transition.opacity class="absolute inset-0 bg-slate-900/40" @click="open=''"></div>
+    <div x-show="open==='q'" x-transition:enter="transition duration-200" x-transition:enter-start="translate-x-full" x-transition:leave="transition duration-150" x-transition:leave-end="translate-x-full"
       class="absolute inset-y-0 right-0 flex w-full max-w-2xl flex-col bg-white shadow-2xl">
-      <template x-if="qForm">
+      <template x-if="open==='q'">
         <form @submit.prevent="saveQuestion()" class="flex h-full flex-col">
-          <div class="flex items-center justify-between border-b border-slate-200 px-6 py-4"><h3 class="text-lg font-bold" x-text="qForm.isNew ? 'Tambah Soal' : 'Edit Soal ' + qForm.id.toUpperCase()"></h3><button type="button" @click="qForm=null" class="rounded-lg p-1.5 hover:bg-slate-100"><i data-lucide="x" class="h-5 w-5"></i></button></div>
+          <div class="flex items-center justify-between border-b border-slate-200 px-6 py-4"><h3 class="text-lg font-bold" x-text="qForm.isNew ? 'Tambah Soal' : 'Edit Soal ' + qForm.id.toUpperCase()"></h3><button type="button" @click="open=''" class="rounded-lg p-1.5 hover:bg-slate-100"><i data-lucide="x" class="h-5 w-5"></i></button></div>
           <div class="thin-scroll flex-1 space-y-5 overflow-y-auto px-6 py-5">
             <div class="grid gap-4 sm:grid-cols-2">
               <label class="block text-sm"><span class="mb-1.5 block font-medium">Tipe soal</span>
@@ -221,7 +221,9 @@
                 <select x-model="qForm.difficulty" class="w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand-500"><option value="mudah">Mudah</option><option value="sedang">Sedang</option><option value="sulit">Sulit</option></select></label>
               <label class="block text-sm sm:col-span-2"><span class="mb-1.5 block font-medium">Topik</span>
                 <input x-model="qForm.topic" list="topics" required placeholder="mis. Subject-Verb Agreement" class="w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand-500">
-                <datalist id="topics"><template x-for="t in [...new Set(DB.questions.map(q => q.topic))]"><option :value="t"></option></template></datalist></label>
+                <datalist id="topics"><template x-for="t in [...new Set(questions.map(q => q.topic).filter(Boolean))]"><option :value="t"></option></template></datalist></label>
+              <label class="block text-sm sm:col-span-2"><span class="mb-1.5 block font-medium">Bab materi <span class="font-normal text-slate-500">· soal tampil sebagai latihan di akhir bab ini</span></span>
+                <select x-model="qForm.chapter" class="w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand-500"><option value="">— Tidak dipakai di latihan bab —</option><template x-for="c in chapters.filter(c => c.exam === qForm.exam && c.section === qForm.section)" :key="c.id"><option :value="c.id" x-text="c.title" :selected="c.id === qForm.chapter"></option></template></select></label>
             </div>
 
             <div x-show="qForm.section==='reading'" class="text-sm">
@@ -230,7 +232,8 @@
                 <option value="">— Tanpa passage / passage baru —</option>
                 <template x-for="(p, id) in DB.passages" :key="id"><option :value="id" x-text="p.title" :selected="id===qForm.passage"></option></template>
               </select>
-              <textarea x-show="!qForm.passage" rows="5" placeholder="Tempel teks passage baru di sini…" class="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand-500"></textarea>
+              <input x-show="!qForm.passage" x-model="qForm.newPassageTitle" placeholder="Judul passage baru" class="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand-500">
+              <textarea x-show="!qForm.passage" x-model="qForm.newPassage" rows="5" placeholder="Tempel teks passage baru di sini (pisahkan paragraf dengan baris kosong)…" class="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand-500"></textarea>
             </div>
 
             <div x-show="qForm.section==='listening'" class="text-sm">
@@ -238,10 +241,11 @@
               <label class="flex cursor-pointer flex-col items-center rounded-xl border-2 border-dashed border-slate-300 px-4 py-6 text-center transition hover:border-brand-500 hover:bg-brand-50">
                 <i data-lucide="upload-cloud" class="h-8 w-8 text-slate-400"></i>
                 <span class="mt-2 font-medium" x-text="qForm.audioName || 'Klik untuk unggah MP3 / WAV'"></span>
-                <span class="text-xs text-slate-500" x-text="qForm.clip ? 'Saat ini: ' + (DB.clips[qForm.clip]?.title || qForm.clip) : 'Maks. 20 MB'"></span>
-                <input type="file" accept="audio/*" class="hidden" @change="qForm.audioName = $event.target.files[0]?.name">
+                <span class="text-xs text-slate-500" x-text="qForm.clip ? 'Saat ini: ' + (DB.clips[qForm.clip]?.title || qForm.clip) + (DB.clips[qForm.clip]?.audio ? ' (file audio)' : ' (belum ada file, dibacakan suara browser)') : 'MP3 / WAV / M4A · maks. 25 MB'"></span>
+                <input type="file" accept="audio/mpeg,audio/wav,audio/mp4,audio/x-m4a,audio/ogg" class="hidden" @change="qForm.audioFile = $event.target.files[0]; qForm.audioName = qForm.audioFile?.name">
               </label>
-              <textarea rows="3" placeholder="Transkrip audio (opsional, untuk pembahasan)…" class="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand-500" x-text="qForm.clip ? (DB.clips[qForm.clip]?.lines || []).map(l => l[0] + ': ' + l[1]).join('\n') : ''"></textarea>
+              <textarea x-model="qForm.transcript" rows="4" placeholder="Transkrip, satu baris per pembicara. Contoh:&#10;W: Did you finish the report?&#10;M: I wish I had." class="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand-500"></textarea>
+              <p class="mt-1 text-xs text-slate-500">Transkrip tampil di pembahasan. Soal lain yang memakai audio yang sama ikut berubah.</p>
             </div>
 
             <label class="block text-sm"><span class="mb-1.5 block font-medium">Pertanyaan</span>
@@ -269,8 +273,8 @@
               <textarea x-model="qForm.explain" rows="4" placeholder="Jelaskan mengapa jawaban tersebut benar…" class="w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand-500"></textarea></label>
           </div>
           <div class="flex justify-end gap-3 border-t border-slate-200 px-6 py-4">
-            <button type="button" @click="qForm=null" class="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold hover:bg-slate-50">Batal</button>
-            <button class="rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-700">Simpan Soal</button>
+            <button type="button" @click="open=''" class="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold hover:bg-slate-50">Batal</button>
+            <button :disabled="saving" class="rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60" x-text="saving ? 'Menyimpan…' : 'Simpan Soal'"></button>
           </div>
         </form>
       </template>
@@ -278,10 +282,10 @@
   </div>
 
   <!-- ================= Modal form bab ================= -->
-  <div x-show="cForm" x-cloak class="fixed inset-0 z-50 grid place-items-center p-4">
-    <div class="absolute inset-0 bg-slate-900/40" @click="cForm=null"></div>
-    <template x-if="cForm">
-      <form @submit.prevent="saveChapter()" class="relative w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl">
+  <div x-show="open==='c'" x-cloak class="fixed inset-0 z-50 grid place-items-center p-4">
+    <div class="absolute inset-0 bg-slate-900/40" @click="open=''"></div>
+    <template x-if="open==='c'">
+      <form @submit.prevent="saveChapter()" class="thin-scroll relative max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl">
         <h3 class="text-lg font-bold" x-text="cForm.isNew ? 'Tambah Bab' : 'Edit Bab'"></h3>
         <div class="mt-5 space-y-4 text-sm">
           <label class="block"><span class="mb-1.5 block font-medium">Judul bab</span><input x-model="cForm.title" required class="w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand-500"></label>
@@ -290,10 +294,23 @@
             <label class="block"><span class="mb-1.5 block font-medium">Section</span><select x-model="cForm.section" class="w-full rounded-xl border border-slate-200 px-3 py-2.5"><template x-for="s in DB.exams[cForm.exam].sections" :key="s.id"><option :value="s.id" x-text="s.short" :selected="s.id===cForm.section"></option></template></select></label>
           </div>
           <label class="block"><span class="mb-1.5 block font-medium">Deskripsi singkat</span><textarea x-model="cForm.desc" rows="2" class="w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand-500"></textarea></label>
-          <label class="block"><span class="mb-1.5 block font-medium">Konten sub-bab pertama</span><textarea rows="4" placeholder="Teks materi, contoh, tips…" class="w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand-500" x-text="cForm.subs?.[0]?.html.replace(/<[^>]+>/g, '').trim() || ''"></textarea></label>
+          <label class="block"><span class="mb-1.5 block font-medium">Durasi belajar (menit)</span><input type="number" min="1" x-model.number="cForm.minutes" class="w-32 rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand-500"></label>
+          <div>
+            <span class="mb-1.5 block font-medium">Sub-bab <span class="font-normal text-slate-500">· konten boleh berisi HTML (tabel, &lt;b&gt;, kotak tips class="c-tip")</span></span>
+            <div class="space-y-3">
+              <template x-for="(sb, i) in cForm.subs" :key="i">
+                <div class="rounded-xl border border-slate-200 p-3">
+                  <div class="flex gap-2"><input x-model="sb.title" required :placeholder="'Judul sub-bab ' + (i + 1)" class="min-w-0 flex-1 rounded-lg border border-slate-200 px-3 py-2 outline-none focus:border-brand-500">
+                    <button type="button" x-show="cForm.subs.length > 1" @click="cForm.subs.splice(i, 1)" class="rounded-lg px-2 text-slate-400 hover:bg-slate-100 hover:text-rose-500" title="Hapus sub-bab"><i data-lucide="x" class="h-4 w-4"></i></button></div>
+                  <textarea x-model="sb.html" rows="5" placeholder="Teks materi, contoh, tips…" class="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 font-mono text-xs outline-none focus:border-brand-500"></textarea>
+                </div>
+              </template>
+            </div>
+            <button type="button" @click="cForm.subs.push({ title: '', html: '' })" class="mt-2 text-sm font-medium text-brand-600 hover:underline">+ Tambah sub-bab</button>
+          </div>
           <label class="flex items-center gap-2"><input type="checkbox" x-model="cForm.draft" class="h-4 w-4 accent-brand-600">Simpan sebagai draft</label>
         </div>
-        <div class="mt-6 flex justify-end gap-3"><button type="button" @click="cForm=null" class="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold hover:bg-slate-50">Batal</button><button class="rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-700">Simpan</button></div>
+        <div class="mt-6 flex justify-end gap-3"><button type="button" @click="open=''" class="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold hover:bg-slate-50">Batal</button><button class="rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-700">Simpan</button></div>
       </form>
     </template>
   </div>
@@ -304,7 +321,7 @@
     <div class="relative w-full max-w-sm rounded-3xl bg-white p-6 text-center shadow-2xl">
       <span class="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-rose-100 text-rose-600"><i data-lucide="trash-2" class="h-6 w-6"></i></span>
       <h3 class="mt-4 text-lg font-bold">Hapus data ini?</h3>
-      <p class="mt-1 text-sm text-slate-500"><b x-text="del?.label"></b> akan dihapus dari tampilan (mockup, tidak permanen).</p>
+      <p class="mt-1 text-sm text-slate-500"><b x-text="del?.label"></b> akan dihapus permanen.</p>
       <div class="mt-6 grid grid-cols-2 gap-3"><button @click="del=null" class="rounded-xl border border-slate-200 py-2.5 text-sm font-semibold hover:bg-slate-50">Batal</button><button @click="confirmDelete()" class="rounded-xl bg-rose-600 py-2.5 text-sm font-semibold text-white hover:bg-rose-700">Hapus</button></div>
     </div>
   </div>
@@ -318,16 +335,16 @@
         <div><h3 class="text-lg font-bold" x-text="student?.name"></h3><p class="text-sm text-slate-500" x-text="student?.email"></p></div>
       </div>
       <div class="mt-5 grid grid-cols-3 gap-2 text-center">
-        <div class="rounded-xl bg-slate-50 p-3"><p class="text-lg font-bold" x-text="student ? fmtScore(student) : ''"></p><p class="text-xs text-slate-500">Skor terakhir</p></div>
+        <div class="rounded-xl bg-slate-50 p-3"><p class="text-lg font-bold" x-text="student ? fmtScore(student.last, student.lastExam) : ''"></p><p class="text-xs text-slate-500">Skor terakhir</p></div>
         <div class="rounded-xl bg-slate-50 p-3"><p class="text-lg font-bold" x-text="student?.tests"></p><p class="text-xs text-slate-500">Test</p></div>
         <div class="rounded-xl bg-slate-50 p-3"><p class="text-lg font-bold" x-text="student?.progress + '%'"></p><p class="text-xs text-slate-500">Materi</p></div>
       </div>
       <h4 class="mt-5 text-sm font-semibold">Riwayat skor</h4>
       <div class="mt-2 space-y-1.5 text-sm">
-        <template x-for="h in (student && student.tests ? DB.history[student.exam].slice(-4).reverse() : [])"><div class="flex justify-between rounded-lg px-3 py-2 odd:bg-slate-50"><span class="text-slate-500" x-text="h[0] + ' 2026'"></span><b x-text="student.exam==='ielts' ? h[1].toFixed(1) : h[1]"></b></div></template>
+        <template x-for="h in (student?.history || [])" :key="h.id"><div class="flex justify-between gap-3 rounded-lg px-3 py-2 odd:bg-slate-50"><span class="text-slate-500" x-text="new Date(h.date).toLocaleDateString('id-ID', { dateStyle: 'medium' }) + ' · ' + (DB.packages.find(p => p.id === h.pkg)?.name || h.pkg)"></span><b x-text="fmtScore(h.score, h.exam)"></b></div></template>
         <p x-show="student && !student.tests" class="rounded-lg bg-slate-50 p-3 text-slate-500">Belum pernah mengerjakan simulasi.</p>
       </div>
-      <p class="mt-4 text-xs text-slate-400" x-text="'Bergabung ' + student?.joined"></p>
+      <p class="mt-4 text-xs text-slate-400" x-text="student ? 'Bergabung ' + new Date(student.joined).toLocaleDateString('id-ID', { dateStyle: 'long' }) + (student.phone ? ' · WA ' + student.phone : '') : ''"></p>
       <button @click="student=null" class="mt-5 w-full rounded-xl bg-slate-900 py-2.5 text-sm font-semibold text-white hover:bg-slate-800">Tutup</button>
     </div>
   </div>
@@ -339,18 +356,18 @@
 function admin() {
   const tabs = ['ringkasan', 'materi', 'soal', 'siswa', 'master'];
   const fromHash = () => tabs.includes(location.hash.slice(1)) ? location.hash.slice(1) : 'ringkasan';
+  const newId = p => p + '-' + Date.now().toString(36);
+  const firstExam = () => Object.values(DB.exams).find(e => e.active) || Object.values(DB.exams)[0];
   return {
-    tab: fromHash(), toast: '', del: null, qForm: null, cForm: null, student: null,
+    tab: fromHash(), toast: '', del: null, qForm: {}, cForm: {}, eForm: {}, open: '', student: null, saving: false,
     mq: '', mexam: 'all', sq: '', sexam: 'all',
-    chapters: DB.chapters.map(c => ({ ...c })), questions: DB.questions.map(q => ({ ...q })),
-    // baris akun demo (siswa yang sedang login) mengikuti status akses di browser ini
-    students: DB.students.map(s => ({ ...s, full: s.email === DB.user.email ? access.full : s.full })),
-    exams: Object.values(DB.exams).map(e => ({ ...e, sections: e.sections.map(s => ({ ...s })) })), eForm: null,
+    // Array yang sama dengan DB, jadi perubahan langsung terlihat di halaman lain dalam sesi ini
+    chapters: DB.chapters, questions: DB.questions, exams: Object.values(DB.exams),
+    students: [], recent: [], stats: [], loadingStudents: true,
     typeLabel: { mc: 'Pilihan ganda', error: 'Written expression', fill: 'Isian singkat' },
-    stats: [['Jumlah siswa', '1.248', 'users', 'bg-brand-50 text-brand-600', '+86 bulan ini'], ['Jumlah soal', '1.532', 'file-question', 'bg-violet-50 text-violet-600', '+124 bulan ini']],
     get chapterList() { const k = this.mq.toLowerCase(); return this.chapters.filter(c => (this.mexam === 'all' || c.exam === this.mexam) && c.title.toLowerCase().includes(k)); },
-    get questionList() { const k = this.sq.toLowerCase(); return this.questions.filter(q => (this.sexam === 'all' || q.exam === this.sexam) && (q.q + q.topic).toLowerCase().includes(k)); },
-    fmtScore: s => s.last == null ? '—' : s.exam === 'ielts' ? s.last.toFixed(1) : s.last,
+    get questionList() { const k = this.sq.toLowerCase(); return this.questions.filter(q => (this.sexam === 'all' || q.exam === this.sexam) && (q.q + (q.topic || '')).toLowerCase().includes(k)); },
+    fmtScore: (v, exam) => v == null ? '—' : exam === 'ielts' ? Number(v).toFixed(1) : v,
 
     init() {
       const sync = () => {
@@ -362,42 +379,122 @@ function admin() {
         scrollTo(0, 0);
       };
       addEventListener('hashchange', sync); sync();
+      this.loadStudents();
     },
+    async loadStudents() {
+      try {
+        const d = await api('GET', '/admin/students');
+        Object.assign(this, { students: d.students, recent: d.recent });
+        this.stats = [['Jumlah siswa', d.stats.students.toLocaleString('id-ID'), 'users', 'bg-brand-50 text-brand-600', '+' + d.stats.studentsMonth + ' bulan ini'],
+          ['Jumlah soal', d.stats.questions.toLocaleString('id-ID'), 'file-question', 'bg-violet-50 text-violet-600', this.chapters.length + ' bab materi']];
+      } catch (e) { this.flash('Gagal memuat siswa: ' + e.message); }
+      this.loadingStudents = false;
+    },
+    // Jalankan aksi ke server, tampilkan pesan berhasil/gagal. Mengembalikan true jika berhasil.
+    async run(fn, okMsg) {
+      this.saving = true;
+      try { await fn(); this.flash(okMsg); return true; }
+      catch (e) { this.flash('Gagal: ' + e.message); return false; }
+      finally { this.saving = false; }
+    },
+    flash(msg) { this.toast = msg; clearTimeout(this._t); this._t = setTimeout(() => this.toast = '', 3000); },
+
+    // ---------- Siswa ----------
     toggleAccess(s) {
-      s.full = !s.full;
-      if (s.email === DB.user.email) try { s.full ? localStorage.setItem('fullAccess', '1') : localStorage.removeItem('fullAccess'); } catch {}
-      this.flash(s.name + (s.full ? ': akses penuh dibuka' : ': kembali ke akun gratis'));
+      const full = !s.full;
+      this.run(async () => { await api('PATCH', '/admin/students/' + s.id, { full }); s.full = full; }, s.name + (full ? ': akses penuh dibuka' : ': kembali ke akun gratis'));
     },
+    exportCsv() {
+      // Awali dengan ' agar nilai seperti "=..." tidak dijalankan sebagai rumus oleh Excel
+      const cell = v => { v = String(v ?? ''); if (/^[=+\-@]/.test(v)) v = "'" + v; return '"' + v.replace(/"/g, '""') + '"'; };
+      const rows = [['Nama', 'Email', 'WhatsApp', 'Ujian', 'Skor terakhir', 'Progres materi (%)', 'Jumlah test', 'Akses', 'Bergabung'],
+        ...this.students.map(s => [s.name, s.email, s.phone, s.exam, this.fmtScore(s.last, s.lastExam), s.progress, s.tests, s.full ? 'Penuh' : 'Gratis', new Date(s.joined).toLocaleDateString('id-ID')])];
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob(['﻿' + rows.map(r => r.map(cell).join(',')).join('\r\n')], { type: 'text/csv' }));
+      a.download = 'siswa-englishon.csv'; a.click();
+    },
+
+    // ---------- Master Test ----------
+    examBody: e => ({ name: e.name, scale: e.scale, active: e.active, rgb: e.rgb, sections: e.sections.map(s => ({ id: s.id, name: s.name, tutor: s.tutor })) }),
+    putExam(code, body, msg) {
+      return this.run(async () => { const e = await api('PUT', '/admin/exams/' + encodeURIComponent(code), body); DB.exams[e.key] = e; this.exams = Object.values(DB.exams); }, msg);
+    },
+    toggleExam(e) { this.putExam(e.key, { ...this.examBody(e), active: !e.active }, e.name + (e.active ? ' dinonaktifkan' : ' diaktifkan')); },
     openExam(e) {
       const hex = rgb => '#' + rgb.split(' ').map(n => (+n).toString(16).padStart(2, '0')).join('');
-      this.eForm = e ? { ...e, isNew: false, color: hex(e.rgb), sections: e.sections.map(s => ({ name: s.name, mode: s.tutor ? 'tutor' : 'online' })) }
+      this.eForm = e ? { ...e, isNew: false, color: hex(e.rgb), sections: e.sections.map(s => ({ id: s.id, name: s.name, mode: s.tutor ? 'tutor' : 'online' })) }
         : { isNew: true, key: '', name: '', scale: '0–100', color: '#7c3aed', active: false, sections: [{ name: 'Grammar', mode: 'online' }, { name: 'Reading', mode: 'online' }] };
+      this.open = 'e';
     },
-    saveExam() {
+    async saveExam() {
       const f = this.eForm, rgb = [1, 3, 5].map(i => parseInt(f.color.slice(i, i + 2), 16)).join(' ');
-      const data = { key: f.key.trim().toLowerCase(), name: f.name, scale: f.scale, active: f.active, rgb,
-        sections: f.sections.map(s => ({ id: s.name.toLowerCase().replace(/\W+/g, '-'), name: s.name, tutor: s.mode === 'tutor' })) };
-      if (f.isNew) this.exams.push(data); else Object.assign(this.exams.find(e => e.key === f.key), data);
-      this.flash('Ujian "' + f.name + '" tersimpan (mockup)'); this.eForm = null;
+      const code = f.key.trim().toLowerCase();
+      if (f.isNew && DB.exams[code]) return this.flash('Kode ujian "' + code + '" sudah dipakai');
+      const body = { name: f.name, scale: f.scale, active: f.active, rgb, sections: f.sections.map(s => ({ id: s.id, name: s.name, tutor: s.mode === 'tutor' })) };
+      if (await this.putExam(code, body, 'Ujian "' + f.name + '" tersimpan')) this.open = '';
     },
-    flash(msg) { this.toast = msg; clearTimeout(this._t); this._t = setTimeout(() => this.toast = '', 2500); },
-    askDelete(list, obj, label) { this.del = { list, obj, label }; },
-    confirmDelete() { const arr = this[this.del.list]; arr.splice(arr.indexOf(this.del.obj), 1); this.flash(this.del.label + ' dihapus'); this.del = null; },
 
+    // ---------- Hapus ----------
+    askDelete(list, obj, label) { this.del = { list, obj, label }; },
+    async confirmDelete() {
+      const { list, obj, label } = this.del;
+      if (await this.run(() => api('DELETE', `/admin/${list}/${encodeURIComponent(obj.id)}`), label + ' dihapus')) this[list].splice(this[list].indexOf(obj), 1);
+      this.del = null;
+    },
+
+    // ---------- Soal ----------
     openQuestion(q) {
-      this.qForm = q ? { ...q, options: [...(q.options || ['', '', '', ''])], answer: q.type === 'fill' ? 0 : q.answer, fillAnswer: q.type === 'fill' ? q.answer.join(', ') : '', passage: q.passage || '', isNew: false }
-        : { id: 'new-' + (this.questions.length + 1), isNew: true, type: 'mc', exam: 'toefl', section: 'structure', difficulty: 'sedang', topic: '', q: '', options: ['', '', '', ''], answer: 0, fillAnswer: '', explain: '', passage: '' };
+      const clip = q?.clip && DB.clips[q.clip], ex = firstExam();
+      this.qForm = q ? { ...q, options: [...(q.options || ['', '', '', ''])], answer: q.type === 'fill' ? 0 : q.answer, fillAnswer: q.type === 'fill' ? q.answer.join(', ') : '',
+          passage: q.passage || '', chapter: q.chapter || '', clip: q.clip || '', isNew: false, transcript: clip ? clip.lines.map(l => (l[0] ? l[0] + ': ' : '') + l[1]).join('\n') : '' }
+        : { id: newId('q'), isNew: true, type: 'mc', exam: ex.key, section: ex.sections[0].id, chapter: '', difficulty: 'sedang', topic: '', q: '', options: ['', '', '', ''], answer: 0,
+          fillAnswer: '', explain: '', passage: '', clip: '', transcript: '' };
+      this.open = 'q';
     },
     saveQuestion() {
-      const f = this.qForm, data = { ...f, answer: f.type === 'fill' ? f.fillAnswer.split(',').map(norm).filter(Boolean) : f.answer };
-      if (f.isNew) this.questions.unshift(data); else Object.assign(this.questions.find(q => q.id === f.id), data);
-      this.flash(f.isNew ? 'Soal baru tersimpan (mockup)' : 'Perubahan soal tersimpan (mockup)'); this.qForm = null;
+      const f = this.qForm;
+      if (f.audioFile && f.audioFile.size > 25 * 1024 * 1024) return this.flash('File audio maksimal 25 MB');
+      this.run(async () => {
+        let { clip, passage } = f;
+        // Audio Listening: simpan transkrip, lalu unggah file jika dipilih
+        if (f.section === 'listening' && (f.audioFile || f.transcript.trim())) {
+          clip = clip || newId('clip');
+          const lines = f.transcript.split('\n').map(l => l.trim()).filter(Boolean).map(l => { const m = l.match(/^([^:]{1,40}):\s*(.+)$/); return m ? [m[1].trim(), m[2]] : ['', l]; });
+          const title = DB.clips[clip]?.title || f.audioName?.replace(/\.\w+$/, '') || f.topic || 'Audio ' + f.id;
+          await api('PUT', '/admin/clips/' + clip, { title, lines });
+          DB.clips[clip] = { ...DB.clips[clip], title, lines };
+          if (f.audioFile) DB.clips[clip].audio = (await api('PUT', '/admin/clips/' + clip + '/audio', f.audioFile)).audio;
+        }
+        // Passage Reading baru: paragraf dipisah baris kosong
+        if (f.section === 'reading' && !passage && f.newPassage?.trim()) {
+          passage = newId('p');
+          const title = f.newPassageTitle?.trim() || 'Reading Passage', html = f.newPassage.trim().split(/\n\s*\n/).map(p => '<p>' + esc(p.trim()) + '</p>').join('\n');
+          await api('PUT', '/admin/passages/' + passage, { title, html });
+          DB.passages[passage] = { title, html };
+        }
+        const body = { ...f, audioFile: undefined, clip: f.section === 'listening' ? clip : '', passage: f.section === 'reading' ? passage : '',
+          answer: f.type === 'fill' ? f.fillAnswer.split(',').map(norm).filter(Boolean) : f.answer };
+        const saved = await api('PUT', '/admin/questions/' + encodeURIComponent(f.id), body);
+        const i = this.questions.findIndex(q => q.id === saved.id);
+        i < 0 ? this.questions.unshift(saved) : this.questions.splice(i, 1, saved);
+        this.open = '';
+      }, f.isNew ? 'Soal baru tersimpan' : 'Perubahan soal tersimpan');
     },
-    openChapter(c) { this.cForm = c ? { ...c, isNew: false } : { id: 'new-' + Date.now(), isNew: true, title: '', exam: 'toefl', section: 'listening', desc: '', subs: [], draft: true }; },
+
+    // ---------- Materi ----------
+    openChapter(c) {
+      const ex = firstExam();
+      this.cForm = c ? { ...c, subs: c.subs.map(s => ({ ...s })), isNew: false }
+        : { id: newId('bab'), isNew: true, title: '', exam: ex.key, section: ex.sections[0].id, desc: '', minutes: 20, subs: [{ title: '', html: '' }], draft: true };
+      this.open = 'c';
+    },
     saveChapter() {
       const f = this.cForm;
-      if (f.isNew) this.chapters.unshift({ ...f }); else Object.assign(this.chapters.find(c => c.id === f.id), f);
-      this.flash('Bab "' + f.title + '" tersimpan (mockup)'); this.cForm = null;
+      this.run(async () => {
+        const saved = await api('PUT', '/admin/chapters/' + encodeURIComponent(f.id), f), old = this.chapters.find(c => c.id === saved.id);
+        old ? Object.assign(old, saved) : this.chapters.unshift({ ...saved, progress: 0, status: 'new' });
+        this.open = '';
+      }, 'Bab "' + f.title + '" tersimpan');
     },
   };
 }

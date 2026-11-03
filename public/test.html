@@ -8,15 +8,13 @@
 <script src="https://cdn.tailwindcss.com/3.4.16"></script>
 <script src="https://cdn.jsdelivr.net/npm/lucide@0.460.0/dist/umd/lucide.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
-<script src="data/dummy.js"></script>
 <script src="assets/app.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js"></script>
 <style>
   @keyframes wave { 0%,100% { transform: scaleY(.3); } 50% { transform: scaleY(1); } }
   .wave span { animation: wave 1s ease-in-out infinite; transform-origin: center; }
 </style>
 </head>
-<body class="bg-slate-100">
+<body class="bg-slate-100" data-auth="app">
 <div x-data="test()" class="flex h-[100dvh] flex-col"
   @keydown.window.arrow-right="if (phase==='test' && !isTyping($event)) next()" @keydown.window.arrow-left="if (phase==='test' && !isTyping($event)) prev()">
 
@@ -100,7 +98,7 @@
             </div>
             <i data-lucide="volume-2" class="hidden h-5 w-5 text-slate-400 sm:block"></i>
           </div>
-          <div x-show="clipSt.st==='playing'" class="mt-3 border-t border-white/10 pt-3 text-right"><button @click="skipAudio(item.clip)" class="text-xs text-slate-400 underline hover:text-white">Lewati audio (mode demo)</button></div>
+          <div x-show="clipSt.st==='playing' && !DB.clips[item.clip].audio" class="mt-3 border-t border-white/10 pt-3 text-right"><button @click="skipAudio(item.clip)" class="text-xs text-slate-400 underline hover:text-white">Lewati audio (mode demo)</button></div>
         </div>
 
         <div x-show="exam==='toefl' && clipSt.st!=='done'" class="flex flex-col items-center rounded-2xl border-2 border-dashed border-slate-300 bg-white/60 px-6 py-12 text-center">
@@ -239,6 +237,11 @@
 
   <!-- Toast & overlay -->
   <div x-show="toast" x-transition x-cloak class="fixed left-1/2 top-20 z-50 -translate-x-1/2 rounded-xl bg-rose-600 px-4 py-3 text-sm font-semibold text-white shadow-xl"><span x-text="toast"></span></div>
+  <div x-show="submitError" x-cloak class="fixed inset-0 z-[60] grid place-items-center bg-white/95 p-4">
+    <div class="max-w-md text-center"><span class="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-rose-100 text-rose-600"><i data-lucide="alert-triangle" class="h-6 w-6"></i></span>
+      <p class="mt-4 font-semibold">Jawaban gagal dikirim</p><p class="mt-1 text-sm text-slate-500" x-text="submitError"></p>
+      <div class="mt-6 flex justify-center gap-3"><a href="simulasi.html" @click="leaving=true" class="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold">Kembali</a><button @click="submitError=''; submitSection()" class="rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-white">Coba Kirim Lagi</button></div></div>
+  </div>
   <div x-show="finishing" x-cloak class="fixed inset-0 z-[60] grid place-items-center bg-white/90 backdrop-blur">
     <div class="text-center"><svg class="mx-auto h-10 w-10 animate-spin text-accent" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-opacity=".2" stroke-width="4"/><path d="M22 12a10 10 0 0 0-10-10" stroke="currentColor" stroke-width="4"/></svg>
       <p class="mt-4 font-semibold">Menghitung skor…</p><p class="text-sm text-slate-500">Mohon tunggu sebentar</p></div>
@@ -262,7 +265,7 @@ function test() {
   return {
     pkg, exam, si: 0, cur: 0, phase: 'intro', left: 0, answers: {}, flags: [], clips: {}, locked: access.locked,
     secs: pkg.sections.map(([id, min]) => ({ id, min, meta: sectionMeta(exam, id), items: sectionItems(exam, id) })),
-    navOpen: false, modal: false, exitOpen: false, toast: '', finishing: false, leaving: false, timeUpNote: false, started: Date.now(),
+    navOpen: false, modal: false, exitOpen: false, toast: '', finishing: false, submitError: '', leaving: false, timeUpNote: false, started: Date.now(),
 
     get sec() { return this.secs[this.si]; },
     get item() { return this.sec.items[this.cur] || {}; },
@@ -302,14 +305,23 @@ function test() {
     flash(msg) { this.toast = msg; setTimeout(() => this.toast = '', 3000); },
 
     // --- submit ---
-    submitSection() {
+    async submitSection() {
       this.modal = false; this.navOpen = false;
-      if (window.speechSynthesis) speechSynthesis.cancel();
+      stopClip();
       if (!this.last) { this.si++; this.cur = 0; this.phase = 'intro'; return; }
-      this.finishing = true; this.phase = 'done'; access.markUsed();
-      const attempt = { pkg: pkg.id, date: new Date().toISOString(), duration: Math.round((Date.now() - this.started) / 1000), answers: { ...this.answers }, flags: [...this.flags] };
-      try { localStorage.setItem('lastAttempt', JSON.stringify(attempt)); localStorage.setItem('exam', exam); } catch {}
-      setTimeout(() => location.href = 'hasil.html', 1100);
+      this.finishing = true; this.phase = 'done';
+      const body = { pkg: pkg.id, duration: Math.round((Date.now() - this.started) / 1000), answers: { ...this.answers }, flags: [...this.flags] };
+      // Coba ulang beberapa kali jika koneksi putus, agar jawaban tidak hilang
+      for (let i = 0; ; i++) {
+        try {
+          const { id } = await api('POST', '/attempts', body);
+          try { localStorage.setItem('exam', exam); } catch {}
+          return location.href = 'hasil.html?id=' + id;
+        } catch (e) {
+          if (i >= 2 || /terpakai|tidak ditemukan|belum tersedia/.test(e.message)) { this.finishing = false; this.submitError = e.message; return; }
+          await new Promise(r => setTimeout(r, 2000));
+        }
+      }
     },
 
     // --- audio (sekali putar) ---
@@ -317,10 +329,10 @@ function test() {
       if (this.clips[id]) return;
       this.clips[id] = { st: 'playing', p: 0, t: 0, dur: 0 };
       const st = this.clips[id], t0 = Date.now();
-      st.dur = playClip(DB.clips[id], () => { st.st = 'done'; st.p = 1; st.t = st.dur; });
+      st.dur = playClip(DB.clips[id], () => { st.st = 'done'; st.p = 1; st.t = st.dur; }, d => st.dur = d);
       const iv = setInterval(() => { if (st.st === 'done') return clearInterval(iv); st.t = (Date.now() - t0) / 1000; st.p = Math.min(st.t / st.dur, .98); }, 200);
     },
-    skipAudio(id) { if (window.speechSynthesis) speechSynthesis.cancel(); Object.assign(this.clips[id], { st: 'done', p: 1, t: this.clips[id].dur }); },
+    skipAudio(id) { stopClip(); Object.assign(this.clips[id], { st: 'done', p: 1, t: this.clips[id].dur }); },
 
     // --- render blok soal pilihan ganda / isian (HTML string, event via delegasi) ---
     questionBlock() {

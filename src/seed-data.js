@@ -1,6 +1,5 @@
-// Data dummy untuk mockup. Semua konten soal berbahasa Inggris, pembahasan berbahasa Indonesia.
-// ponytail: data statis di satu file; ganti dengan API/DB saat backend siap.
-const DB = {
+// Data awal (seed) dari mockup. Dipakai sekali oleh `npm run seed`, sesudahnya semua data dikelola lewat panel admin.
+module.exports = {
   user: { name: 'Rina Maharani', email: 'rina.maharani@email.com', initials: 'RM', target: { toefl: 550, ielts: 6.5 }, streak: 12 },
 
   // Kontak lembaga. ponytail: placeholder, ganti dengan alamat & nomor WhatsApp asli EnglishOn Ponorogo.

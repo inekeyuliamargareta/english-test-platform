@@ -7,9 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com/3.4.16"></script>
 <script src="https://cdn.jsdelivr.net/npm/lucide@0.460.0/dist/umd/lucide.min.js"></script>
-<script src="data/dummy.js"></script>
 <script src="assets/app.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js"></script>
 </head>
 <body data-shell="app" data-active="simulasi" data-title="Simulasi Test">
 <main x-data="lobby()">
@@ -55,21 +53,22 @@
 
       <!-- Riwayat -->
       <div class="rounded-2xl border border-slate-200 bg-white shadow-soft">
-        <div class="flex items-center justify-between p-5"><h3 class="font-semibold">Riwayat simulasi</h3><a href="hasil.html" class="text-sm font-medium text-accent hover:underline">Hasil terakhir</a></div>
+        <div class="flex items-center justify-between p-5"><h3 class="font-semibold">Riwayat simulasi</h3><a x-show="hist.length" href="hasil.html" class="text-sm font-medium text-accent hover:underline">Hasil terakhir</a></div>
         <div class="overflow-x-auto">
           <table class="w-full text-sm">
             <thead class="bg-slate-50 text-left text-xs uppercase tracking-wider text-slate-500"><tr><th class="px-5 py-3 font-semibold">Tanggal</th><th class="px-5 py-3 font-semibold">Paket</th><th class="px-5 py-3 font-semibold">Skor</th><th class="px-5 py-3"></th></tr></thead>
             <tbody class="divide-y divide-slate-100">
-              <template x-for="(h, i) in hist" :key="i">
+              <template x-for="h in hist" :key="h.id">
                 <tr class="hover:bg-slate-50">
-                  <td class="whitespace-nowrap px-5 py-3 text-slate-600" x-text="h[0] + ' 2026'"></td>
-                  <td class="whitespace-nowrap px-5 py-3" x-text="'Full Test ' + E.name"></td>
-                  <td class="px-5 py-3 font-semibold" x-text="exam==='ielts' ? h[1].toFixed(1) : h[1]"></td>
-                  <td class="px-5 py-3 text-right"><a href="review.html" class="text-xs font-semibold text-accent hover:underline">Review</a></td>
+                  <td class="whitespace-nowrap px-5 py-3 text-slate-600" x-text="new Date(h.date).toLocaleDateString('id-ID', { dateStyle: 'medium' })"></td>
+                  <td class="whitespace-nowrap px-5 py-3" x-text="DB.packages.find(p => p.id === h.pkg)?.name || h.pkg"></td>
+                  <td class="px-5 py-3 font-semibold" x-text="attemptScore(h) == null ? 'Dinilai tutor' : exam==='ielts' ? attemptScore(h).toFixed(1) : attemptScore(h)"></td>
+                  <td class="whitespace-nowrap px-5 py-3 text-right"><a :href="'hasil.html?id=' + h.id" class="mr-3 text-xs font-semibold text-slate-500 hover:underline">Hasil</a><a :href="'review.html?id=' + h.id" class="text-xs font-semibold text-accent hover:underline">Review</a></td>
                 </tr>
               </template>
             </tbody>
           </table>
+          <p x-show="!hist.length" class="p-8 text-center text-sm text-slate-500">Belum ada riwayat simulasi.</p>
         </div>
       </div>
     </div>
@@ -92,7 +91,7 @@
 
         <h4 class="mt-6 text-sm font-semibold">Aturan</h4>
         <ul class="mt-2 space-y-2 text-sm text-slate-600">
-          <template x-for="r in DB.rules[exam]"><li class="flex gap-2"><i data-lucide="check-circle" class="mt-0.5 h-4 w-4 shrink-0 text-emerald-500"></i><span x-html="r"></span></li></template>
+          <template x-for="r in E.rules"><li class="flex gap-2"><i data-lucide="check-circle" class="mt-0.5 h-4 w-4 shrink-0 text-emerald-500"></i><span x-html="r"></span></li></template>
         </ul>
 
         <a x-show="locked" :href="waLink('Halo EnglishOn, saya ingin membuka akses simulasi ' + sel.name + '.')" target="_blank" class="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3.5 text-sm font-semibold text-white hover:bg-emerald-700"><i data-lucide="lock-open" class="h-4 w-4"></i>Minta Buka Akses</a>
@@ -117,8 +116,8 @@
 function lobby() {
   const exam = getExam(), pkgs = DB.packages.filter(p => p.exam === exam);
   return {
-    exam, E: DB.exams[exam], pkgs, sel: pkgs[0], ready: false, shake: false, locked: access.locked,
-    hist: [...DB.history[exam]].reverse(),
+    exam, E: DB.exams[exam], pkgs, sel: pkgs.find(p => p.id === qs('pkg')) || pkgs[0] || { sections: [] }, ready: false, shake: false, locked: access.locked,
+    hist: DB.attempts.filter(a => a.exam === exam),
     minutes: p => p.sections.reduce((a, s) => a + s[1], 0),
     count: p => p.sections.reduce((a, [id]) => a + sectionItems(p.exam, id).length, 0),
     choose(p) { this.sel = p; if (innerWidth < 1024) document.getElementById('detail').scrollIntoView({ behavior: 'smooth' }); },

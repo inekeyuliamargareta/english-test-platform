@@ -1,4 +1,34 @@
-// Shared: tema, layout (navbar + sidebar), helper soal & skor. Dimuat di <head> setiap halaman.
+// Shared: API, tema, layout (navbar + sidebar), helper soal & skor. Dimuat di <head> setiap halaman.
+// Alur: ambil /api/bootstrap → isi DB → baru jalankan Alpine, jadi halaman bisa membaca DB secara langsung.
+
+// ---------- API ----------
+let DB = {};
+const token = () => { try { return localStorage.getItem('token'); } catch { return null; } };
+function logout() { try { localStorage.removeItem('token'); } catch {} location.href = 'login.html'; }
+async function api(method, url, body) {
+  const file = body instanceof Blob, headers = {};
+  if (token()) headers.Authorization = 'Bearer ' + token();
+  if (body !== undefined) headers['Content-Type'] = file ? body.type : 'application/json';
+  const r = await fetch('/api' + url, { method, headers, body: file ? body : body === undefined ? undefined : JSON.stringify(body) });
+  const data = await r.json().catch(() => ({}));
+  if (r.status === 401 && needsLogin()) return logout();
+  if (!r.ok) throw new Error(data.error || 'Gagal terhubung ke server');
+  return data;
+}
+const needsLogin = () => !!(document.body.dataset.shell || document.body.dataset.auth);
+
+document.addEventListener('DOMContentLoaded', async () => {
+  if (needsLogin() && !token()) return location.replace('login.html');
+  try { DB = await api('GET', '/bootstrap'); }
+  catch (e) { document.body.innerHTML = `<p style="padding:2rem;text-align:center;font-family:sans-serif">Server tidak dapat dihubungi. Coba muat ulang halaman.<br><small>${e.message}</small></p>`; return; }
+  if (needsLogin() && !DB.user) return logout();
+  if (document.body.dataset.shell === 'admin' && DB.user.role !== 'admin') return location.replace('dashboard.html');
+  document.documentElement.dataset.exam = getExam();
+  document.head.insertAdjacentHTML('beforeend', `<style>${Object.values(DB.exams).map((e, i) => `${i ? `:root[data-exam="${e.key}"]` : ':root'} { --accent: ${e.rgb}; --accent-dark: ${e.rgbDark}; --accent-soft: ${e.rgbSoft}; }`).join('\n')}</style>`);
+  const s = document.createElement('script');
+  s.src = 'https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js'; // Alpine langsung start setelah dimuat
+  document.head.append(s);
+});
 
 // ---------- Ujian aktif (dari master ujian DB.exams) ----------
 const activeExams = () => Object.values(DB.exams).filter(e => e.active);
@@ -7,19 +37,17 @@ function getExam() {
   const p = new URLSearchParams(location.search).get('exam');
   if (isActiveExam(p)) { try { localStorage.setItem('exam', p); } catch {} return p; }
   let k; try { k = localStorage.getItem('exam'); } catch {}
-  return isActiveExam(k) ? k : activeExams()[0].key;
+  return isActiveExam(k) ? k : isActiveExam(DB.user?.exam) ? DB.user.exam : activeExams()[0].key;
 }
 function setExam(k) { if (!isActiveExam(k)) return; try { localStorage.setItem('exam', k); } catch {} location.href = location.pathname; }
 
 // ---------- Akses akun ----------
 // Akun gratis hanya dapat 1x simulasi. Setelah itu terkunci sampai admin membuka akses penuh
-// (siswa datang ke kantor / menghubungi EnglishOn). ponytail: disimpan di localStorage, pindah ke server saat backend siap.
+// (siswa datang ke kantor / menghubungi EnglishOn). Status dari server; server juga menolak submit jika terkunci.
 const access = {
-  get used() { try { return localStorage.getItem('trialUsed') === '1'; } catch { return false; } },
-  get full() { try { return localStorage.getItem('fullAccess') === '1'; } catch { return false; } },
+  get used() { return !!DB.user?.access.used; },
+  get full() { return !!DB.user?.access.full; },
   get locked() { return this.used && !this.full; },
-  markUsed() { try { localStorage.setItem('trialUsed', '1'); } catch {} },
-  reset() { try { localStorage.removeItem('trialUsed'); localStorage.removeItem('fullAccess'); } catch {} },
 };
 const waLink = msg => `https://wa.me/${DB.contact.wa}?text=${encodeURIComponent(msg)}`;
 // Kartu "fitur terkunci" yang dipakai lobby, halaman test, dan hasil (render via x-html)
@@ -35,9 +63,7 @@ const lockedHTML = (title = 'Simulasi gratis sudah terpakai') => `
       <i data-lucide="map-pin" class="mt-0.5 h-4 w-4 shrink-0 text-slate-400"></i>
       <div><p class="font-semibold text-slate-800">${DB.contact.name}</p><p>${DB.contact.address}</p><p class="text-xs text-slate-500">${DB.contact.hours} · WA ${DB.contact.waLabel}</p></div>
     </div>
-    <button onclick="access.reset(); location.reload()" class="mt-5 text-xs text-slate-400 underline hover:text-slate-600">Reset kuota (khusus demo)</button>
   </div>`;
-document.documentElement.dataset.exam = getExam();
 
 // ---------- Tailwind ----------
 tailwind.config = {
@@ -55,7 +81,7 @@ tailwind.config = {
 };
 
 document.head.insertAdjacentHTML('beforeend', `<style>
-  ${Object.values(DB.exams).map((e, i) => `${i ? `:root[data-exam="${e.key}"]` : ':root'} { --accent: ${e.rgb}; --accent-dark: ${e.rgbDark}; --accent-soft: ${e.rgbSoft}; }`).join('\n')}
+  :root { --accent: 37 99 235; --accent-dark: 29 78 216; --accent-soft: 239 246 255; }
   html { -webkit-font-smoothing: antialiased; }
   body { background: #f8fafc; color: #0f172a; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
   [x-cloak] { display: none !important; }
@@ -77,6 +103,15 @@ document.head.insertAdjacentHTML('beforeend', `<style>
 
 // ---------- Helper ----------
 const qs = k => new URLSearchParams(location.search).get(k);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`);
+// "3 jam lalu", "2 hari lalu", lalu tanggal
+function ago(d) {
+  const s = (Date.now() - new Date(d)) / 1000;
+  if (s < 3600) return Math.max(1, Math.round(s / 60)) + ' menit lalu';
+  if (s < 86400) return Math.round(s / 3600) + ' jam lalu';
+  if (s < 7 * 86400) return Math.round(s / 86400) + ' hari lalu';
+  return new Date(d).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+}
 const fmt = s => { s = Math.max(0, Math.floor(s)); return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0'); };
 const L = i => 'ABCDEFG'[i];
 // Ikon yang namanya bisa berubah: pakai x-html="ico(...)" (Lucide mengganti <i> dengan <svg> sekali saja)
@@ -99,16 +134,25 @@ const isAnswered = (item, a) => a !== undefined && a !== null && String(a).trim(
 const isCorrect = (q, a) => q.type === 'fill' ? q.answer.includes(norm(a)) : a === q.answer;
 const correctText = q => q.type === 'fill' ? q.answer[0] : `${L(q.answer)}. ${q.options[q.answer]}`;
 
-// Item per section untuk halaman test: soal pilihan ganda/isian atau task writing
+// Item per section untuk halaman test: soal pilihan ganda/isian atau task writing (section dinilai tutor)
 function sectionItems(exam, sec) {
-  if (exam === 'ielts' && sec === 'writing') return DB.writingTasks.map(t => ({ ...t, kind: 'writing' }));
+  if (sectionMeta(exam, sec)?.tutor) return DB.writingTasks.filter(t => t.exam === exam && t.section === sec).map(t => ({ ...t, kind: 'writing' }));
   return DB.questions.filter(q => q.exam === exam && q.section === sec).map(q => ({ ...q, kind: 'q' }));
 }
 
-// Audio placeholder: transkrip dibacakan via Web Speech API (tanpa file audio). Callback dipanggil sekali saat selesai.
-function playClip(clip, onend) {
+// Putar audio Listening. Pakai file MP3 jika admin sudah mengunggah; jika belum, transkrip dibacakan
+// text-to-speech browser (mode demo). onend dipanggil sekali saat selesai; ondur saat durasi file diketahui.
+function playClip(clip, onend, ondur) {
   let done = false; const finish = () => { if (!done) { done = true; onend && onend(); } };
   const est = clip.lines.reduce((n, l) => n + words(l[1]), 0) / 2.4 + clip.lines.length * .6;
+  if (clip.audio) {
+    const a = new Audio(clip.audio);
+    a.onloadedmetadata = () => ondur && ondur(a.duration);
+    a.onended = a.onerror = finish;
+    a.play().catch(finish);
+    playClip.current = a;
+    return est;
+  }
   const synth = window.speechSynthesis;
   setTimeout(finish, (est * 1.5 + 3) * 1000); // cadangan jika TTS tidak tersedia / gagal
   if (synth) {
@@ -125,35 +169,17 @@ function playClip(clip, onend) {
   }
   return est;
 }
-addEventListener('pagehide', () => window.speechSynthesis && speechSynthesis.cancel());
+function stopClip() { window.speechSynthesis?.cancel(); playClip.current?.pause(); }
+addEventListener('pagehide', stopClip);
 
-// ---------- Skor ----------
+// ---------- Skor (dihitung server saat submit; di sini hanya ditampilkan) ----------
 const TOEFL_MAX = { listening: 68, structure: 68, reading: 67 };
-function ieltsBand(r) {
-  const t = [[.975, 9], [.925, 8.5], [.875, 8], [.825, 7.5], [.75, 7], [.65, 6.5], [.575, 6], [.45, 5.5], [.375, 5], [.3, 4.5], [.25, 4], [.15, 3.5], [.1, 3]];
-  return (t.find(([min]) => r >= min) || [0, 2.5])[1];
-}
-const halfRound = x => Math.round(x * 2) / 2;
-
-function loadAttempt() {
-  try { const a = JSON.parse(localStorage.getItem('lastAttempt')); if (a && DB.packages.some(p => p.id === a.pkg)) return a; } catch {}
-  return null;
-}
+// Hasil simulasi terbaru siswa (DB.attempts urut terbaru). pred untuk menyaring, mis. hanya Full Test.
+const findAttempt = (pred = () => true) => DB.attempts.find(a => DB.packages.some(p => p.id === a.pkg) && pred(a)) || null;
+const attemptScore = a => a.total ?? a.sections.find(s => s.score != null)?.score ?? null;
 function scoreAttempt(att) {
-  const pkg = DB.packages.find(p => p.id === att.pkg), exam = pkg.exam, A = att.answers || {};
-  const sections = pkg.sections.map(([id]) => {
-    const meta = sectionMeta(exam, id), items = sectionItems(exam, id);
-    // Writing tidak dinilai otomatis: menunggu penilaian tutor
-    if (meta.tutor) return { id, meta, score: null, pending: true, detail: items.map(t => `${t.title}: ${words(A[t.id])} kata`).join(' · ') };
-    const correct = items.filter(q => isCorrect(q, A[q.id])).length;
-    const r = correct / items.length;
-    const score = exam === 'toefl' ? Math.round(31 + r * (TOEFL_MAX[id] - 31)) : ieltsBand(r);
-    return { id, meta, score, correct, total: items.length, ratio: r, detail: `${correct} dari ${items.length} benar` };
-  });
-  const scored = sections.filter(x => x.score !== null);
-  let total = null;
-  if (pkg.type === 'full') total = exam === 'toefl' ? Math.round(scored.reduce((s, x) => s + x.score, 0) * 10 / 3) : halfRound(scored.reduce((s, x) => s + x.score, 0) / scored.length);
-  return { pkg, exam, sections, total };
+  const pkg = DB.packages.find(p => p.id === att.pkg);
+  return { pkg, exam: att.exam, total: att.total, sections: att.sections.map(s => ({ ...s, meta: sectionMeta(att.exam, s.id) || { name: s.id, short: s.id, icon: 'file-question' } })) };
 }
 
 // ---------- Layout ----------
@@ -190,8 +216,8 @@ function mountShell() {
         <p class="text-xs text-white/70">Target ${DB.exams[exam].name}</p>
         <p class="mt-1 text-2xl font-bold">${DB.user.target[exam] ?? '-'}</p>
         <p class="mt-1 flex items-center gap-1 text-xs text-white/80"><i data-lucide="${access.locked ? 'lock' : 'timer'}" class="h-3.5 w-3.5"></i> ${access.full ? 'Akses penuh aktif' : access.used ? 'Simulasi gratis terpakai' : '1x simulasi gratis tersedia'}</p></div>`}
-      <a href="${admin ? 'dashboard.html' : 'admin.html'}" class="flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-slate-600 hover:bg-slate-100"><i data-lucide="${admin ? 'graduation-cap' : 'shield'}" class="h-[18px] w-[18px]"></i>${admin ? 'Ke Mode Siswa' : 'Panel Admin'}</a>
-      <a href="login.html" class="flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-slate-600 hover:bg-slate-100"><i data-lucide="log-out" class="h-[18px] w-[18px]"></i>Keluar</a>
+      ${DB.user.role === 'admin' ? `<a href="${admin ? 'dashboard.html' : 'admin.html'}" class="flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-slate-600 hover:bg-slate-100"><i data-lucide="${admin ? 'graduation-cap' : 'shield'}" class="h-[18px] w-[18px]"></i>${admin ? 'Ke Mode Siswa' : 'Panel Admin'}</a>` : ''}
+      <button onclick="logout()" class="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm text-slate-600 hover:bg-slate-100"><i data-lucide="log-out" class="h-[18px] w-[18px]"></i>Keluar</button>
     </div>
   </aside>
   <div x-show="nav" x-transition.opacity x-cloak @click="nav=false" class="fixed inset-0 z-30 bg-slate-900/40 backdrop-blur-sm lg:hidden"></div>
@@ -204,13 +230,13 @@ function mountShell() {
         <button class="relative hidden rounded-lg p-2 text-slate-500 hover:bg-slate-100 sm:block" aria-label="Notifikasi"><i data-lucide="bell" class="h-5 w-5"></i><span class="absolute right-2 top-2 h-2 w-2 rounded-full bg-rose-500 ring-2 ring-white"></span></button>
         <div class="relative">
           <button @click="menu=!menu" @click.outside="menu=false" class="flex items-center gap-2 rounded-xl p-1 hover:bg-slate-100">
-            <span class="grid h-9 w-9 place-items-center rounded-full bg-gradient-to-br from-brand-500 to-indigo-500 text-sm font-semibold text-white">${admin ? 'AD' : DB.user.initials}</span>
-            <span class="hidden text-left text-sm md:block"><span class="block font-medium leading-tight">${admin ? 'Admin EnglishOn' : DB.user.name}</span><span class="block text-xs text-slate-500">${admin ? 'Super admin' : access.full ? 'Akses penuh' : 'Akun gratis'}</span></span>
+            <span class="grid h-9 w-9 place-items-center rounded-full bg-gradient-to-br from-brand-500 to-indigo-500 text-sm font-semibold text-white">${esc(DB.user.initials)}</span>
+            <span class="hidden text-left text-sm md:block"><span class="block font-medium leading-tight">${esc(DB.user.name)}</span><span class="block text-xs text-slate-500">${DB.user.role === 'admin' ? 'Admin' : access.full ? 'Akses penuh' : 'Akun gratis'}</span></span>
             <i data-lucide="chevron-down" class="hidden h-4 w-4 text-slate-400 md:block"></i>
           </button>
           <div x-show="menu" x-transition x-cloak class="absolute right-0 mt-2 w-48 rounded-xl border border-slate-200 bg-white p-1.5 text-sm shadow-soft">
-            <a href="dashboard.html" class="flex items-center gap-2 rounded-lg px-3 py-2 hover:bg-slate-50"><i data-lucide="user" class="h-4 w-4"></i>Profil saya</a>
-            <a href="login.html" class="flex items-center gap-2 rounded-lg px-3 py-2 text-rose-600 hover:bg-rose-50"><i data-lucide="log-out" class="h-4 w-4"></i>Keluar</a>
+            <p class="truncate px-3 py-2 text-xs text-slate-500">${esc(DB.user.email)}</p>
+            <button onclick="logout()" class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-rose-600 hover:bg-rose-50"><i data-lucide="log-out" class="h-4 w-4"></i>Keluar</button>
           </div>
         </div>
       </div>

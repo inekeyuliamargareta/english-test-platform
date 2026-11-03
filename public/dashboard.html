@@ -7,9 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com/3.4.16"></script>
 <script src="https://cdn.jsdelivr.net/npm/lucide@0.460.0/dist/umd/lucide.min.js"></script>
-<script src="data/dummy.js"></script>
 <script src="assets/app.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js"></script>
 </head>
 <body data-shell="app" data-active="dashboard" data-title="Dashboard">
 <main x-data="dash()">
@@ -28,7 +26,7 @@
         <h2 class="text-2xl font-bold tracking-tight">Halo, <span x-text="DB.user.name.split(' ')[0]"></span> 👋</h2>
         <p class="mt-1 text-slate-500">Kamu sedang mempersiapkan <b class="text-accent" x-text="E.name"></b>. Tetap konsisten, targetmu tinggal sedikit lagi!</p>
       </div>
-      <a :href="'materi-detail.html?id=' + cont.id" class="inline-flex items-center justify-center gap-2 rounded-xl bg-accent px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-accent-dark"><i data-lucide="play" class="h-4 w-4"></i> Lanjutkan Belajar</a>
+      <a x-show="cont" :href="'materi-detail.html?id=' + cont?.id" class="inline-flex items-center justify-center gap-2 rounded-xl bg-accent px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-accent-dark"><i data-lucide="play" class="h-4 w-4"></i> Lanjutkan Belajar</a>
     </div>
 
     <!-- Statistik -->
@@ -36,7 +34,7 @@
       <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-soft">
         <div class="flex items-center justify-between"><p class="text-sm text-slate-500">Skor simulasi terakhir</p><span class="grid h-9 w-9 place-items-center rounded-xl bg-accent-soft text-accent"><i data-lucide="award" class="h-5 w-5"></i></span></div>
         <p class="mt-3 text-3xl font-bold" x-text="lastScore"></p>
-        <p class="mt-1 flex items-center gap-1 text-xs font-medium text-emerald-600"><i data-lucide="trending-up" class="h-3.5 w-3.5"></i><span x-text="delta + ' dari test sebelumnya'"></span></p>
+        <p class="mt-1 text-xs font-medium" :class="delta.startsWith('-') ? 'text-rose-600' : 'text-emerald-600'" x-text="delta"></p>
       </div>
       <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-soft">
         <div class="flex items-center justify-between"><p class="text-sm text-slate-500">Target skor</p><span class="grid h-9 w-9 place-items-center rounded-xl bg-amber-50 text-amber-600"><i data-lucide="target" class="h-5 w-5"></i></span></div>
@@ -50,8 +48,8 @@
       </div>
       <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-soft">
         <div class="flex items-center justify-between"><p class="text-sm text-slate-500">Soal dikerjakan</p><span class="grid h-9 w-9 place-items-center rounded-xl bg-violet-50 text-violet-600"><i data-lucide="list-checks" class="h-5 w-5"></i></span></div>
-        <p class="mt-3 text-3xl font-bold">312</p>
-        <p class="mt-1 text-xs text-slate-500">Akurasi rata-rata 71%</p>
+        <p class="mt-3 text-3xl font-bold" x-text="answered.total"></p>
+        <p class="mt-1 text-xs text-slate-500" x-text="answered.total ? 'Akurasi rata-rata ' + Math.round(answered.correct / answered.total * 100) + '%' : 'Dari simulasi yang sudah dikerjakan'"></p>
       </div>
     </div>
 
@@ -68,7 +66,7 @@
 
     <div class="grid gap-6 lg:grid-cols-3">
       <!-- Lanjutkan belajar -->
-      <div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-accent to-accent-dark p-6 text-white shadow-soft lg:col-span-2">
+      <template x-if="cont"><div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-accent to-accent-dark p-6 text-white shadow-soft lg:col-span-2">
         <i data-lucide="book-open" class="absolute -bottom-6 -right-6 h-40 w-40 text-white/10"></i>
         <p class="text-sm font-medium text-white/70">Lanjutkan dari terakhir kali</p>
         <h3 class="mt-1 text-2xl font-bold" x-text="cont.title"></h3>
@@ -81,7 +79,8 @@
           <a :href="'materi-detail.html?id=' + cont.id" class="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-accent transition hover:bg-white/90">Lanjutkan Bab <i data-lucide="arrow-right" class="h-4 w-4"></i></a>
           <a href="simulasi.html" class="inline-flex items-center gap-2 rounded-xl bg-white/15 px-4 py-2.5 text-sm font-semibold transition hover:bg-white/25"><i data-lucide="timer" class="h-4 w-4"></i> Mulai Simulasi</a>
         </div>
-      </div>
+      </div></template>
+      <div x-show="!cont" class="rounded-2xl border-2 border-dashed border-slate-200 bg-white p-6 text-sm text-slate-500 lg:col-span-2">Materi untuk ujian ini belum tersedia.</div>
 
       <!-- Progres per section -->
       <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-soft">
@@ -102,7 +101,13 @@
 
     <div class="grid gap-6 lg:grid-cols-2">
       <!-- Hasil terakhir -->
-      <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-soft">
+      <div x-show="!att" class="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 bg-white p-6 text-center">
+        <span class="grid h-12 w-12 place-items-center rounded-2xl bg-accent-soft text-accent"><i data-lucide="timer" class="h-6 w-6"></i></span>
+        <h3 class="mt-3 font-semibold">Belum ada simulasi</h3>
+        <p class="mt-1 text-sm text-slate-500">Kerjakan simulasi pertama untuk mengetahui skormu.</p>
+        <a href="simulasi.html" class="mt-4 rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-white hover:bg-accent-dark">Mulai Simulasi</a>
+      </div>
+      <template x-if="att"><div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-soft">
         <div class="flex items-center justify-between"><h3 class="font-semibold">Simulasi Terakhir</h3><span class="text-xs text-slate-400" x-text="new Date(att.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })"></span></div>
         <p class="mt-1 text-sm text-slate-500" x-text="res.pkg.name"></p>
         <div class="mt-4 space-y-3">
@@ -114,19 +119,20 @@
             </div>
           </template>
         </div>
-        <a href="hasil.html" class="mt-4 flex items-center justify-center gap-2 rounded-xl border border-slate-200 py-2.5 text-sm font-semibold transition hover:bg-slate-50">Lihat Hasil Lengkap <i data-lucide="arrow-right" class="h-4 w-4"></i></a>
-      </div>
+        <a :href="'hasil.html?id=' + att.id" class="mt-4 flex items-center justify-center gap-2 rounded-xl border border-slate-200 py-2.5 text-sm font-semibold transition hover:bg-slate-50">Lihat Hasil Lengkap <i data-lucide="arrow-right" class="h-4 w-4"></i></a>
+      </div></template>
       <!-- Aktivitas -->
       <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-soft">
         <h3 class="font-semibold">Aktivitas Terbaru</h3>
         <ol class="mt-4 space-y-4">
-          <template x-for="a in DB.recentActivity">
+          <template x-for="a in activity">
             <li class="flex gap-3">
               <span class="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-slate-100 text-slate-500"><i :data-lucide="a.icon" class="h-4 w-4"></i></span>
-              <div class="flex-1 text-sm"><p x-html="a.text"></p><p class="text-xs text-slate-400" x-text="a.time"></p></div>
+              <div class="flex-1 text-sm"><p x-html="a.text"></p><p class="text-xs text-slate-400" x-text="ago(a.at)"></p></div>
             </li>
           </template>
         </ol>
+        <p x-show="!activity.length" class="mt-4 rounded-xl bg-slate-50 p-4 text-sm text-slate-500">Belum ada aktivitas. Mulai dari materi bab pertama.</p>
       </div>
     </div>
   </div>
@@ -134,25 +140,26 @@
 
 <script>
 function dash() {
-  const exam = getExam(), E = DB.exams[exam];
-  const mine = loadAttempt();
-  // hanya Full Test yang punya skor total untuk dibandingkan dengan riwayat
-  const att = mine && mine.pkg === exam + '-full' ? mine : DB.sampleAttempts[exam];
-  const res = scoreAttempt(att);
-  const chapters = DB.chapters.filter(c => c.exam === exam);
-  const hist = [...DB.history[exam]], f = v => exam === 'ielts' ? Number(v).toFixed(1) : v;
-  const last = res.total ?? res.sections[0].score, prev = hist.at(att === mine ? -1 : -2)[1];
+  const exam = getExam(), E = DB.exams[exam], f = v => v == null ? '—' : exam === 'ielts' ? Number(v).toFixed(1) : v;
+  const isFull = a => DB.packages.find(p => p.id === a.pkg)?.type === 'full';
+  // Utamakan Full Test terakhir (punya skor total); jika belum ada, pakai tes per section terakhir
+  const att = findAttempt(a => a.exam === exam && isFull(a)) || findAttempt(a => a.exam === exam);
+  const res = att && scoreAttempt(att), last = att && attemptScore(att);
+  const prevAtt = att && DB.attempts.find(a => a !== att && a.exam === exam && isFull(a) === isFull(att) && a.pkg === att.pkg);
+  const prev = prevAtt && attemptScore(prevAtt), target = DB.user.target[exam];
+  const chapters = DB.chapters.filter(c => c.exam === exam && !c.draft);
+  const answered = DB.attempts.filter(a => a.exam === exam).flatMap(a => a.sections).reduce((t, s) => ({ correct: t.correct + (s.correct || 0), total: t.total + (s.total || 0) }), { correct: 0, total: 0 });
   return {
-    exam, E, att, res, chapters, loading: true,
-    cont: chapters.find(c => c.status === 'progress') || chapters[0],
+    exam, E, att, res, chapters, answered, loading: true, activity: DB.activity.filter(a => a.exam === exam).slice(0, 5),
+    cont: chapters.find(c => c.status === 'progress') || chapters.find(c => c.status === 'new') || chapters[0],
     sections: E.sections.map(s => {
       const cs = chapters.filter(c => c.section === s.id);
       return { ...s, total: cs.length, done: cs.filter(c => c.status === 'done').length, progress: Math.round(cs.reduce((a, c) => a + c.progress, 0) / (cs.length || 1)) };
     }),
     lastScore: f(last),
-    delta: (last >= prev ? '+' : '') + f(+(last - prev).toFixed(1)),
-    gap: last >= DB.user.target[exam] ? 'Target tercapai 🎉' : 'Kurang ' + f(+(DB.user.target[exam] - last).toFixed(1)) + ' lagi',
-    init() { setTimeout(() => this.loading = false, 550); },
+    delta: last == null ? 'Belum ada simulasi' : prev == null ? 'Simulasi pertama' : (last >= prev ? '+' : '') + f(+(last - prev).toFixed(1)) + ' dari test sebelumnya',
+    gap: last == null || !target ? 'Kerjakan simulasi untuk melihat posisimu' : last >= target ? 'Target tercapai 🎉' : 'Kurang ' + f(+(target - last).toFixed(1)) + ' lagi',
+    init() { this.loading = false; },
   };
 }
 </script>

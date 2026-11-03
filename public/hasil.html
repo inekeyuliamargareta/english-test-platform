@@ -7,16 +7,17 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com/3.4.16"></script>
 <script src="https://cdn.jsdelivr.net/npm/lucide@0.460.0/dist/umd/lucide.min.js"></script>
-<script src="data/dummy.js"></script>
 <script src="assets/app.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js"></script>
 </head>
 <body data-shell="app" data-active="hasil" data-title="Hasil Test">
-<main x-data="hasil()" class="space-y-6">
-  <div x-show="sample" class="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-    <i data-lucide="info" class="mt-0.5 h-4 w-4 shrink-0"></i>
-    <p>Ini <b>contoh hasil</b> (data dummy). <a href="simulasi.html" class="font-semibold underline">Kerjakan simulasi</a> untuk melihat hasilmu sendiri di halaman ini.</p>
+<main x-data="hasil()">
+  <div x-show="!att" class="flex flex-col items-center rounded-2xl border-2 border-dashed border-slate-200 bg-white px-6 py-16 text-center">
+    <span class="grid h-14 w-14 place-items-center rounded-2xl bg-accent-soft text-accent"><i data-lucide="bar-chart-3" class="h-7 w-7"></i></span>
+    <h2 class="mt-4 text-lg font-semibold">Belum ada hasil test</h2>
+    <p class="mt-1 max-w-sm text-sm text-slate-500">Hasil dan pembahasan akan muncul di sini setelah kamu mengerjakan simulasi.</p>
+    <a href="simulasi.html" class="mt-5 rounded-xl bg-accent px-5 py-2.5 text-sm font-semibold text-white hover:bg-accent-dark">Mulai Simulasi</a>
   </div>
+  <template x-if="att"><div class="space-y-6">
 
   <!-- Skor utama -->
   <div class="grid gap-6 lg:grid-cols-3">
@@ -43,8 +44,8 @@
     </div>
     <div class="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-6 shadow-soft">
       <h3 class="font-semibold">Langkah selanjutnya</h3>
-      <a href="review.html" class="flex items-center gap-3 rounded-xl bg-accent px-4 py-3 text-sm font-semibold text-white transition hover:bg-accent-dark"><i data-lucide="list-checks" class="h-5 w-5"></i>Review & Pembahasan<i data-lucide="arrow-right" class="ml-auto h-4 w-4"></i></a>
-      <a href="review.html?filter=wrong" class="flex items-center gap-3 rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold transition hover:bg-slate-50"><i data-lucide="circle-x" class="h-5 w-5 text-rose-500"></i>Lihat soal yang salah <span class="ml-auto rounded-md bg-rose-50 px-2 text-xs text-rose-600" x-text="wrongCount"></span></a>
+      <a :href="'review.html?id=' + att.id" class="flex items-center gap-3 rounded-xl bg-accent px-4 py-3 text-sm font-semibold text-white transition hover:bg-accent-dark"><i data-lucide="list-checks" class="h-5 w-5"></i>Review & Pembahasan<i data-lucide="arrow-right" class="ml-auto h-4 w-4"></i></a>
+      <a :href="'review.html?filter=wrong&id=' + att.id" class="flex items-center gap-3 rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold transition hover:bg-slate-50"><i data-lucide="circle-x" class="h-5 w-5 text-rose-500"></i>Lihat soal yang salah <span class="ml-auto rounded-md bg-rose-50 px-2 text-xs text-rose-600" x-text="wrongCount"></span></a>
       <a x-show="!access.locked" :href="'test.html?pkg=' + res.pkg.id" class="flex items-center gap-3 rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold transition hover:bg-slate-50"><i data-lucide="rotate-ccw" class="h-5 w-5 text-slate-500"></i>Ulangi test ini</a>
       <a x-show="access.locked" :href="waLink('Halo EnglishOn, saya ingin membuka akses simulasi berikutnya.')" target="_blank" class="flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800 transition hover:bg-amber-100"><i data-lucide="lock" class="h-5 w-5"></i><span>Simulasi berikutnya terkunci<span class="block text-xs font-normal">Hubungi EnglishOn untuk membuka</span></span></a>
       <a href="dashboard.html" class="mt-auto text-center text-sm font-medium text-slate-500 hover:text-slate-900">Kembali ke Dashboard</a>
@@ -77,14 +78,16 @@
       </template>
     </div>
   </div>
-
+  </div></template>
 </main>
 
 <script>
 function hasil() {
-  const mine = loadAttempt(), exam = getExam();
-  const att = mine && mine.pkg.startsWith(exam) ? mine : DB.sampleAttempts[exam];
-  const res = scoreAttempt(att), ielts = exam === 'ielts';
+  const byId = DB.attempts.find(a => a.id === +qs('id'));
+  if (byId) document.documentElement.dataset.exam = byId.exam;
+  const att = byId || findAttempt(a => a.exam === getExam());
+  if (!att) return { att: null };
+  const exam = att.exam, res = scoreAttempt(att), ielts = exam === 'ielts';
   const main = res.total ?? res.sections[0].score; // null = paket Writing saja (menunggu tutor)
   const fmtScore = v => v == null ? '—' : ielts ? v.toFixed(1) : v;
   const cefr = main == null ? '—' : ielts ? (main >= 7 ? 'C1' : main >= 5.5 ? 'B2' : main >= 4 ? 'B1' : 'A2')
@@ -92,7 +95,7 @@ function hasil() {
   const target = DB.user.target[exam];
   const wrongCount = res.sections.reduce((a, s) => a + (s.total ? s.total - s.correct : 0), 0);
   return {
-    att, res, exam, sample: att !== mine, wrongCount, cefr, fmtScore,
+    att, res, exam, wrongCount, cefr, fmtScore,
     main: fmtScore(main), pending: res.sections.some(s => s.pending),
     scale: ielts ? 'dari 9.0' : res.total !== null ? '310–677' : '31–' + TOEFL_MAX[res.sections[0].id],
     pct: main == null ? 0 : ielts ? main / 9 : res.total !== null ? (main - 310) / 367 : (main - 31) / 37,
