@@ -4,6 +4,7 @@ const bcrypt = require('bcryptjs');
 const { pool } = require('./db');
 const S = require('./seed-data');
 const { scoreAttempt } = require('./scoring');
+const { applyDefaults } = require('./defaults');
 
 const J = v => v == null ? null : JSON.stringify(v);
 const insert = (table, cols, rows) => rows.length && pool.query(`INSERT INTO ${table} (${cols.join(',')}) VALUES ?`, [rows]);
@@ -56,6 +57,7 @@ const parseJoined = s => { const [d, m, y] = s.split(' '); return new Date(+y, M
   S.students.filter(s => s.tests && s.email !== S.user.email).forEach((s, i) => rows.push(attempt(idOf(s.email), s.exam, new Date(Date.now() - (i + 1) * 3 * 3600e3))));
   await insert('attempts', ['user_id', 'package_id', 'exam', 'answers', 'flags', 'duration', 'result', 'total', 'created_at'], rows);
 
+  await applyDefaults(pool); // deskripsi program, rekomendasi, placement test
   console.log(`Seed selesai: ${S.questions.length} soal, ${S.chapters.length} bab, ${users.length} siswa demo + 1 admin.`);
   await pool.end();
 })().catch(async e => { console.error(e.message); await pool.end(); process.exit(1); });

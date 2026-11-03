@@ -230,7 +230,7 @@
       <p class="mt-1 text-sm text-slate-500">Progres test ini tidak akan disimpan.</p>
       <div class="mt-6 grid grid-cols-2 gap-3">
         <button @click="exitOpen=false" class="rounded-xl border border-slate-200 py-2.5 text-sm font-semibold hover:bg-slate-50">Lanjutkan Test</button>
-        <a href="simulasi.html" @click="leaving=true" class="rounded-xl bg-rose-600 py-2.5 text-sm font-semibold text-white hover:bg-rose-700">Keluar</a>
+        <a :href="placement ? 'placement.html' : 'simulasi.html'" @click="leaving=true" class="rounded-xl bg-rose-600 py-2.5 text-sm font-semibold text-white hover:bg-rose-700">Keluar</a>
       </div>
     </div>
   </div>
@@ -260,17 +260,17 @@ const DIRECTIONS = {
 
 function test() {
   const pkg = DB.packages.find(p => p.id === qs('pkg')) || DB.packages.find(p => p.exam === getExam());
-  const exam = pkg.exam;
+  const exam = pkg.exam, placement = pkg.type === 'placement';
   document.documentElement.dataset.exam = exam;
   return {
-    pkg, exam, si: 0, cur: 0, phase: 'intro', left: 0, answers: {}, flags: [], clips: {}, locked: access.locked,
-    secs: pkg.sections.map(([id, min]) => ({ id, min, meta: sectionMeta(exam, id), items: sectionItems(exam, id) })),
+    pkg, exam, placement, si: 0, cur: 0, phase: 'intro', left: 0, answers: {}, flags: [], clips: {}, locked: access.locked && !placement,
+    secs: pkg.sections.map(([id, min]) => ({ id, min, meta: sectionMeta(exam, id), items: sectionItems(exam, id, placement ? 'placement' : 'bank') })),
     navOpen: false, modal: false, exitOpen: false, toast: '', finishing: false, submitError: '', leaving: false, timeUpNote: false, started: Date.now(),
 
     get sec() { return this.secs[this.si]; },
     get item() { return this.sec.items[this.cur] || {}; },
     get last() { return this.si === this.secs.length - 1; },
-    get directions() { return DIRECTIONS[exam + '-' + this.sec.id]; },
+    get directions() { return placement ? 'Jawab sesuai kemampuanmu tanpa bantuan. Soal disusun dari mudah ke sulit. Hasilnya berupa perkiraan level, bukan skor resmi.' : DIRECTIONS[exam + '-' + this.sec.id] || ''; },
     get answeredCount() { return this.sec.items.filter(it => isAnswered(it, this.answers[it.id])).length; },
     get unanswered() { return this.sec.items.length - this.answeredCount; },
     get flagCount() { return this.sec.items.filter(it => this.flags.includes(it.id)).length; },
@@ -316,7 +316,7 @@ function test() {
         try {
           const { id } = await api('POST', '/attempts', body);
           try { localStorage.setItem('exam', exam); } catch {}
-          return location.href = 'hasil.html?id=' + id;
+          return location.href = (placement ? 'placement.html?id=' : 'hasil.html?id=') + id;
         } catch (e) {
           if (i >= 2 || /terpakai|tidak ditemukan|belum tersedia/.test(e.message)) { this.finishing = false; this.submitError = e.message; return; }
           await new Promise(r => setTimeout(r, 2000));

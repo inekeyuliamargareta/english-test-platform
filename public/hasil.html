@@ -84,6 +84,7 @@
 <script>
 function hasil() {
   const byId = DB.attempts.find(a => a.id === +qs('id'));
+  if (byId && isPlacement(byId)) { location.replace('placement.html?id=' + byId.id); return { att: null }; }
   if (byId) document.documentElement.dataset.exam = byId.exam;
   const att = byId || findAttempt(a => a.exam === getExam());
   if (!att) return { att: null };

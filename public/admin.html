@@ -26,7 +26,7 @@
       <div class="rounded-2xl border border-slate-200 bg-white shadow-soft">
         <div class="flex items-center justify-between p-5"><h3 class="font-semibold">Hasil test terbaru</h3><a href="#siswa" class="text-sm font-medium text-brand-600 hover:underline">Semua siswa</a></div>
         <div class="overflow-x-auto"><table class="w-full text-sm">
-          <thead class="bg-slate-50 text-left text-xs uppercase tracking-wider text-slate-500"><tr><th class="px-5 py-3">Siswa</th><th class="px-5 py-3">Ujian</th><th class="px-5 py-3">Skor</th><th class="px-5 py-3">Waktu</th></tr></thead>
+          <thead class="bg-slate-50 text-left text-xs uppercase tracking-wider text-slate-500"><tr><th class="px-5 py-3">Siswa</th><th class="px-5 py-3">Program</th><th class="px-5 py-3">Skor</th><th class="px-5 py-3">Waktu</th></tr></thead>
           <tbody class="divide-y divide-slate-100">
             <template x-for="r in recent" :key="r.id">
               <tr class="hover:bg-slate-50"><td class="whitespace-nowrap px-5 py-3 font-medium" x-text="r.name"></td><td class="px-5 py-3"><span class="rounded-md px-2 py-0.5 text-xs font-semibold text-white" :style="examStyle(r.exam)" x-text="r.exam.toUpperCase()"></span></td><td class="px-5 py-3 font-semibold" x-text="fmtScore(r.score, r.exam)"></td><td class="whitespace-nowrap px-5 py-3 text-slate-500" x-text="ago(r.date)"></td></tr>
@@ -44,11 +44,12 @@
     </div>
     <div class="flex flex-col gap-2 sm:flex-row">
       <div class="relative flex-1"><i data-lucide="search" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"></i><input x-model="mq" placeholder="Cari judul bab…" class="w-full rounded-xl border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm outline-none focus:border-brand-500"></div>
-      <select x-model="mexam" class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm"><option value="all">Semua ujian</option><template x-for="e in Object.values(DB.exams)" :key="e.key"><option :value="e.key" x-text="e.name"></option></template></select>
+      <select x-model="mexam" @change="msec='all'" class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm"><option value="all">Semua program</option><template x-for="e in Object.values(DB.exams)" :key="e.key"><option :value="e.key" x-text="e.name"></option></template></select>
+      <select x-show="mexam!=='all'" x-model="msec" class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm"><option value="all">Semua section</option><template x-for="x in (DB.exams[mexam]?.sections || [])" :key="x.id"><option :value="x.id" x-text="x.name" :selected="x.id === msec"></option></template></select>
     </div>
     <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-soft"><div class="overflow-x-auto">
       <table class="w-full text-sm">
-        <thead class="bg-slate-50 text-left text-xs uppercase tracking-wider text-slate-500"><tr><th class="px-5 py-3">Judul bab</th><th class="px-5 py-3">Ujian / Section</th><th class="px-5 py-3 text-center">Sub-bab</th><th class="px-5 py-3 text-center">Soal</th><th class="px-5 py-3">Status</th><th class="px-5 py-3 text-right">Aksi</th></tr></thead>
+        <thead class="bg-slate-50 text-left text-xs uppercase tracking-wider text-slate-500"><tr><th class="px-5 py-3">Judul bab</th><th class="px-5 py-3">Program / Section</th><th class="px-5 py-3 text-center">Sub-bab</th><th class="px-5 py-3 text-center">Soal</th><th class="px-5 py-3">Status</th><th class="px-5 py-3 text-right">Aksi</th></tr></thead>
         <tbody class="divide-y divide-slate-100">
           <template x-for="c in chapterList" :key="c.id">
             <tr class="hover:bg-slate-50">
@@ -74,11 +75,16 @@
   <section x-show="tab==='soal'" x-cloak class="space-y-5">
     <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
       <div><h2 class="text-2xl font-bold tracking-tight">Kelola Soal</h2><p class="text-sm text-slate-500" x-text="questions.length + ' soal terdaftar'"></p></div>
-      <button @click="openQuestion()" class="inline-flex items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-brand-700"><i data-lucide="plus" class="h-4 w-4"></i>Tambah Soal</button>
+      <div class="flex gap-2">
+        <button @click="openImport()" class="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold hover:bg-slate-50 sm:flex-none"><i data-lucide="file-up" class="h-4 w-4"></i>Import Soal</button>
+        <button @click="openQuestion()" class="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-brand-700 sm:flex-none"><i data-lucide="plus" class="h-4 w-4"></i>Tambah Soal</button>
+      </div>
     </div>
     <div class="flex flex-col gap-2 sm:flex-row">
       <div class="relative flex-1"><i data-lucide="search" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"></i><input x-model="sq" placeholder="Cari teks soal atau topik…" class="w-full rounded-xl border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm outline-none focus:border-brand-500"></div>
-      <select x-model="sexam" class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm"><option value="all">Semua ujian</option><template x-for="e in Object.values(DB.exams)" :key="e.key"><option :value="e.key" x-text="e.name"></option></template></select>
+      <select x-model="sexam" @change="ssec='all'" class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm"><option value="all">Semua program</option><template x-for="e in Object.values(DB.exams)" :key="e.key"><option :value="e.key" x-text="e.name"></option></template></select>
+      <select x-show="sexam!=='all'" x-model="ssec" class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm"><option value="all">Semua section</option><template x-for="x in (DB.exams[sexam]?.sections || [])" :key="x.id"><option :value="x.id" x-text="x.name" :selected="x.id === ssec"></option></template></select>
+      <select x-model="spool" class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm"><option value="all">Semua penggunaan</option><option value="bank">Simulasi & latihan</option><option value="placement">Placement test</option></select>
     </div>
     <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-soft"><div class="overflow-x-auto">
       <table class="w-full text-sm">
@@ -88,7 +94,7 @@
             <tr class="hover:bg-slate-50">
               <td class="whitespace-nowrap px-5 py-3 font-mono text-xs text-slate-500" x-text="q.id.toUpperCase()"></td>
               <td class="px-5 py-3"><p class="max-w-sm truncate" x-text="q.q.replace(/[{}]/g, '')"></p></td>
-              <td class="whitespace-nowrap px-5 py-3"><span class="rounded-md px-2 py-0.5 text-xs font-semibold text-white" :style="examStyle(q.exam)" x-text="q.exam.toUpperCase()"></span> <span class="ml-1 capitalize text-slate-600" x-text="q.section"></span></td>
+              <td class="whitespace-nowrap px-5 py-3"><span class="rounded-md px-2 py-0.5 text-xs font-semibold text-white" :style="examStyle(q.exam)" x-text="q.exam.toUpperCase()"></span> <span class="ml-1 capitalize text-slate-600" x-text="q.section"></span><span x-show="q.pool==='placement'" class="ml-1 rounded-md bg-amber-100 px-1.5 py-0.5 text-[11px] font-semibold text-amber-700">Placement</span></td>
               <td class="whitespace-nowrap px-5 py-3 text-slate-600" x-text="q.topic"></td>
               <td class="whitespace-nowrap px-5 py-3 text-slate-600" x-text="typeLabel[q.type]"></td>
               <td class="px-5 py-3"><span class="rounded-md px-2 py-0.5 text-xs capitalize" :class="diffClass[q.difficulty]" x-text="q.difficulty"></span></td>
@@ -112,13 +118,13 @@
     </div>
     <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-soft"><div class="overflow-x-auto">
       <table class="w-full text-sm">
-        <thead class="bg-slate-50 text-left text-xs uppercase tracking-wider text-slate-500"><tr><th class="px-5 py-3">Siswa</th><th class="px-5 py-3">Ujian</th><th class="px-5 py-3">Skor terakhir</th><th class="px-5 py-3">Progres materi</th><th class="px-5 py-3 text-center">Test</th><th class="px-5 py-3">Akses</th><th class="px-5 py-3"></th></tr></thead>
+        <thead class="bg-slate-50 text-left text-xs uppercase tracking-wider text-slate-500"><tr><th class="px-5 py-3">Siswa</th><th class="px-5 py-3">Program</th><th class="px-5 py-3">Skor terakhir</th><th class="px-5 py-3">Progres materi</th><th class="px-5 py-3 text-center">Test</th><th class="px-5 py-3">Akses</th><th class="px-5 py-3"></th></tr></thead>
         <tbody class="divide-y divide-slate-100">
           <template x-for="s in students" :key="s.id">
             <tr class="hover:bg-slate-50">
               <td class="px-5 py-3"><div class="flex items-center gap-3"><span class="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-slate-100 text-xs font-semibold text-slate-600" x-text="s.name.split(' ').map(w => w[0]).join('')"></span><div><p class="whitespace-nowrap font-medium" x-text="s.name"></p><p class="text-xs text-slate-500" x-text="s.email"></p></div></div></td>
               <td class="px-5 py-3"><span class="rounded-md px-2 py-0.5 text-xs font-semibold text-white" :style="examStyle(s.exam)" x-text="(s.exam || '-').toUpperCase()"></span></td>
-              <td class="px-5 py-3 font-semibold" x-text="fmtScore(s.last, s.lastExam)"></td>
+              <td class="px-5 py-3"><p class="font-semibold" x-text="fmtScore(s.last, s.lastExam)"></p><p x-show="s.placement" class="whitespace-nowrap text-xs text-slate-500" x-text="s.placement ? 'Placement: ' + levelOf(s.placement.percent).code : ''"></p></td>
               <td class="px-5 py-3"><div class="flex items-center gap-2"><div class="h-1.5 w-24 rounded-full bg-slate-100"><div class="h-full rounded-full bg-brand-600" :style="'width:' + s.progress + '%'"></div></div><span class="text-xs text-slate-500" x-text="s.progress + '%'"></span></div></td>
               <td class="px-5 py-3 text-center" x-text="s.tests"></td>
               <td class="px-5 py-3">
@@ -136,69 +142,132 @@
     </div></div>
   </section>
 
-  <!-- ================= MASTER TEST ================= -->
+  <!-- ================= MASTER PROGRAM ================= -->
   <section x-show="tab==='master'" x-cloak class="space-y-5">
     <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-      <div><h2 class="text-2xl font-bold tracking-tight">Master Test</h2><p class="text-sm text-slate-500">Jenis ujian yang tersedia di platform. Ujian nonaktif tampil sebagai "Segera hadir" bagi siswa.</p></div>
-      <button @click="openExam()" class="inline-flex items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-brand-700"><i data-lucide="plus" class="h-4 w-4"></i>Tambah Jenis Ujian</button>
+      <div><h2 class="text-2xl font-bold tracking-tight">Master Program</h2><p class="text-sm text-slate-500">Program yang tersedia (TOEFL, IELTS, dan lainnya) beserta section-nya. Klik jumlah bab/soal untuk langsung mengelolanya. Program nonaktif tampil sebagai "Segera hadir" bagi siswa.</p></div>
+      <button @click="openExam()" class="inline-flex items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-brand-700"><i data-lucide="plus" class="h-4 w-4"></i>Tambah Program</button>
     </div>
-    <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+    <div class="grid gap-4 lg:grid-cols-2 2xl:grid-cols-3">
       <template x-for="e in exams" :key="e.key">
         <div class="flex flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-soft">
           <div class="flex items-start gap-3">
             <span class="grid h-11 w-11 shrink-0 place-items-center rounded-xl text-white" :style="'background-color: rgb(' + e.rgb + ')'"><i data-lucide="layers" class="h-5 w-5"></i></span>
-            <div class="min-w-0 flex-1"><h4 class="font-semibold" x-text="e.name"></h4><p class="text-xs text-slate-500" x-text="'Kode: ' + e.key + ' · Skala ' + e.scale"></p></div>
-            <button @click="toggleExam(e)" class="relative h-6 w-11 shrink-0 rounded-full transition" :class="e.active ? 'bg-emerald-500' : 'bg-slate-200'" :title="e.active ? 'Aktif' : 'Nonaktif'"><span class="absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all" :class="e.active ? 'left-[22px]' : 'left-0.5'"></span></button>
+            <div class="min-w-0 flex-1"><h4 class="font-semibold" x-text="e.name"></h4><p class="text-xs text-slate-500" x-text="'Kode: ' + e.key + ' · Skala ' + (e.scale || '-')"></p></div>
+            <button @click="toggleExam(e)" class="relative h-6 w-11 shrink-0 rounded-full transition" :class="e.active ? 'bg-emerald-500' : 'bg-slate-200'" :title="e.active ? 'Aktif — klik untuk menonaktifkan' : 'Nonaktif — klik untuk mengaktifkan'"><span class="absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all" :class="e.active ? 'left-[22px]' : 'left-0.5'"></span></button>
           </div>
-          <div class="mt-4 space-y-1.5">
-            <template x-for="s in e.sections" :key="s.id">
-              <div class="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-sm">
-                <span x-text="s.name"></span>
-                <span class="rounded-md px-1.5 py-0.5 text-[11px] font-semibold" :class="s.tutor ? 'bg-violet-100 text-violet-700' : 'bg-white text-slate-500'" x-text="s.tutor ? 'Dinilai tutor' : 'Online'"></span>
+          <p class="mt-3 line-clamp-2 text-sm text-slate-500" x-text="plain(e.about) || 'Belum ada deskripsi untuk siswa.'"></p>
+          <p class="mt-4 text-xs font-semibold uppercase tracking-wider text-slate-400">Section</p>
+          <div class="mt-2 space-y-1.5">
+            <template x-for="x in e.sections" :key="x.id">
+              <div class="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg bg-slate-50 px-3 py-2 text-sm">
+                <span class="min-w-0 flex-1"><span class="font-medium" x-text="x.name"></span><span class="block text-xs text-slate-500" x-text="x.official || ''"></span></span>
+                <span x-show="x.tutor" class="rounded-md bg-violet-100 px-1.5 py-0.5 text-[11px] font-semibold text-violet-700">Dinilai tutor</span>
+                <button @click="goTo('materi', e.key, x.id)" class="text-xs font-semibold text-brand-600 hover:underline" x-text="chapters.filter(c => c.exam === e.key && c.section === x.id).length + ' bab'"></button>
+                <button @click="goTo('soal', e.key, x.id)" class="text-xs font-semibold text-brand-600 hover:underline" x-text="questions.filter(q => q.exam === e.key && q.section === x.id).length + ' soal'"></button>
               </div>
             </template>
           </div>
-          <div class="mt-4 flex items-center justify-between border-t border-slate-100 pt-4 text-xs text-slate-500">
-            <span x-text="DB.packages.filter(p => p.exam === e.key).length + ' paket · ' + questions.filter(q => q.exam === e.key).length + ' soal · ' + chapters.filter(c => c.exam === e.key).length + ' bab'"></span>
+          <div class="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-4 text-xs text-slate-500">
+            <span x-text="DB.packages.filter(p => p.exam === e.key && p.type !== 'placement').length + ' paket simulasi · ' + questions.filter(q => q.exam === e.key && q.pool === 'placement').length + ' soal placement'"></span>
             <span class="rounded-full px-2 py-0.5 font-semibold" :class="e.active ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'" x-text="e.active ? 'Aktif' : 'Segera hadir'"></span>
           </div>
-          <button @click="openExam(e)" class="mt-3 rounded-xl border border-slate-200 py-2 text-sm font-semibold hover:bg-slate-50">Edit</button>
+          <div class="mt-3 grid grid-cols-2 gap-2">
+            <a :href="'program.html?p=' + e.key" target="_blank" class="rounded-xl border border-slate-200 py-2 text-center text-sm font-semibold hover:bg-slate-50">Lihat sisi siswa</a>
+            <button @click="openExam(e)" class="rounded-xl bg-slate-900 py-2 text-sm font-semibold text-white hover:bg-slate-800">Edit Program</button>
+          </div>
         </div>
       </template>
     </div>
   </section>
 
-  <!-- ================= Modal form ujian ================= -->
+  <!-- ================= Modal form program ================= -->
   <div x-show="open==='e'" x-cloak class="fixed inset-0 z-50 grid place-items-center p-4">
     <div class="absolute inset-0 bg-slate-900/40" @click="open=''"></div>
     <template x-if="open==='e'">
-      <form @submit.prevent="saveExam()" class="thin-scroll relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl">
-        <h3 class="text-lg font-bold" x-text="eForm.isNew ? 'Tambah Jenis Ujian' : 'Edit ' + eForm.name"></h3>
-        <div class="mt-5 space-y-4 text-sm">
-          <label class="block"><span class="mb-1.5 block font-medium">Nama ujian</span><input x-model="eForm.name" required placeholder="mis. English General Test" class="w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand-500"></label>
+      <form @submit.prevent="saveExam()" class="thin-scroll relative max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl">
+        <h3 class="text-lg font-bold" x-text="eForm.isNew ? 'Tambah Program' : 'Edit Program ' + eForm.name"></h3>
+        <div class="mt-5 space-y-5 text-sm">
+          <div class="grid gap-3 sm:grid-cols-2">
+            <label class="block"><span class="mb-1.5 block font-medium">Nama program</span><input x-model="eForm.name" required placeholder="mis. TOEFL ITP" class="w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand-500"></label>
+            <label class="block"><span class="mb-1.5 block font-medium">Nama lengkap</span><input x-model="eForm.full" placeholder="mis. TOEFL ITP (Institutional Testing Program)" class="w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand-500"></label>
+          </div>
           <div class="grid grid-cols-3 gap-3">
-            <label class="block"><span class="mb-1.5 block font-medium">Kode</span><input x-model="eForm.key" :disabled="!eForm.isNew" required placeholder="general" class="w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand-500 disabled:bg-slate-50"></label>
-            <label class="block"><span class="mb-1.5 block font-medium">Skala skor</span><input x-model="eForm.scale" placeholder="0–100" class="w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand-500"></label>
+            <label class="block"><span class="mb-1.5 block font-medium">Kode</span><input x-model="eForm.key" :disabled="!eForm.isNew" required placeholder="toeic" class="w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand-500 disabled:bg-slate-50"></label>
+            <label class="block"><span class="mb-1.5 block font-medium">Skala skor</span><input x-model="eForm.scale" placeholder="310–677" class="w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand-500"></label>
             <label class="block"><span class="mb-1.5 block font-medium">Warna</span><input type="color" x-model="eForm.color" class="h-[42px] w-full cursor-pointer rounded-xl border border-slate-200 p-1"></label>
           </div>
+          <label class="block"><span class="mb-1.5 block font-medium">Penjelasan program untuk siswa</span>
+            <textarea x-model="eForm.about" rows="7" placeholder="Apa itu program ini, untuk apa, apa saja yang dites, jumlah soal, durasi, cara penilaian…" class="w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand-500 font-mono text-xs"></textarea>
+            <span class="mt-1 block text-xs text-slate-500">Tampil di menu <b>Tentang Program</b> siswa. Boleh memakai HTML sederhana: &lt;p&gt;, &lt;b&gt;, &lt;ul&gt;&lt;li&gt;.</span></label>
           <div>
-            <span class="mb-1.5 block font-medium">Section</span>
+            <span class="mb-1.5 block font-medium">Section <span class="font-normal text-slate-500">· info ujian asli tampil di halaman siswa</span></span>
             <div class="space-y-2">
-              <template x-for="(s, i) in eForm.sections" :key="i">
-                <div class="flex gap-2">
-                  <input x-model="s.name" required placeholder="Nama section" class="min-w-0 flex-1 rounded-xl border border-slate-200 px-3 py-2 outline-none focus:border-brand-500">
-                  <select x-model="s.mode" class="rounded-xl border border-slate-200 px-2 py-2 text-xs"><option value="online">Online</option><option value="tutor">Dinilai tutor</option></select>
-                  <button type="button" @click="eForm.sections.splice(i, 1)" class="rounded-lg px-2 text-slate-400 hover:bg-slate-100 hover:text-rose-500"><i data-lucide="x" class="h-4 w-4"></i></button>
+              <template x-for="(x, i) in eForm.sections" :key="i">
+                <div class="grid gap-2 rounded-xl border border-slate-200 p-2 sm:grid-cols-[1fr_1fr_auto_auto]">
+                  <input x-model="x.name" required placeholder="Nama section, mis. Listening" class="min-w-0 rounded-lg border border-slate-200 px-3 py-2 outline-none focus:border-brand-500">
+                  <input x-model="x.official" placeholder="mis. 50 soal · 35 menit" class="min-w-0 rounded-lg border border-slate-200 px-3 py-2 outline-none focus:border-brand-500">
+                  <select x-model="x.mode" class="rounded-lg border border-slate-200 px-2 py-2 text-xs"><option value="online">Dinilai otomatis</option><option value="tutor">Dinilai tutor</option></select>
+                  <button type="button" @click="eForm.sections.splice(i, 1)" class="rounded-lg px-2 text-slate-400 hover:bg-slate-100 hover:text-rose-500" title="Hapus section"><i data-lucide="x" class="h-4 w-4"></i></button>
                 </div>
               </template>
             </div>
-            <button type="button" @click="eForm.sections.push({ name: '', mode: 'online' })" class="mt-2 text-sm font-medium text-brand-600 hover:underline">+ Tambah section</button>
+            <button type="button" @click="eForm.sections.push({ name: '', official: '', mode: 'online' })" class="mt-2 text-sm font-medium text-brand-600 hover:underline">+ Tambah section</button>
+            <p x-show="!eForm.isNew" class="mt-1 text-xs text-amber-700">Menghapus section tidak menghapus soal/babnya, tapi soal itu tidak akan tampil sampai dipindah ke section lain.</p>
           </div>
-          <label class="flex items-center gap-2"><input type="checkbox" x-model="eForm.active" class="h-4 w-4 accent-brand-600">Aktif (tampil untuk siswa)</label>
+          <div>
+            <span class="mb-1.5 block font-medium">Rekomendasi kelas setelah placement test</span>
+            <div class="space-y-2">
+              <template x-for="lv in LEVELS" :key="lv.code">
+                <label class="flex items-center gap-2"><span class="w-28 shrink-0 text-xs"><b x-text="lv.code"></b> <span class="text-slate-500" x-text="lv.name"></span></span>
+                  <input x-model="eForm.recommend[lv.code]" :placeholder="'Kelas yang disarankan untuk level ' + lv.code" class="min-w-0 flex-1 rounded-lg border border-slate-200 px-3 py-2 outline-none focus:border-brand-500"></label>
+              </template>
+            </div>
+          </div>
+          <label class="flex items-center gap-2"><input type="checkbox" x-model="eForm.active" class="h-4 w-4 accent-brand-600">Aktif (siswa bisa memilih program ini)</label>
         </div>
-        <div class="mt-6 flex justify-end gap-3"><button type="button" @click="open=''" class="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold hover:bg-slate-50">Batal</button><button class="rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-700">Simpan</button></div>
+        <div class="mt-6 flex justify-end gap-3"><button type="button" @click="open=''" class="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold hover:bg-slate-50">Batal</button><button :disabled="saving" class="rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60">Simpan</button></div>
       </form>
     </template>
+  </div>
+
+  <!-- ================= Modal import soal ================= -->
+  <div x-show="open==='i'" x-cloak class="fixed inset-0 z-50 grid place-items-center p-4">
+    <div class="absolute inset-0 bg-slate-900/40" @click="open=''"></div>
+    <div class="thin-scroll relative max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl">
+      <h3 class="text-lg font-bold">Import Soal dari Excel / Google Sheets</h3>
+      <ol class="mt-4 space-y-3 text-sm">
+        <li class="flex gap-3"><span class="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-brand-50 text-xs font-bold text-brand-700">1</span>
+          <div class="flex-1"><p>Unduh template, lalu isi satu soal per baris. Hapus baris contoh sebelum import.</p>
+            <button @click="downloadTemplate()" class="mt-2 inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold hover:bg-slate-50"><i data-lucide="download" class="h-4 w-4"></i>Unduh template CSV</button></div></li>
+        <li class="flex gap-3"><span class="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-brand-50 text-xs font-bold text-brand-700">2</span>
+          <p class="flex-1">Simpan sebagai <b>CSV</b>. Di Excel: <i>File → Save As → CSV UTF-8</i>. Di Google Sheets: <i>File → Download → CSV</i>.</p></li>
+        <li class="flex gap-3"><span class="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-brand-50 text-xs font-bold text-brand-700">3</span>
+          <div class="flex-1"><p>Pilih file. Semua baris diperiksa dulu sebelum disimpan.</p>
+            <label class="mt-2 flex cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-300 px-4 py-5 text-center transition hover:border-brand-500 hover:bg-brand-50">
+              <i data-lucide="file-up" class="h-5 w-5 text-slate-400"></i><span class="font-medium" x-text="imp.name || 'Klik untuk memilih file .csv'"></span>
+              <input type="file" accept=".csv,text/csv" class="hidden" @change="readImport($event.target.files[0]); $event.target.value = ''"></label></div></li>
+      </ol>
+
+      <p x-show="imp.checking" class="mt-4 rounded-xl bg-slate-50 p-3 text-sm text-slate-600">Memeriksa file…</p>
+      <div x-show="imp.result && imp.result.ok" class="mt-4 flex items-center gap-2 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-800"><i data-lucide="check-circle" class="h-4 w-4 shrink-0"></i><span x-text="(imp.result?.count || 0) + ' soal siap diimport.'"></span></div>
+      <div x-show="imp.result && !imp.result.ok" class="mt-4 rounded-xl bg-rose-50 p-3 text-sm text-rose-800">
+        <p class="font-semibold" x-text="(imp.result?.errors.length || 0) + ' baris perlu diperbaiki (belum ada yang disimpan):'"></p>
+        <ul class="thin-scroll mt-2 max-h-48 space-y-1 overflow-y-auto"><template x-for="er in (imp.result?.errors || []).slice(0, 100)" :key="er.row + er.error"><li><b x-text="'Baris ' + er.row + ':'"></b> <span x-text="er.error"></span></li></template></ul>
+      </div>
+
+      <details class="mt-4 rounded-xl bg-slate-50 p-3 text-xs text-slate-600">
+        <summary class="cursor-pointer text-sm font-medium text-slate-700">Penjelasan kolom</summary>
+        <table class="mt-2 w-full"><tbody class="divide-y divide-slate-200">
+          <template x-for="c in IMPORT_HELP" :key="c[0]"><tr><td class="whitespace-nowrap py-1.5 pr-3 font-mono font-semibold text-slate-800" x-text="c[0]"></td><td class="py-1.5" x-html="c[1]"></td></tr></template>
+        </tbody></table>
+      </details>
+
+      <div class="mt-6 flex justify-end gap-3">
+        <button @click="open=''" class="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold hover:bg-slate-50">Tutup</button>
+        <button @click="runImport()" :disabled="!imp.result?.ok || saving" class="rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-40" x-text="saving ? 'Mengimport…' : 'Import ' + (imp.result?.ok ? imp.result.count + ' soal' : 'soal')"></button>
+      </div>
+    </div>
   </div>
 
   <!-- ================= Slide-over form soal ================= -->
@@ -213,17 +282,19 @@
             <div class="grid gap-4 sm:grid-cols-2">
               <label class="block text-sm"><span class="mb-1.5 block font-medium">Tipe soal</span>
                 <select x-model="qForm.type" class="w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand-500"><template x-for="(v, k) in typeLabel"><option :value="k" x-text="v" :selected="k===qForm.type"></option></template></select></label>
-              <label class="block text-sm"><span class="mb-1.5 block font-medium">Ujian</span>
+              <label class="block text-sm"><span class="mb-1.5 block font-medium">Program</span>
                 <select x-model="qForm.exam" @change="qForm.section = DB.exams[qForm.exam].sections[0].id" class="w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand-500"><template x-for="e in Object.values(DB.exams)" :key="e.key"><option :value="e.key" x-text="e.name"></option></template></select></label>
               <label class="block text-sm"><span class="mb-1.5 block font-medium">Section</span>
                 <select x-model="qForm.section" class="w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand-500"><template x-for="s in DB.exams[qForm.exam].sections" :key="s.id"><option :value="s.id" x-text="s.name" :selected="s.id===qForm.section"></option></template></select></label>
+              <label class="block text-sm"><span class="mb-1.5 block font-medium">Dipakai untuk</span>
+                <select x-model="qForm.pool" class="w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand-500"><option value="bank">Simulasi & latihan bab</option><option value="placement">Placement test</option></select></label>
               <label class="block text-sm"><span class="mb-1.5 block font-medium">Tingkat kesulitan</span>
                 <select x-model="qForm.difficulty" class="w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand-500"><option value="mudah">Mudah</option><option value="sedang">Sedang</option><option value="sulit">Sulit</option></select></label>
-              <label class="block text-sm sm:col-span-2"><span class="mb-1.5 block font-medium">Topik</span>
+              <label class="block text-sm"><span class="mb-1.5 block font-medium">Topik</span>
                 <input x-model="qForm.topic" list="topics" required placeholder="mis. Subject-Verb Agreement" class="w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand-500">
                 <datalist id="topics"><template x-for="t in [...new Set(questions.map(q => q.topic).filter(Boolean))]"><option :value="t"></option></template></datalist></label>
               <label class="block text-sm sm:col-span-2"><span class="mb-1.5 block font-medium">Bab materi <span class="font-normal text-slate-500">· soal tampil sebagai latihan di akhir bab ini</span></span>
-                <select x-model="qForm.chapter" class="w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand-500"><option value="">— Tidak dipakai di latihan bab —</option><template x-for="c in chapters.filter(c => c.exam === qForm.exam && c.section === qForm.section)" :key="c.id"><option :value="c.id" x-text="c.title" :selected="c.id === qForm.chapter"></option></template></select></label>
+                <select x-model="qForm.chapter" :disabled="qForm.pool==='placement'" class="disabled:bg-slate-50 w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand-500"><option value="">— Tidak dipakai di latihan bab —</option><template x-for="c in chapters.filter(c => c.exam === qForm.exam && c.section === qForm.section)" :key="c.id"><option :value="c.id" x-text="c.title" :selected="c.id === qForm.chapter"></option></template></select></label>
             </div>
 
             <div x-show="qForm.section==='reading'" class="text-sm">
@@ -290,7 +361,7 @@
         <div class="mt-5 space-y-4 text-sm">
           <label class="block"><span class="mb-1.5 block font-medium">Judul bab</span><input x-model="cForm.title" required class="w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand-500"></label>
           <div class="grid grid-cols-2 gap-3">
-            <label class="block"><span class="mb-1.5 block font-medium">Ujian</span><select x-model="cForm.exam" @change="cForm.section = DB.exams[cForm.exam].sections[0].id" class="w-full rounded-xl border border-slate-200 px-3 py-2.5"><template x-for="e in Object.values(DB.exams)" :key="e.key"><option :value="e.key" x-text="e.name"></option></template></select></label>
+            <label class="block"><span class="mb-1.5 block font-medium">Program</span><select x-model="cForm.exam" @change="cForm.section = DB.exams[cForm.exam].sections[0].id" class="w-full rounded-xl border border-slate-200 px-3 py-2.5"><template x-for="e in Object.values(DB.exams)" :key="e.key"><option :value="e.key" x-text="e.name"></option></template></select></label>
             <label class="block"><span class="mb-1.5 block font-medium">Section</span><select x-model="cForm.section" class="w-full rounded-xl border border-slate-200 px-3 py-2.5"><template x-for="s in DB.exams[cForm.exam].sections" :key="s.id"><option :value="s.id" x-text="s.short" :selected="s.id===cForm.section"></option></template></select></label>
           </div>
           <label class="block"><span class="mb-1.5 block font-medium">Deskripsi singkat</span><textarea x-model="cForm.desc" rows="2" class="w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand-500"></textarea></label>
@@ -341,7 +412,7 @@
       </div>
       <h4 class="mt-5 text-sm font-semibold">Riwayat skor</h4>
       <div class="mt-2 space-y-1.5 text-sm">
-        <template x-for="h in (student?.history || [])" :key="h.id"><div class="flex justify-between gap-3 rounded-lg px-3 py-2 odd:bg-slate-50"><span class="text-slate-500" x-text="new Date(h.date).toLocaleDateString('id-ID', { dateStyle: 'medium' }) + ' · ' + (DB.packages.find(p => p.id === h.pkg)?.name || h.pkg)"></span><b x-text="fmtScore(h.score, h.exam)"></b></div></template>
+        <template x-for="h in (student?.history || [])" :key="h.id"><div class="flex justify-between gap-3 rounded-lg px-3 py-2 odd:bg-slate-50"><span class="text-slate-500" x-text="new Date(h.date).toLocaleDateString('id-ID', { dateStyle: 'medium' }) + ' · ' + (DB.packages.find(p => p.id === h.pkg)?.name || h.pkg)"></span><b class="whitespace-nowrap" x-text="h.placement ? 'Level ' + levelOf(h.score).code + ' · ' + h.score + '%' : fmtScore(h.score, h.exam)"></b></div></template>
         <p x-show="student && !student.tests" class="rounded-lg bg-slate-50 p-3 text-slate-500">Belum pernah mengerjakan simulasi.</p>
       </div>
       <p class="mt-4 text-xs text-slate-400" x-text="student ? 'Bergabung ' + new Date(student.joined).toLocaleDateString('id-ID', { dateStyle: 'long' }) + (student.phone ? ' · WA ' + student.phone : '') : ''"></p>
@@ -353,6 +424,68 @@
 </main>
 
 <script>
+const IMPORT_COLS = ['program', 'section', 'tipe', 'pertanyaan', 'opsi_a', 'opsi_b', 'opsi_c', 'opsi_d', 'opsi_e', 'kunci', 'pembahasan', 'topik', 'kesulitan', 'bab', 'instruksi', 'passage', 'audio', 'untuk'];
+const IMPORT_HELP = [
+  ['program', 'Kode program, mis. <b>toefl</b>, <b>ielts</b>, <b>general</b> (lihat Master Program). <i>Wajib</i>'],
+  ['section', 'ID atau nama section, mis. <b>listening</b>, <b>structure</b>, <b>reading</b>. <i>Wajib</i>'],
+  ['tipe', '<b>mc</b> (pilihan ganda), <b>error</b> (written expression), atau <b>fill</b> (isian). Kosong = mc'],
+  ['pertanyaan', 'Teks soal. Untuk tipe error, tandai bagian bergaris bawah dengan kurung kurawal: <b>{flow}</b>. <i>Wajib</i>'],
+  ['opsi_a … opsi_e', 'Pilihan jawaban (minimal 2). Tipe error boleh dikosongkan: opsi diambil dari {…}'],
+  ['kunci', 'Huruf jawaban benar (<b>A</b>–<b>E</b>). Tipe fill: semua jawaban yang diterima, pisahkan dengan <b>|</b>. <i>Wajib</i>'],
+  ['pembahasan', 'Penjelasan dalam Bahasa Indonesia (boleh &lt;b&gt;)'],
+  ['topik', 'mis. Subject-Verb Agreement'],
+  ['kesulitan', '<b>mudah</b>, <b>sedang</b>, atau <b>sulit</b>. Kosong = sedang'],
+  ['bab', 'ID bab materi agar tampil di latihan bab (opsional)'],
+  ['instruksi', 'Instruksi di atas soal, mis. Write ONE WORD ONLY (opsional)'],
+  ['passage', 'ID passage Reading yang sudah ada (opsional)'],
+  ['audio', 'ID audio Listening yang sudah ada (opsional)'],
+  ['untuk', '<b>simulasi</b> (simulasi & latihan) atau <b>placement</b>. Kosong = simulasi'],
+];
+
+// CSV → array baris (mendukung pemisah ; atau , dan teks berkutip yang memuat enter)
+function parseCsv(text) {
+  text = text.replace(/^\ufeff/, '');
+  let delim = ',';
+  const first = text.split(/\r?\n/, 1)[0];
+  const sep = first.match(/^"?sep=(.)"?$/i);
+  if (sep) { delim = sep[1]; text = text.slice(first.length).replace(/^\r?\n/, ''); }
+  else if (first.split(';').length > first.split(',').length) delim = ';';
+  const rows = []; let row = [], cell = '', quoted = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (quoted) { if (c === '"') { if (text[i + 1] === '"') { cell += '"'; i++; } else quoted = false; } else cell += c; }
+    else if (c === '"') quoted = true;
+    else if (c === delim) { row.push(cell); cell = ''; }
+    else if (c === '\n' || c === '\r') { if (c === '\r' && text[i + 1] === '\n') i++; row.push(cell); rows.push(row); row = []; cell = ''; }
+    else cell += c;
+  }
+  if (cell || row.length) { row.push(cell); rows.push(row); }
+  return rows;
+}
+
+// Baris CSV → data soal untuk API. Nomor baris mengikuti nomor baris di Excel (header = baris 1).
+function csvToQuestions(text) {
+  const [head = [], ...rows] = parseCsv(text), key = head.map(h => h.trim().toLowerCase().replace(/\s+/g, '_'));
+  if (!key.includes('pertanyaan')) return [];
+  const exams = Object.values(DB.exams);
+  return rows.map((cells, i) => {
+    const r = Object.fromEntries(key.map((k, j) => [k, (cells[j] || '').trim()]));
+    if (!Object.values(r).some(Boolean)) return null;
+    const ex = exams.find(e => e.key === r.program.toLowerCase() || e.name.toLowerCase() === r.program.toLowerCase());
+    const sec = ex?.sections.find(s => [s.id, s.name.toLowerCase(), s.short.toLowerCase()].includes(r.section.toLowerCase()));
+    const t = r.tipe.toLowerCase(), type = /^(fill|isian)/.test(t) ? 'fill' : /^(error|written)/.test(t) ? 'error' : 'mc';
+    let options = ['a', 'b', 'c', 'd', 'e'].map(l => r['opsi_' + l]).filter(Boolean);
+    if (type === 'error' && !options.length) options = [...r.pertanyaan.matchAll(/\{(.+?)\}/g)].map(m => m[1]);
+    const k = r.kunci.toUpperCase(), letter = 'ABCDE'.indexOf(k);
+    return {
+      row: i + 2, exam: ex?.key || r.program, section: sec?.id || r.section, type, q: r.pertanyaan, options,
+      answer: type === 'fill' ? r.kunci.split('|').map(a => a.trim()).filter(Boolean) : (k.length === 1 && letter >= 0 ? letter : null),
+      explain: r.pembahasan, topic: r.topik, difficulty: (r.kesulitan || 'sedang').toLowerCase(), chapter: r.bab, instr: r.instruksi,
+      passage: r.passage, clip: r.audio, pool: /placement/i.test(r.untuk) ? 'placement' : 'bank',
+    };
+  }).filter(Boolean);
+}
+
 function admin() {
   const tabs = ['ringkasan', 'materi', 'soal', 'siswa', 'master'];
   const fromHash = () => tabs.includes(location.hash.slice(1)) ? location.hash.slice(1) : 'ringkasan';
@@ -360,13 +493,19 @@ function admin() {
   const firstExam = () => Object.values(DB.exams).find(e => e.active) || Object.values(DB.exams)[0];
   return {
     tab: fromHash(), toast: '', del: null, qForm: {}, cForm: {}, eForm: {}, open: '', student: null, saving: false,
-    mq: '', mexam: 'all', sq: '', sexam: 'all',
+    mq: '', mexam: 'all', msec: 'all', sq: '', sexam: 'all', ssec: 'all', spool: 'all', imp: {}, LEVELS, IMPORT_HELP,
     // Array yang sama dengan DB, jadi perubahan langsung terlihat di halaman lain dalam sesi ini
     chapters: DB.chapters, questions: DB.questions, exams: Object.values(DB.exams),
     students: [], recent: [], stats: [], loadingStudents: true,
     typeLabel: { mc: 'Pilihan ganda', error: 'Written expression', fill: 'Isian singkat' },
-    get chapterList() { const k = this.mq.toLowerCase(); return this.chapters.filter(c => (this.mexam === 'all' || c.exam === this.mexam) && c.title.toLowerCase().includes(k)); },
-    get questionList() { const k = this.sq.toLowerCase(); return this.questions.filter(q => (this.sexam === 'all' || q.exam === this.sexam) && (q.q + (q.topic || '')).toLowerCase().includes(k)); },
+    get chapterList() { const k = this.mq.toLowerCase(); return this.chapters.filter(c => (this.mexam === 'all' || c.exam === this.mexam) && (this.msec === 'all' || c.section === this.msec) && c.title.toLowerCase().includes(k)); },
+    get questionList() {
+      const k = this.sq.toLowerCase();
+      return this.questions.filter(q => (this.sexam === 'all' || q.exam === this.sexam) && (this.ssec === 'all' || q.section === this.ssec) && (this.spool === 'all' || (q.pool || 'bank') === this.spool) && (q.q + (q.topic || '')).toLowerCase().includes(k));
+    },
+    plain: html => String(html || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim(),
+    // Dari Master Program: buka Kelola Materi/Soal dengan filter program + section
+    goTo(tab, exam, sec) { if (tab === 'soal') Object.assign(this, { sexam: exam, ssec: sec, spool: 'all', sq: '' }); else Object.assign(this, { mexam: exam, msec: sec, mq: '' }); location.hash = tab; },
     fmtScore: (v, exam) => v == null ? '—' : exam === 'ielts' ? Number(v).toFixed(1) : v,
 
     init() {
@@ -407,7 +546,7 @@ function admin() {
     exportCsv() {
       // Awali dengan ' agar nilai seperti "=..." tidak dijalankan sebagai rumus oleh Excel
       const cell = v => { v = String(v ?? ''); if (/^[=+\-@]/.test(v)) v = "'" + v; return '"' + v.replace(/"/g, '""') + '"'; };
-      const rows = [['Nama', 'Email', 'WhatsApp', 'Ujian', 'Skor terakhir', 'Progres materi (%)', 'Jumlah test', 'Akses', 'Bergabung'],
+      const rows = [['Nama', 'Email', 'WhatsApp', 'Program', 'Skor terakhir', 'Progres materi (%)', 'Jumlah test', 'Akses', 'Bergabung'],
         ...this.students.map(s => [s.name, s.email, s.phone, s.exam, this.fmtScore(s.last, s.lastExam), s.progress, s.tests, s.full ? 'Penuh' : 'Gratis', new Date(s.joined).toLocaleDateString('id-ID')])];
       const a = document.createElement('a');
       a.href = URL.createObjectURL(new Blob(['﻿' + rows.map(r => r.map(cell).join(',')).join('\r\n')], { type: 'text/csv' }));
@@ -415,23 +554,23 @@ function admin() {
     },
 
     // ---------- Master Test ----------
-    examBody: e => ({ name: e.name, scale: e.scale, active: e.active, rgb: e.rgb, sections: e.sections.map(s => ({ id: s.id, name: s.name, tutor: s.tutor })) }),
+    examBody: e => ({ name: e.name, full: e.full, scale: e.scale, active: e.active, rgb: e.rgb, about: e.about, recommend: e.recommend, sections: e.sections.map(s => ({ id: s.id, name: s.name, official: s.official, tutor: s.tutor })) }),
     putExam(code, body, msg) {
       return this.run(async () => { const e = await api('PUT', '/admin/exams/' + encodeURIComponent(code), body); DB.exams[e.key] = e; this.exams = Object.values(DB.exams); }, msg);
     },
     toggleExam(e) { this.putExam(e.key, { ...this.examBody(e), active: !e.active }, e.name + (e.active ? ' dinonaktifkan' : ' diaktifkan')); },
     openExam(e) {
       const hex = rgb => '#' + rgb.split(' ').map(n => (+n).toString(16).padStart(2, '0')).join('');
-      this.eForm = e ? { ...e, isNew: false, color: hex(e.rgb), sections: e.sections.map(s => ({ id: s.id, name: s.name, mode: s.tutor ? 'tutor' : 'online' })) }
-        : { isNew: true, key: '', name: '', scale: '0–100', color: '#7c3aed', active: false, sections: [{ name: 'Grammar', mode: 'online' }, { name: 'Reading', mode: 'online' }] };
+      this.eForm = e ? { ...e, isNew: false, color: hex(e.rgb), recommend: { ...e.recommend }, sections: e.sections.map(s => ({ id: s.id, name: s.name, official: s.official || '', mode: s.tutor ? 'tutor' : 'online' })) }
+        : { isNew: true, key: '', name: '', full: '', scale: '0–100', color: '#7c3aed', active: false, about: '', recommend: {}, sections: [{ name: 'Listening', official: '', mode: 'online' }, { name: 'Reading', official: '', mode: 'online' }] };
       this.open = 'e';
     },
     async saveExam() {
       const f = this.eForm, rgb = [1, 3, 5].map(i => parseInt(f.color.slice(i, i + 2), 16)).join(' ');
       const code = f.key.trim().toLowerCase();
-      if (f.isNew && DB.exams[code]) return this.flash('Kode ujian "' + code + '" sudah dipakai');
-      const body = { name: f.name, scale: f.scale, active: f.active, rgb, sections: f.sections.map(s => ({ id: s.id, name: s.name, tutor: s.mode === 'tutor' })) };
-      if (await this.putExam(code, body, 'Ujian "' + f.name + '" tersimpan')) this.open = '';
+      if (f.isNew && DB.exams[code]) return this.flash('Kode program "' + code + '" sudah dipakai');
+      const body = { name: f.name, full: f.full, scale: f.scale, active: f.active, rgb, about: f.about, recommend: f.recommend, sections: f.sections.map(s => ({ id: s.id, name: s.name, official: s.official, tutor: s.mode === 'tutor' })) };
+      if (await this.putExam(code, body, 'Program "' + f.name + '" tersimpan')) this.open = '';
     },
 
     // ---------- Hapus ----------
@@ -446,8 +585,8 @@ function admin() {
     openQuestion(q) {
       const clip = q?.clip && DB.clips[q.clip], ex = firstExam();
       this.qForm = q ? { ...q, options: [...(q.options || ['', '', '', ''])], answer: q.type === 'fill' ? 0 : q.answer, fillAnswer: q.type === 'fill' ? q.answer.join(', ') : '',
-          passage: q.passage || '', chapter: q.chapter || '', clip: q.clip || '', isNew: false, transcript: clip ? clip.lines.map(l => (l[0] ? l[0] + ': ' : '') + l[1]).join('\n') : '' }
-        : { id: newId('q'), isNew: true, type: 'mc', exam: ex.key, section: ex.sections[0].id, chapter: '', difficulty: 'sedang', topic: '', q: '', options: ['', '', '', ''], answer: 0,
+          passage: q.passage || '', chapter: q.chapter || '', clip: q.clip || '', pool: q.pool || 'bank', isNew: false, transcript: clip ? clip.lines.map(l => (l[0] ? l[0] + ': ' : '') + l[1]).join('\n') : '' }
+        : { id: newId('q'), isNew: true, type: 'mc', exam: this.sexam !== 'all' ? this.sexam : ex.key, section: this.ssec !== 'all' ? this.ssec : (DB.exams[this.sexam]?.sections[0].id || ex.sections[0].id), chapter: '', pool: this.spool === 'placement' ? 'placement' : 'bank', difficulty: 'sedang', topic: '', q: '', options: ['', '', '', ''], answer: 0,
           fillAnswer: '', explain: '', passage: '', clip: '', transcript: '' };
       this.open = 'q';
     },
@@ -472,13 +611,43 @@ function admin() {
           await api('PUT', '/admin/passages/' + passage, { title, html });
           DB.passages[passage] = { title, html };
         }
-        const body = { ...f, audioFile: undefined, clip: f.section === 'listening' ? clip : '', passage: f.section === 'reading' ? passage : '',
+        const body = { ...f, chapter: f.pool === 'placement' ? '' : f.chapter, audioFile: undefined, clip: f.section === 'listening' ? clip : '', passage: f.section === 'reading' ? passage : '',
           answer: f.type === 'fill' ? f.fillAnswer.split(',').map(norm).filter(Boolean) : f.answer };
         const saved = await api('PUT', '/admin/questions/' + encodeURIComponent(f.id), body);
         const i = this.questions.findIndex(q => q.id === saved.id);
         i < 0 ? this.questions.unshift(saved) : this.questions.splice(i, 1, saved);
         this.open = '';
       }, f.isNew ? 'Soal baru tersimpan' : 'Perubahan soal tersimpan');
+    },
+
+    // ---------- Import soal ----------
+    openImport() { this.imp = {}; this.open = 'i'; },
+    downloadTemplate() {
+      const rows = [IMPORT_COLS,
+        ['toefl', 'structure', 'mc', 'The number of students _______ increasing every year.', 'is', 'are', 'have', 'were', '', 'A', 'Subjek "The number" tunggal → <b>is</b>.', 'Subject-Verb Agreement', 'mudah', '', '', '', '', 'simulasi'],
+        ['toefl', 'structure', 'error', 'She {have} lived {in} Jakarta {since} {2019}.', '', '', '', '', '', 'A', 'Subjek "she" → <b>has</b> lived.', 'Subject-Verb Agreement', 'sedang', '', '', '', '', 'simulasi'],
+        ['ielts', 'listening', 'fill', 'Course start date: _______ March', '', '', '', '', '', '14|14th|fourteenth', 'Disebutkan "the fourteenth of March".', 'Numbers & Dates', 'mudah', '', 'Write NO MORE THAN TWO WORDS AND/OR A NUMBER.', '', '', 'simulasi']];
+      const csv = 'sep=;\r\n' + rows.map(r => r.map(v => /[;"\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v).join(';')).join('\r\n');
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob(['\ufeff' + csv], { type: 'text/csv' }));
+      a.download = 'template-import-soal.csv'; a.click();
+    },
+    async readImport(file) {
+      if (!file) return;
+      this.imp = { name: file.name, checking: true };
+      try {
+        const rows = csvToQuestions(await file.text());
+        if (!rows.length) throw new Error('File kosong atau kolom tidak dikenali. Pakai template yang disediakan.');
+        const result = await api('POST', '/admin/questions/import', { dryRun: true, rows });
+        this.imp = { name: file.name, rows, result };
+      } catch (e) { this.imp = { name: file.name, result: { ok: false, errors: [{ row: '-', error: e.message }] } }; }
+    },
+    runImport() {
+      this.run(async () => {
+        const d = await api('POST', '/admin/questions/import', { rows: this.imp.rows });
+        this.questions.unshift(...d.questions);
+        this.imp.count = d.count; this.open = '';
+      }, (this.imp.result?.count || 0) + ' soal berhasil diimport');
     },
 
     // ---------- Materi ----------

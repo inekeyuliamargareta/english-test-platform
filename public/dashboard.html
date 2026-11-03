@@ -53,6 +53,19 @@
       </div>
     </div>
 
+    <!-- Placement test -->
+    <div x-show="plPkg" class="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-soft sm:flex-row sm:items-center">
+      <span class="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-accent-soft text-accent"><i data-lucide="gauge" class="h-5 w-5"></i></span>
+      <div class="flex-1 text-sm">
+        <p class="font-semibold" x-text="pl ? 'Level awalmu: ' + levelOf(pl.total).code + ' (' + levelOf(pl.total).name + ')' : 'Belum tahu levelmu?'"></p>
+        <p class="text-slate-600" x-text="pl ? 'Placement test ' + new Date(pl.date).toLocaleDateString('id-ID', { dateStyle: 'medium' }) + ' · ' + pl.total + '% benar' + (LEVEL_RANGE[exam] ? ' · perkiraan skor ' + LEVEL_RANGE[exam][levelOf(pl.total).code] : '') : 'Kerjakan placement test singkat (gratis) untuk mengetahui level dan kelas yang cocok.'"></p>
+      </div>
+      <div class="flex gap-2">
+        <a x-show="pl" :href="'placement.html?id=' + pl?.id" class="rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold hover:bg-slate-50">Lihat hasil</a>
+        <a :href="'test.html?pkg=' + plPkg?.id" class="rounded-xl bg-accent px-3 py-2 text-xs font-semibold text-white hover:bg-accent-dark" x-text="pl ? 'Ulangi' : 'Mulai Placement Test'"></a>
+      </div>
+    </div>
+
     <!-- Kuota simulasi -->
       <div class="flex items-center gap-4 rounded-2xl border p-5 shadow-soft" :class="access.locked ? 'border-amber-200 bg-amber-50' : 'border-emerald-200 bg-emerald-50'">
         <span class="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-white shadow-sm" :class="access.locked ? 'text-amber-600' : 'text-emerald-600'" x-html="ico(access.locked ? 'lock' : 'gift', 'h-5 w-5')"></span>
@@ -148,9 +161,9 @@ function dash() {
   const prevAtt = att && DB.attempts.find(a => a !== att && a.exam === exam && isFull(a) === isFull(att) && a.pkg === att.pkg);
   const prev = prevAtt && attemptScore(prevAtt), target = DB.user.target[exam];
   const chapters = DB.chapters.filter(c => c.exam === exam && !c.draft);
-  const answered = DB.attempts.filter(a => a.exam === exam).flatMap(a => a.sections).reduce((t, s) => ({ correct: t.correct + (s.correct || 0), total: t.total + (s.total || 0) }), { correct: 0, total: 0 });
+  const answered = DB.attempts.filter(a => a.exam === exam && !isPlacement(a)).flatMap(a => a.sections).reduce((t, s) => ({ correct: t.correct + (s.correct || 0), total: t.total + (s.total || 0) }), { correct: 0, total: 0 });
   return {
-    exam, E, att, res, chapters, answered, loading: true, activity: DB.activity.filter(a => a.exam === exam).slice(0, 5),
+    exam, E, att, res, chapters, answered, loading: true, pl: DB.attempts.find(a => a.exam === exam && isPlacement(a)), plPkg: DB.packages.find(p => p.exam === exam && p.type === 'placement'), activity: DB.activity.filter(a => a.exam === exam).slice(0, 5),
     cont: chapters.find(c => c.status === 'progress') || chapters.find(c => c.status === 'new') || chapters[0],
     sections: E.sections.map(s => {
       const cs = chapters.filter(c => c.section === s.id);

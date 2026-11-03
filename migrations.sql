@@ -26,6 +26,8 @@ CREATE TABLE IF NOT EXISTS exams (
   rgb_soft  VARCHAR(20) NOT NULL,
   scale     VARCHAR(30),
   rules     JSON,                   -- aturan simulasi (array HTML)
+  about     TEXT,                   -- penjelasan program untuk siswa (HTML)
+  recommend JSON,                   -- rekomendasi kelas per level placement {A2,B1,B2,C1}
   sort      INT NOT NULL DEFAULT 0
 );
 
@@ -83,6 +85,7 @@ CREATE TABLE IF NOT EXISTS questions (
   explanation TEXT,
   clip       VARCHAR(40),
   passage    VARCHAR(40),
+  pool       ENUM('bank','placement') NOT NULL DEFAULT 'bank',  -- bank = simulasi & latihan
   sort       INT NOT NULL DEFAULT 0,
   INDEX (exam, section)
 );
@@ -104,7 +107,7 @@ CREATE TABLE IF NOT EXISTS packages (
   id       VARCHAR(40) PRIMARY KEY,
   exam     VARCHAR(20) NOT NULL,
   name     VARCHAR(120) NOT NULL,
-  type     ENUM('full','section') NOT NULL,
+  type     ENUM('full','section','placement') NOT NULL,
   badge    VARCHAR(40),
   descr    TEXT,
   sections JSON NOT NULL,          -- [[sectionId, menit]]

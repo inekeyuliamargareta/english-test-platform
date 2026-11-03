@@ -36,7 +36,7 @@ const mapPackage = p => ({ id: p.id, exam: p.exam, name: p.name, type: p.type, b
 const mapClip = c => ({ title: c.title, lines: c.transcript, audio: c.audio_url });
 // full = sertakan kunci jawaban & pembahasan (admin, review, cek latihan)
 function mapQuestion(r, full) {
-  const o = { id: r.id, exam: r.exam, section: r.section, chapter: r.chapter, topic: r.topic, difficulty: r.difficulty, type: r.type, q: r.q, instr: r.instr, options: r.options, clip: r.clip, passage: r.passage };
+  const o = { id: r.id, exam: r.exam, section: r.section, chapter: r.chapter, topic: r.topic, difficulty: r.difficulty, type: r.type, q: r.q, instr: r.instr, options: r.options, clip: r.clip, passage: r.passage, pool: r.pool };
   if (full) Object.assign(o, { answer: r.answer, explain: r.explanation });
   for (const k in o) if (o[k] == null) delete o[k];
   return o;
@@ -47,7 +47,7 @@ const mapAttempt = a => ({ id: a.id, pkg: a.package_id, exam: a.exam, date: a.cr
 async function loadExams() {
   const [exams, secs] = await Promise.all([q('SELECT * FROM exams ORDER BY sort, code'), q('SELECT * FROM exam_sections ORDER BY sort, id')]);
   return Object.fromEntries(exams.map(e => [e.code, {
-    key: e.code, name: e.name, full: e.full_name, active: !!e.active, rgb: e.rgb, rgbDark: e.rgb_dark, rgbSoft: e.rgb_soft, scale: e.scale, rules: e.rules || [],
+    key: e.code, name: e.name, full: e.full_name, active: !!e.active, rgb: e.rgb, rgbDark: e.rgb_dark, rgbSoft: e.rgb_soft, scale: e.scale, rules: e.rules || [], about: e.about || '', recommend: e.recommend || {},
     sections: secs.filter(s => s.exam_key === e.code).map(s => ({ id: s.id, name: s.name, short: s.short, icon: s.icon, official: s.official, tutor: !!s.tutor })),
   }]));
 }
@@ -57,8 +57,9 @@ async function packageContext(pkgId) {
   const [row] = await q('SELECT * FROM packages WHERE id = ?', [pkgId]);
   if (!row) fail(404, 'Paket test tidak ditemukan');
   const pkg = mapPackage(row), E = (await loadExams())[pkg.exam], ids = pkg.sections.map(s => s[0]);
+  const pool = pkg.type === 'placement' ? 'placement' : 'bank';
   const [qs, ts] = await Promise.all([
-    q('SELECT * FROM questions WHERE exam = ? AND section IN (?) ORDER BY sort, id', [pkg.exam, ids]),
+    q('SELECT * FROM questions WHERE exam = ? AND section IN (?) AND pool = ? ORDER BY sort, id', [pkg.exam, ids, pool]),
     q('SELECT * FROM writing_tasks WHERE exam = ? AND section IN (?) ORDER BY task, id', [pkg.exam, ids]),
   ]);
   const meta = id => E?.sections.find(s => s.id === id);
@@ -119,7 +120,7 @@ app.get('/api/bootstrap', wrap(async (req, res) => {
   out.user = {
     id: u.id, name: u.name, email: u.email, role: u.role, exam: u.exam, initials: initials(u.name),
     target: { toefl: u.target_toefl, ielts: +u.target_ielts },
-    access: { full: admin || !!u.full_access, used: attempts.length > 0 },
+    access: { full: admin || !!u.full_access, used: attempts.some(a => !isPlacement(a.package_id)) },
   };
   out.chapters = chapters.map(c => { const p = prog[c.id] || 0; return { ...mapChapter(c), progress: p, status: p >= 100 ? 'done' : p ? 'progress' : 'new' }; });
   out.passages = Object.fromEntries(passages.map(p => [p.id, { title: p.title, html: p.html }]));
@@ -130,8 +131,11 @@ app.get('/api/bootstrap', wrap(async (req, res) => {
   out.attempts = attempts.map(mapAttempt);
   // Aktivitas terbaru: gabungan simulasi & progres bab
   const pkgName = id => packages.find(p => p.id === id)?.name || id, ch = id => chapters.find(c => c.id === id);
+  function isPlacement(id) { return packages.find(p => p.id === id)?.type === 'placement'; }
   out.activity = [
-    ...attempts.map(a => ({ exam: a.exam, icon: 'timer', text: `Simulasi <b>${esc(pkgName(a.package_id))}</b>${a.total == null ? '' : ' — skor ' + +a.total}`, at: a.created_at })),
+    ...attempts.map(a => isPlacement(a.package_id)
+      ? { exam: a.exam, icon: 'gauge', text: `Mengerjakan <b>${esc(pkgName(a.package_id))}</b> — ${+a.total}% benar`, at: a.created_at }
+      : { exam: a.exam, icon: 'timer', text: `Simulasi <b>${esc(pkgName(a.package_id))}</b>${a.total == null ? '' : ' — skor ' + +a.total}`, at: a.created_at }),
     ...progress.filter(p => ch(p.chapter_id)).map(p => ({ exam: ch(p.chapter_id).exam, icon: p.progress >= 100 ? 'check-circle' : 'book-open', text: `${p.progress >= 100 ? 'Menyelesaikan' : 'Mempelajari'} bab <b>${esc(ch(p.chapter_id).title)}</b>`, at: p.updated_at })),
   ].sort((a, b) => b.at - a.at).slice(0, 30);
   res.json(out);
@@ -159,7 +163,8 @@ app.post('/api/questions/:id/check', need(), wrap(async (req, res) => {
 app.post('/api/attempts', need(), wrap(async (req, res) => {
   const u = req.user, b = req.body || {};
   const { pkg, E, meta, items } = await packageContext(b.pkg);
-  if (!E?.active) fail(400, 'Ujian ini belum tersedia');
+  const placement = pkg.type === 'placement'; // placement test bebas dicoba, termasuk program yang belum aktif
+  if (!E || (!E.active && !placement)) fail(400, 'Ujian ini belum tersedia');
   // Simpan hanya jawaban untuk soal di paket ini, dengan tipe yang benar
   const all = pkg.sections.flatMap(([id]) => items(id)), answers = {}, src = b.answers || {};
   for (const it of all) {
@@ -176,8 +181,8 @@ app.post('/api/attempts', need(), wrap(async (req, res) => {
   try {
     await conn.beginTransaction();
     await conn.query('SELECT id FROM users WHERE id = ? FOR UPDATE', [u.id]);
-    if (u.role !== 'admin' && !u.full_access) {
-      const [[{ n }]] = await conn.query('SELECT COUNT(*) n FROM attempts WHERE user_id = ?', [u.id]);
+    if (u.role !== 'admin' && !u.full_access && !placement) {
+      const [[{ n }]] = await conn.query("SELECT COUNT(*) n FROM attempts a JOIN packages p ON p.id = a.package_id WHERE a.user_id = ? AND p.type <> 'placement'", [u.id]);
       if (n) fail(403, 'Simulasi gratis sudah terpakai. Hubungi EnglishOn untuk membuka akses penuh.');
     }
     const [r] = await conn.query('INSERT INTO attempts (user_id, package_id, exam, answers, flags, duration, result, total) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
@@ -205,7 +210,7 @@ const admin = need('admin');
 app.get('/api/admin/students', admin, wrap(async (req, res) => {
   const [users, attempts, sums, counts, [{ nq }]] = await Promise.all([
     q("SELECT id, name, email, phone, exam, full_access, created_at FROM users WHERE role = 'student' ORDER BY created_at DESC"),
-    q('SELECT a.id, a.user_id, a.exam, a.package_id, a.total, a.result, a.created_at, u.name FROM attempts a JOIN users u ON u.id = a.user_id ORDER BY a.created_at DESC, a.id DESC'),
+    q("SELECT a.id, a.user_id, a.exam, a.package_id, a.total, a.result, a.created_at, u.name, p.type = 'placement' placement FROM attempts a JOIN users u ON u.id = a.user_id LEFT JOIN packages p ON p.id = a.package_id ORDER BY a.created_at DESC, a.id DESC"),
     q('SELECT p.user_id, c.exam, SUM(p.progress) s FROM chapter_progress p JOIN chapters c ON c.id = p.chapter_id AND c.draft = 0 GROUP BY p.user_id, c.exam'),
     q('SELECT exam, COUNT(*) n FROM chapters WHERE draft = 0 GROUP BY exam'),
     q('SELECT COUNT(*) nq FROM questions'),
@@ -215,15 +220,16 @@ app.get('/api/admin/students', admin, wrap(async (req, res) => {
   const monthStart = new Date(); monthStart.setDate(1); monthStart.setHours(0, 0, 0, 0);
   res.json({
     stats: { students: users.length, studentsMonth: users.filter(u => u.created_at >= monthStart).length, questions: nq },
-    recent: attempts.slice(0, 5).map(a => ({ id: a.id, name: a.name, exam: a.exam, score: score(a), date: a.created_at })),
+    recent: attempts.filter(a => !a.placement).slice(0, 5).map(a => ({ id: a.id, name: a.name, exam: a.exam, score: score(a), date: a.created_at })),
     students: users.map(u => {
-      const mine = attempts.filter(a => a.user_id === u.id);
+      const all = attempts.filter(a => a.user_id === u.id), mine = all.filter(a => !a.placement), pl = all.find(a => a.placement);
       const total = counts.find(c => c.exam === u.exam)?.n || 0, sum = +(sums.find(s => s.user_id === u.id && s.exam === u.exam)?.s || 0);
       return {
         id: u.id, name: u.name, email: u.email, phone: u.phone, exam: u.exam, full: !!u.full_access, joined: u.created_at,
         tests: mine.length, last: mine.length ? score(mine[0]) : null, lastExam: mine[0]?.exam,
         progress: total ? Math.round(sum / total) : 0,
-        history: mine.slice(0, 5).map(a => ({ id: a.id, date: a.created_at, exam: a.exam, pkg: a.package_id, score: score(a) })),
+        placement: pl ? { exam: pl.exam, percent: +pl.total, date: pl.created_at } : null,
+        history: all.slice(0, 6).map(a => ({ id: a.id, date: a.created_at, exam: a.exam, pkg: a.package_id, score: score(a), placement: !!a.placement })),
       };
     }),
   });
@@ -247,12 +253,15 @@ app.put('/api/admin/chapters/:id', admin, wrap(async (req, res) => {
   res.json(mapChapter(c));
 }));
 
-app.put('/api/admin/questions/:id', admin, wrap(async (req, res) => {
-  const b = req.body || {}, id = req.params.id; validId(id);
-  if (!['mc', 'error', 'fill'].includes(b.type)) fail(400, 'Tipe soal tidak valid');
-  if (!['mudah', 'sedang', 'sulit'].includes(b.difficulty)) fail(400, 'Tingkat kesulitan tidak valid');
-  const sec = (await loadExams())[b.exam]?.sections.find(s => s.id === b.section);
-  if (!sec) fail(400, 'Section tidak valid');
+// Periksa & rapikan satu soal. refs = { exams, chapters, passages, clips } untuk cek relasi.
+function questionRow(b, refs) {
+  if (!['mc', 'error', 'fill'].includes(b.type)) fail(400, 'Tipe soal tidak valid (mc / error / fill)');
+  if (!['mudah', 'sedang', 'sulit'].includes(b.difficulty)) fail(400, 'Tingkat kesulitan harus mudah / sedang / sulit');
+  if (!['bank', 'placement'].includes(b.pool || 'bank')) fail(400, 'Kolom "untuk" harus simulasi atau placement');
+  const E = refs.exams[b.exam];
+  if (!E) fail(400, `Program "${b.exam ?? ''}" tidak ada`);
+  if (!E.sections.some(s => s.id === b.section)) fail(400, `Section "${b.section ?? ''}" tidak ada di program ${E.name}`);
+  const ref = (v, list, label) => { v = v ? String(v).trim() : null; if (v && !list.has(v)) fail(400, `${label} "${v}" tidak ditemukan`); return v; };
   let options = null, answer;
   if (b.type === 'fill') {
     answer = (Array.isArray(b.answer) ? b.answer : []).map(a => String(a).trim().toLowerCase()).filter(Boolean);
@@ -260,18 +269,42 @@ app.put('/api/admin/questions/:id', admin, wrap(async (req, res) => {
   } else {
     options = (Array.isArray(b.options) ? b.options : []).map(o => String(o).trim());
     if (options.length < 2 || options.some(o => !o)) fail(400, 'Isi semua opsi jawaban (minimal 2)');
-    answer = +b.answer;
-    if (!Number.isInteger(answer) || answer < 0 || answer >= options.length) fail(400, 'Pilih kunci jawaban');
+    answer = b.answer;
+    if (!Number.isInteger(answer) || answer < 0 || answer >= options.length) fail(400, 'Kunci jawaban harus salah satu opsi yang terisi');
   }
-  const ref = v => v ? String(v) : null;
+  return [b.exam, b.section, ref(b.chapter, refs.chapters, 'Bab'), String(b.topic || '').slice(0, 80), b.difficulty, b.type, text(b.q, 5000, 'Pertanyaan'),
+    b.instr ? String(b.instr).slice(0, 255) : null, J(options), J(answer), String(b.explain || ''), ref(b.clip, refs.clips, 'Audio'), ref(b.passage, refs.passages, 'Passage'), b.pool || 'bank'];
+}
+async function questionRefs() {
+  const [exams, ch, ps, cl] = await Promise.all([loadExams(), q('SELECT id FROM chapters'), q('SELECT id FROM passages'), q('SELECT id FROM clips')]);
+  const ids = rows => new Set(rows.map(r => r.id));
+  return { exams, chapters: ids(ch), passages: ids(ps), clips: ids(cl) };
+}
+const Q_COLS = 'exam, section, chapter, topic, difficulty, type, q, instr, options, answer, explanation, clip, passage, pool';
+
+app.put('/api/admin/questions/:id', admin, wrap(async (req, res) => {
+  const id = req.params.id; validId(id);
+  const row = questionRow(req.body || {}, await questionRefs());
   const [{ sort }] = await q('SELECT COALESCE(MAX(sort), 0) + 1 sort FROM questions');
-  const row = [b.exam, b.section, ref(b.chapter), String(b.topic || '').slice(0, 80), b.difficulty, b.type, text(b.q, 5000, 'Pertanyaan'), ref(b.instr), J(options), J(answer), String(b.explain || ''), ref(b.clip), ref(b.passage), sort];
-  await q(`INSERT INTO questions (id, exam, section, chapter, topic, difficulty, type, q, instr, options, answer, explanation, clip, passage, sort)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ON DUPLICATE KEY UPDATE exam = VALUES(exam), section = VALUES(section), chapter = VALUES(chapter), topic = VALUES(topic), difficulty = VALUES(difficulty), type = VALUES(type),
-      q = VALUES(q), instr = VALUES(instr), options = VALUES(options), answer = VALUES(answer), explanation = VALUES(explanation), clip = VALUES(clip), passage = VALUES(passage)`, [id, ...row]);
+  await q(`INSERT INTO questions (id, ${Q_COLS}, sort) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON DUPLICATE KEY UPDATE ${Q_COLS.split(', ').map(c => `${c} = VALUES(${c})`).join(', ')}`, [id, ...row, sort]);
   const [r] = await q('SELECT * FROM questions WHERE id = ?', [id]);
   res.json(mapQuestion(r, true));
+}));
+
+// Import banyak soal sekaligus (dari CSV yang diolah di browser). Semua baris diperiksa dulu;
+// jika ada satu saja yang salah, tidak ada yang disimpan. dryRun = hanya periksa.
+app.post('/api/admin/questions/import', admin, wrap(async (req, res) => {
+  const list = Array.isArray(req.body?.rows) ? req.body.rows : [];
+  if (!list.length) fail(400, 'Tidak ada soal untuk diimport');
+  if (list.length > 2000) fail(400, 'Maksimal 2000 soal sekali import');
+  const refs = await questionRefs(), rows = [], errors = [];
+  list.forEach((b, i) => { try { rows.push(questionRow(b || {}, refs)); } catch (e) { if (!e.status) throw e; errors.push({ row: b?.row || i + 1, error: e.message }); } });
+  if (errors.length || req.body.dryRun) return res.json({ ok: !errors.length, count: rows.length, errors });
+  const [{ sort }] = await q('SELECT COALESCE(MAX(sort), 0) sort FROM questions'), stamp = Date.now().toString(36);
+  await q(`INSERT INTO questions (id, ${Q_COLS}, sort) VALUES ?`, [rows.map((r, i) => [`q-${stamp}-${i + 1}`, ...r, sort + i + 1])]);
+  const [added] = [await q('SELECT * FROM questions WHERE id LIKE ? ORDER BY sort', [`q-${stamp}-%`])];
+  res.json({ ok: true, count: added.length, questions: added.map(r => mapQuestion(r, true)) });
 }));
 
 for (const table of ['chapters', 'questions']) {
@@ -322,7 +355,8 @@ app.put('/api/admin/exams/:code', admin, wrap(async (req, res) => {
   const rgb = String(b.rgb || ''), parts = rgb.split(' ').map(Number);
   if (parts.length !== 3 || parts.some(n => !(n >= 0 && n <= 255))) fail(400, 'Warna tidak valid');
   const mix = t => parts.map(n => Math.round(t > 0 ? n + (255 - n) * t : n * (1 + t))).join(' ');
-  const secs = (Array.isArray(b.sections) ? b.sections : []).map(s => ({ ...s, name: text(s.name, 80, 'Nama section') }));
+  const secs = (Array.isArray(b.sections) ? b.sections : []).map(s => ({ ...s, name: text(s.name, 80, 'Nama section'), official: String(s.official || '').slice(0, 60) || null }));
+  const recommend = Object.fromEntries(['A2', 'B1', 'B2', 'C1'].map(k => [k, String(b.recommend?.[k] || '').slice(0, 500)]));
   if (!secs.length) fail(400, 'Minimal satu section');
   const used = new Set();
   for (const s of secs) {
@@ -335,14 +369,15 @@ app.put('/api/admin/exams/:code', admin, wrap(async (req, res) => {
   try {
     await conn.beginTransaction();
     const [[{ sort }]] = await conn.query('SELECT COALESCE(MAX(sort), 0) + 1 sort FROM exams');
-    await conn.query(`INSERT INTO exams (code, name, full_name, active, rgb, rgb_dark, rgb_soft, scale, rules, sort) VALUES (?, ?, ?, ?, ?, ?, ?, ?, '[]', ?)
-      ON DUPLICATE KEY UPDATE name = VALUES(name), active = VALUES(active), rgb = VALUES(rgb), rgb_dark = VALUES(rgb_dark), rgb_soft = VALUES(rgb_soft), scale = VALUES(scale)`,
-      [code, name, name, b.active ? 1 : 0, rgb, mix(-0.2), mix(0.93), String(b.scale || '').slice(0, 30), sort]);
+    await conn.query(`INSERT INTO exams (code, name, full_name, active, rgb, rgb_dark, rgb_soft, scale, rules, about, recommend, sort) VALUES (?, ?, ?, ?, ?, ?, ?, ?, '[]', ?, ?, ?)
+      ON DUPLICATE KEY UPDATE name = VALUES(name), full_name = VALUES(full_name), active = VALUES(active), rgb = VALUES(rgb), rgb_dark = VALUES(rgb_dark), rgb_soft = VALUES(rgb_soft),
+        scale = VALUES(scale), about = VALUES(about), recommend = VALUES(recommend)`,
+      [code, name, String(b.full || '').trim().slice(0, 120) || name, b.active ? 1 : 0, rgb, mix(-0.2), mix(0.93), String(b.scale || '').slice(0, 30), String(b.about || ''), J(recommend), sort]);
     const [old] = await conn.query('SELECT * FROM exam_sections WHERE exam_key = ?', [code]);
     await conn.query('DELETE FROM exam_sections WHERE exam_key = ?', [code]);
     await conn.query('INSERT INTO exam_sections (exam_key, id, name, short, icon, official, tutor, sort) VALUES ?', [secs.map((s, i) => {
       const prev = old.find(o => o.id === s.id);
-      return [code, s.id, s.name, prev?.short || s.name.split(' ')[0], prev?.icon || (s.tutor ? 'pen-line' : 'book-open'), prev?.official || null, s.tutor ? 1 : 0, i];
+      return [code, s.id, s.name, prev?.short || s.name.split(' ')[0], prev?.icon || (s.tutor ? 'pen-line' : 'book-open'), s.official, s.tutor ? 1 : 0, i];
     })]);
     await conn.commit();
   } catch (e) { await conn.rollback(); throw e; } finally { conn.release(); }

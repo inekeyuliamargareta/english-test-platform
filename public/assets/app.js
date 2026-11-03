@@ -135,9 +135,10 @@ const isCorrect = (q, a) => q.type === 'fill' ? q.answer.includes(norm(a)) : a =
 const correctText = q => q.type === 'fill' ? q.answer[0] : `${L(q.answer)}. ${q.options[q.answer]}`;
 
 // Item per section untuk halaman test: soal pilihan ganda/isian atau task writing (section dinilai tutor)
-function sectionItems(exam, sec) {
+// pool: 'bank' = soal simulasi & latihan, 'placement' = soal placement test
+function sectionItems(exam, sec, pool = 'bank') {
   if (sectionMeta(exam, sec)?.tutor) return DB.writingTasks.filter(t => t.exam === exam && t.section === sec).map(t => ({ ...t, kind: 'writing' }));
-  return DB.questions.filter(q => q.exam === exam && q.section === sec).map(q => ({ ...q, kind: 'q' }));
+  return DB.questions.filter(q => q.exam === exam && q.section === sec && (q.pool || 'bank') === pool).map(q => ({ ...q, kind: 'q' }));
 }
 
 // Putar audio Listening. Pakai file MP3 jika admin sudah mengunggah; jika belum, transkrip dibacakan
@@ -174,8 +175,19 @@ addEventListener('pagehide', stopClip);
 
 // ---------- Skor (dihitung server saat submit; di sini hanya ditampilkan) ----------
 const TOEFL_MAX = { listening: 68, structure: 68, reading: 67 };
-// Hasil simulasi terbaru siswa (DB.attempts urut terbaru). pred untuk menyaring, mis. hanya Full Test.
-const findAttempt = (pred = () => true) => DB.attempts.find(a => DB.packages.some(p => p.id === a.pkg) && pred(a)) || null;
+const isPlacement = a => DB.packages.find(p => p.id === a.pkg)?.type === 'placement';
+// Hasil simulasi (bukan placement) terbaru
+const findAttempt = (pred = () => true) => DB.attempts.find(a => DB.packages.some(p => p.id === a.pkg) && !isPlacement(a) && pred(a)) || null;
+
+// ---------- Placement test ----------
+// Level dari persen jawaban benar. Perkiraan skor: TOEFL ITP mengikuti batas CEFR resmi ETS; IELTS perkiraan umum.
+const LEVELS = [{ code: 'A2', name: 'Dasar', min: 0 }, { code: 'B1', name: 'Menengah', min: 30 }, { code: 'B2', name: 'Menengah atas', min: 55 }, { code: 'C1', name: 'Mahir', min: 80 }];
+const LEVEL_RANGE = {
+  toefl: { A2: 'di bawah 460', B1: '460–542', B2: '543–626', C1: '627 ke atas' },
+  ielts: { A2: 'band 4.0 ke bawah', B1: 'band 4.0–5.0', B2: 'band 5.5–6.5', C1: 'band 7.0 ke atas' },
+};
+const levelOf = percent => [...LEVELS].reverse().find(l => percent >= l.min);
+const joinLink = extra => waLink(`Halo EnglishOn, saya ${DB.user?.name || ''}${DB.user?.email ? ' (' + DB.user.email + ')' : ''}. ${extra}`);
 const attemptScore = a => a.total ?? a.sections.find(s => s.score != null)?.score ?? null;
 function scoreAttempt(att) {
   const pkg = DB.packages.find(p => p.id === att.pkg);
@@ -184,8 +196,8 @@ function scoreAttempt(att) {
 
 // ---------- Layout ----------
 const NAV = {
-  app: [['dashboard', 'Dashboard', 'layout-dashboard', 'dashboard.html'], ['materi', 'Materi', 'book-open', 'materi.html'], ['simulasi', 'Simulasi Test', 'timer', 'simulasi.html'], ['hasil', 'Hasil & Review', 'bar-chart-3', 'hasil.html']],
-  admin: [['ringkasan', 'Ringkasan', 'layout-dashboard', 'admin.html#ringkasan'], ['materi', 'Kelola Materi', 'book-open', 'admin.html#materi'], ['soal', 'Kelola Soal', 'file-question', 'admin.html#soal'], ['siswa', 'Siswa & Akses', 'users', 'admin.html#siswa'], ['master', 'Master Test', 'layers', 'admin.html#master']],
+  app: [['dashboard', 'Dashboard', 'layout-dashboard', 'dashboard.html'], ['program', 'Tentang Program', 'info', 'program.html'], ['materi', 'Materi', 'book-open', 'materi.html'], ['simulasi', 'Simulasi Test', 'timer', 'simulasi.html'], ['placement', 'Placement Test', 'gauge', 'placement.html'], ['hasil', 'Hasil & Review', 'bar-chart-3', 'hasil.html']],
+  admin: [['ringkasan', 'Ringkasan', 'layout-dashboard', 'admin.html#ringkasan'], ['master', 'Master Program', 'layers', 'admin.html#master'], ['materi', 'Kelola Materi', 'book-open', 'admin.html#materi'], ['soal', 'Kelola Soal', 'file-question', 'admin.html#soal'], ['siswa', 'Siswa & Akses', 'users', 'admin.html#siswa']],
 };
 const logo = (sub = '') => `<a href="dashboard.html" class="flex items-center gap-2.5 font-bold text-slate-900">
   <span class="grid h-9 w-9 place-items-center rounded-xl bg-brand-600 text-white shadow-sm"><i data-lucide="graduation-cap" class="h-5 w-5"></i></span>

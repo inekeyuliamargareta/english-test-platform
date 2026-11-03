@@ -114,10 +114,10 @@
 
 <script>
 function lobby() {
-  const exam = getExam(), pkgs = DB.packages.filter(p => p.exam === exam);
+  const exam = getExam(), pkgs = DB.packages.filter(p => p.exam === exam && p.type !== 'placement');
   return {
     exam, E: DB.exams[exam], pkgs, sel: pkgs.find(p => p.id === qs('pkg')) || pkgs[0] || { sections: [] }, ready: false, shake: false, locked: access.locked,
-    hist: DB.attempts.filter(a => a.exam === exam),
+    hist: DB.attempts.filter(a => a.exam === exam && !isPlacement(a)),
     minutes: p => p.sections.reduce((a, s) => a + s[1], 0),
     count: p => p.sections.reduce((a, [id]) => a + sectionItems(p.exam, id).length, 0),
     choose(p) { this.sel = p; if (innerWidth < 1024) document.getElementById('detail').scrollIntoView({ behavior: 'smooth' }); },

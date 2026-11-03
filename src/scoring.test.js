@@ -30,4 +30,7 @@ assert.strictEqual(ielts.sections[0].score, 5.5); // 1/2 benar
 assert.strictEqual(ielts.total, 5.5);
 assert.strictEqual(scoreAttempt({ exam: 'ielts', type: 'section', sections: [['reading']] }, meta, items, { r1: 3 }).total, null);
 
+// Placement: total = persen benar dari semua section
+assert.strictEqual(scoreAttempt({ exam: 'toefl', type: 'placement', sections: [['structure'], ['reading']] }, meta, items, { s1: 0, r1: 3 }).total, 67);
+
 console.log('scoring OK');

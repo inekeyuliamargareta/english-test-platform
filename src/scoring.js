@@ -37,6 +37,11 @@ function scoreAttempt(pkg, meta, items, answers) {
     return { id, score: sectionScore(pkg.exam, id, total ? correct / total : 0), correct, total, detail: `${correct} dari ${total} benar` };
   });
   const scored = sections.filter(s => s.score !== null).map(s => s.score);
+  // Placement: total = persen jawaban benar (0–100), dipetakan ke level di halaman hasil
+  if (pkg.type === 'placement') {
+    const c = sections.reduce((a, s) => a + (s.correct || 0), 0), t = sections.reduce((a, s) => a + (s.total || 0), 0);
+    return { sections, total: t ? Math.round(c / t * 100) : 0 };
+  }
   return { sections, total: pkg.type === 'full' ? totalScore(pkg.exam, scored) : null };
 }
 
