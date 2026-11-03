@@ -19,7 +19,7 @@ const needsLogin = () => !!(document.body.dataset.shell || document.body.dataset
 
 document.addEventListener('DOMContentLoaded', async () => {
   if (needsLogin() && !token()) return location.replace('login.html');
-  try { DB = await api('GET', '/bootstrap'); }
+  try { DB = await api('GET', '/bootstrap' + (document.body.dataset.shell === 'admin' ? '?lite=1' : '')); }
   catch (e) { document.body.innerHTML = `<p style="padding:2rem;text-align:center;font-family:sans-serif">Cannot reach the server. Please reload the page.<br><small>${e.message}</small></p>`; return; }
   if (needsLogin() && !DB.user) return logout();
   if (document.body.dataset.shell === 'admin' && DB.user.role !== 'admin') return location.replace('dashboard.html');
@@ -89,7 +89,8 @@ document.head.insertAdjacentHTML('beforeend', `<style>
   @keyframes skel { to { background-position: -200% 0; } }
   .thin-scroll::-webkit-scrollbar { width: 8px; height: 8px; } .thin-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 99px; }
   .content { line-height: 1.75; color: #334155; }
-  .content p { margin: .75rem 0; } .content ol { list-style: decimal; padding-left: 1.25rem; } .content ol li { margin: .25rem 0; }
+  .content p { margin: .75rem 0; } .content ol { list-style: decimal; padding-left: 1.25rem; } .content ul { list-style: disc; padding-left: 1.25rem; } .content li { margin: .25rem 0; }
+  .content h3 { margin: 1.25rem 0 .5rem; font-size: 1.1rem; font-weight: 700; color: #0f172a; } .content b, .content strong { font-weight: 700; color: #0f172a; }
   .content table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: .9rem; display: block; overflow-x: auto; }
   .content th { background: #f1f5f9; text-align: left; font-weight: 600; color: #0f172a; }
   .content th, .content td { padding: .6rem .8rem; border: 1px solid #e2e8f0; }
@@ -203,11 +204,27 @@ function scoreAttempt(att) {
 // ---------- Layout ----------
 const NAV = {
   app: [['program', 'About the Program', 'info', 'program.html'], ['dashboard', 'Dashboard', 'layout-dashboard', 'dashboard.html'], ['materi', 'Lessons', 'book-open', 'materi.html'], ['simulasi', 'Mock Test', 'timer', 'simulasi.html'], ['hasil', 'Results & Review', 'bar-chart-3', 'hasil.html']],
-  admin: [['ringkasan', 'Ringkasan', 'layout-dashboard', 'admin.html#ringkasan'], ['master', 'Master Program', 'layers', 'admin.html#master'], ['materi', 'Kelola Materi', 'book-open', 'admin.html#materi'], ['soal', 'Kelola Soal', 'file-question', 'admin.html#soal'], ['siswa', 'Siswa & Akses', 'users', 'admin.html#siswa']],
+  admin: [['master', 'Master Program', 'layers', 'admin.html#master']],
 };
 const logo = (sub = '') => `<a href="${sub ? 'admin.html' : 'program.html'}" class="flex items-center gap-2.5 font-bold text-slate-900">
   <span class="grid h-9 w-9 place-items-center rounded-xl bg-brand-600 text-white shadow-sm"><i data-lucide="graduation-cap" class="h-5 w-5"></i></span>
   <span class="text-[17px] tracking-tight">English<span class="text-brand-600">On</span>${sub}</span></a>`;
+
+const ADMIN_SUB = [['siswa', 'Siswa', 'users'], ['materi', 'Materi', 'book-open'], ['soal', 'Soal', 'file-question'], ['pengaturan', 'Pengaturan', 'settings']];
+function adminPrograms(link) {
+  return `<p class="px-3 pb-2 pt-5 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Program</p>` + Object.values(DB.exams).map(e => `
+    <div>
+      <button @click="grp = grp === '${e.key}' ? '' : '${e.key}'" class="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-slate-700 transition hover:bg-slate-100">
+        <span class="h-2.5 w-2.5 shrink-0 rounded-full" style="background-color: rgb(${e.rgb})"></span>
+        <span class="min-w-0 flex-1 truncate">${esc(e.name)}</span>
+        ${e.active ? '' : '<span class="rounded bg-slate-100 px-1.5 text-[10px] font-medium text-slate-500">nonaktif</span>'}
+        <span class="text-slate-400 transition" :class="grp === '${e.key}' && 'rotate-90'"><i data-lucide="chevron-right" class="h-4 w-4"></i></span>
+      </button>
+      <div x-show="grp === '${e.key}'" x-cloak class="mb-1 ml-[18px] space-y-0.5 border-l border-slate-200 pl-2">
+        ${ADMIN_SUB.map(([t, label, icon]) => link([`p/${e.key}/${t}`, label, icon, `admin.html#p/${e.key}/${t}`])).join('')}
+      </div>
+    </div>`).join('');
+}
 
 function mountShell() {
   const kind = document.body.dataset.shell; if (!kind) return;
@@ -220,14 +237,15 @@ function mountShell() {
     : `<span title="${e.name} coming soon" class="hidden cursor-not-allowed whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-300 md:inline">${e.name.split(' ')[0]} <span class="text-[10px]">· soon</span></span>`;
 
   const wrap = document.createElement('div');
-  wrap.setAttribute('x-data', '{ nav: false, menu: false }');
+  // grp = program yang sedang terbuka di sidebar admin
+  wrap.setAttribute('x-data', `{ nav: false, menu: false, grp: '${(location.hash.match(/^#p\/([\w-]+)/) || [])[1] || ''}' }`);
   wrap.innerHTML = `
   <aside class="fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-slate-200 bg-white -translate-x-full transition-transform duration-200 lg:translate-x-0" :class="nav && '!translate-x-0 shadow-2xl'">
     <div class="flex h-16 items-center justify-between px-5">${logo(admin ? ' <span class="ml-1 rounded-md bg-slate-900 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white">Admin</span>' : '')}
       <button class="lg:hidden rounded-lg p-1.5 text-slate-500 hover:bg-slate-100" @click="nav=false" aria-label="Close menu"><i data-lucide="x" class="h-5 w-5"></i></button></div>
     <nav class="flex-1 space-y-1 overflow-y-auto px-3 py-4">
       <p class="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400">${admin ? 'Manajemen' : 'Learn'}</p>
-      ${NAV[kind].map(link).join('')}
+      ${NAV[kind].map(link).join('')}${admin ? adminPrograms(link) : ''}
     </nav>
     <div class="space-y-3 border-t border-slate-100 p-4">
       ${admin ? '' : `<div class="rounded-xl bg-gradient-to-br from-accent to-accent-dark p-4 text-white">

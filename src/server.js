@@ -18,7 +18,8 @@ const app = express();
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(cors({ origin: process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : false }));
 app.use(express.json({ limit: '2mb' }));
-app.use(express.static(PUBLIC));
+// HTML & JS selalu dicek ulang ke server agar perubahan langsung terpakai setelah update
+app.use(express.static(PUBLIC, { setHeaders(res, file) { if (/\.(html|js)$/.test(file)) res.setHeader('Cache-Control', 'no-cache'); } }));
 
 // ---------- Helper ----------
 const q = (sql, params) => pool.query(sql, params).then(([rows]) => rows);
@@ -108,6 +109,20 @@ app.get('/api/bootstrap', wrap(async (req, res) => {
   const out = { contact: CONTACT, exams: await loadExams() }, u = req.user;
   if (!u) return res.json(out);
   const admin = u.role === 'admin';
+  if (admin && req.query.lite) {
+    const [chapters, passages, clips, packages, counts] = await Promise.all([
+      q('SELECT id, exam, section, title, descr, minutes, draft, JSON_LENGTH(subs) n FROM chapters ORDER BY sort, id'),
+      q('SELECT id, title FROM passages ORDER BY title'), q('SELECT * FROM clips ORDER BY title'),
+      q('SELECT * FROM packages ORDER BY sort, id'), questionCounts(),
+    ]);
+    out.user = { id: u.id, name: u.name, email: u.email, role: u.role, initials: initials(u.name), target: {}, access: { full: true, used: false } };
+    out.chapters = chapters.map(c => ({ id: c.id, exam: c.exam, section: c.section, title: c.title, desc: c.descr, minutes: c.minutes, draft: !!c.draft, subsCount: c.n }));
+    out.passages = Object.fromEntries(passages.map(p => [p.id, { title: p.title }]));
+    out.clips = Object.fromEntries(clips.map(c => [c.id, mapClip(c)]));
+    out.packages = packages.map(mapPackage);
+    out.counts = counts;
+    return res.json(out);
+  }
   const [chapters, passages, clips, questions, tasks, packages, progress, attempts] = await Promise.all([
     q(`SELECT * FROM chapters ${admin ? '' : 'WHERE draft = 0'} ORDER BY sort, id`),
     q('SELECT * FROM passages'), q('SELECT * FROM clips'),
@@ -207,32 +222,64 @@ app.get('/api/attempts/:id', need(), wrap(async (req, res) => {
 // ---------- Admin ----------
 const admin = need('admin');
 
+// Jumlah soal per program/section/penggunaan/bab, untuk angka di menu admin
+const questionCounts = () => q('SELECT exam, section, pool, chapter, COUNT(*) n FROM questions GROUP BY exam, section, pool, chapter');
+app.get('/api/admin/counts', admin, wrap(async (req, res) => res.json(await questionCounts())));
+
+const page = req => { const limit = Math.min(5000, Math.max(1, +req.query.limit || 20)), p = Math.max(1, +req.query.page || 1); return { limit, page: p, offset: (p - 1) * limit }; };
+const like = v => `%${String(v).replace(/[\\%_]/g, '\\$&')}%`;
+
+// Siswa per program, per halaman. Siswa masuk sebuah program jika memilihnya saat daftar atau pernah tes di program itu.
 app.get('/api/admin/students', admin, wrap(async (req, res) => {
-  const [users, attempts, sums, counts, [{ nq }]] = await Promise.all([
-    q("SELECT id, name, email, phone, exam, full_access, created_at FROM users WHERE role = 'student' ORDER BY created_at DESC"),
-    q("SELECT a.id, a.user_id, a.exam, a.package_id, a.total, a.result, a.created_at, u.name, p.type = 'placement' placement FROM attempts a JOIN users u ON u.id = a.user_id LEFT JOIN packages p ON p.id = a.package_id ORDER BY a.created_at DESC, a.id DESC"),
-    q('SELECT p.user_id, c.exam, SUM(p.progress) s FROM chapter_progress p JOIN chapters c ON c.id = p.chapter_id AND c.draft = 0 GROUP BY p.user_id, c.exam'),
+  const { limit, page: p, offset } = page(req), exam = String(req.query.exam || ''), where = ["u.role = 'student'"], args = [];
+  if (exam) { where.push('(u.exam = ? OR EXISTS (SELECT 1 FROM attempts a WHERE a.user_id = u.id AND a.exam = ?))'); args.push(exam, exam); }
+  if (req.query.q) { where.push('(u.name LIKE ? OR u.email LIKE ? OR u.phone LIKE ?)'); args.push(like(req.query.q), like(req.query.q), like(req.query.q)); }
+  const w = 'WHERE ' + where.join(' AND ');
+  const [[{ total }], users] = await Promise.all([
+    q(`SELECT COUNT(*) total FROM users u ${w}`, args),
+    q(`SELECT u.id, u.name, u.email, u.phone, u.exam, u.full_access, u.created_at FROM users u ${w} ORDER BY u.created_at DESC, u.id DESC LIMIT ? OFFSET ?`, [...args, limit, offset]),
+  ]);
+  if (!users.length) return res.json({ total, page: p, limit, rows: [] });
+  const ids = users.map(u => u.id);
+  const [attempts, sums, counts] = await Promise.all([
+    q("SELECT a.id, a.user_id, a.exam, a.package_id, a.total, a.result, a.created_at, p.type = 'placement' placement FROM attempts a LEFT JOIN packages p ON p.id = a.package_id WHERE a.user_id IN (?) ORDER BY a.created_at DESC, a.id DESC", [ids]),
+    q('SELECT p.user_id, c.exam, SUM(p.progress) s FROM chapter_progress p JOIN chapters c ON c.id = p.chapter_id AND c.draft = 0 WHERE p.user_id IN (?) GROUP BY p.user_id, c.exam', [ids]),
     q('SELECT exam, COUNT(*) n FROM chapters WHERE draft = 0 GROUP BY exam'),
-    q('SELECT COUNT(*) nq FROM questions'),
   ]);
   // Skor utama: total Full Test, atau skor section pertama untuk tes per section
-  const score = a => a.total != null ? +a.total : a.result.sections.find(s => s.score != null)?.score ?? null;
-  const monthStart = new Date(); monthStart.setDate(1); monthStart.setHours(0, 0, 0, 0);
-  res.json({
-    stats: { students: users.length, studentsMonth: users.filter(u => u.created_at >= monthStart).length, questions: nq },
-    recent: attempts.filter(a => !a.placement).slice(0, 5).map(a => ({ id: a.id, name: a.name, exam: a.exam, score: score(a), date: a.created_at })),
-    students: users.map(u => {
-      const all = attempts.filter(a => a.user_id === u.id), mine = all.filter(a => !a.placement), pl = all.find(a => a.placement);
-      const total = counts.find(c => c.exam === u.exam)?.n || 0, sum = +(sums.find(s => s.user_id === u.id && s.exam === u.exam)?.s || 0);
-      return {
-        id: u.id, name: u.name, email: u.email, phone: u.phone, exam: u.exam, full: !!u.full_access, joined: u.created_at,
-        tests: mine.length, last: mine.length ? score(mine[0]) : null, lastExam: mine[0]?.exam,
-        progress: total ? Math.round(sum / total) : 0,
-        placement: pl ? { exam: pl.exam, percent: +pl.total, date: pl.created_at } : null,
-        history: all.slice(0, 6).map(a => ({ id: a.id, date: a.created_at, exam: a.exam, pkg: a.package_id, score: score(a), placement: !!a.placement })),
-      };
-    }),
-  });
+  const score = a => a.total != null ? +a.total : a.result.sections.find(x => x.score != null)?.score ?? null;
+  res.json({ total, page: p, limit, rows: users.map(u => {
+    const ex = exam || u.exam, all = attempts.filter(a => a.user_id === u.id && (!exam || a.exam === exam));
+    const mine = all.filter(a => !a.placement), pl = all.find(a => a.placement);
+    const n = counts.find(c => c.exam === ex)?.n || 0, sum = +(sums.find(x => x.user_id === u.id && x.exam === ex)?.s || 0);
+    return {
+      id: u.id, name: u.name, email: u.email, phone: u.phone, exam: u.exam, full: !!u.full_access, joined: u.created_at,
+      tests: mine.length, last: mine.length ? score(mine[0]) : null, lastExam: mine[0]?.exam,
+      progress: n ? Math.round(sum / n) : 0,
+      placement: pl ? { exam: pl.exam, percent: +pl.total, date: pl.created_at } : null,
+      history: all.slice(0, 6).map(a => ({ id: a.id, date: a.created_at, exam: a.exam, pkg: a.package_id, score: score(a), placement: !!a.placement })),
+    };
+  }) });
+}));
+
+// Soal per program/section, per halaman (terbaru di atas)
+app.get('/api/admin/questions', admin, wrap(async (req, res) => {
+  const { limit, page: p, offset } = page(req), where = [], args = [];
+  for (const k of ['exam', 'section', 'pool']) if (req.query[k]) { where.push(`${k} = ?`); args.push(String(req.query[k])); }
+  if (req.query.q) { where.push('(q LIKE ? OR topic LIKE ? OR id LIKE ?)'); args.push(like(req.query.q), like(req.query.q), like(req.query.q)); }
+  const w = where.length ? 'WHERE ' + where.join(' AND ') : '';
+  const [[{ total }], rows, topics] = await Promise.all([
+    q(`SELECT COUNT(*) total FROM questions ${w}`, args),
+    q(`SELECT * FROM questions ${w} ORDER BY sort DESC, id LIMIT ? OFFSET ?`, [...args, limit, offset]),
+    req.query.exam ? q("SELECT DISTINCT topic FROM questions WHERE exam = ? AND topic <> '' ORDER BY topic", [String(req.query.exam)]) : [],
+  ]);
+  res.json({ total, page: p, limit, rows: rows.map(r => mapQuestion(r, true)), topics: topics.map(t => t.topic) });
+}));
+
+app.get('/api/admin/chapters/:id', admin, wrap(async (req, res) => {
+  const [c] = await q('SELECT * FROM chapters WHERE id = ?', [req.params.id]);
+  if (!c) fail(404, 'Bab tidak ditemukan');
+  res.json(mapChapter(c));
 }));
 
 app.patch('/api/admin/students/:id', admin, wrap(async (req, res) => {
