@@ -276,6 +276,16 @@ app.get('/api/admin/questions', admin, wrap(async (req, res) => {
   res.json({ total, page: p, limit, rows: rows.map(r => mapQuestion(r, true)), topics: topics.map(t => t.topic) });
 }));
 
+// Urutan pertemuan (bab) dalam satu program: ids sesuai urutan baru → Pertemuan 1, 2, 3, …
+app.put('/api/admin/chapter-order', admin, wrap(async (req, res) => {
+  const ids = Array.isArray(req.body?.ids) ? req.body.ids.map(String) : [];
+  if (!ids.length || ids.length > 1000 || new Set(ids).size !== ids.length) fail(400, 'Urutan tidak valid');
+  const [{ n }] = await q('SELECT COUNT(*) n FROM chapters WHERE id IN (?)', [ids]);
+  if (n !== ids.length) fail(400, 'Sebagian pertemuan tidak ditemukan. Muat ulang halaman lalu coba lagi.');
+  await q(`UPDATE chapters SET sort = CASE id ${ids.map(() => 'WHEN ? THEN ?').join(' ')} END WHERE id IN (?)`, [...ids.flatMap((id, i) => [id, i]), ids]);
+  res.json({ ok: true });
+}));
+
 app.get('/api/admin/chapters/:id', admin, wrap(async (req, res) => {
   const [c] = await q('SELECT * FROM chapters WHERE id = ?', [req.params.id]);
   if (!c) fail(404, 'Bab tidak ditemukan');

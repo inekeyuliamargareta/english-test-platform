@@ -36,6 +36,7 @@ Jalankan `npm run migrate` sekali setelah menarik versi baru. Kolom baru ditamba
 ## Fitur admin
 
 - **Sidebar per program**: setiap program punya menu sendiri (Siswa, Materi, Soal, Pengaturan). Daftar siswa dan soal diambil per halaman (20 baris) dari server.
+- **Pertemuan (kurikulum)**: setiap bab terbit = satu pertemuan. Urutan di menu Materi (tombol ▲▼) menjadi Meeting 1, 2, 3, … di sisi siswa, dan progres siswa tampil sebagai "Meetings completed 3 / 30". Bab draft tidak diberi nomor.
 - **Master Program**: tambah/ubah program (TOEFL, IELTS, dll.), section, penjelasan program untuk siswa, dan rekomendasi kelas per level placement.
 - **Editor teks**: penjelasan program, isi bab, dan pembahasan soal diketik seperti di Word (tebal, daftar, judul, kotak tips, tabel). Tempel dari Word/website otomatis jadi teks biasa.
 - **Import Soal**: Kelola Soal → Import Soal → unduh template CSV, isi di Excel/Google Sheets, simpan sebagai CSV, lalu unggah. Semua baris diperiksa dulu; jika ada yang salah, tidak ada yang disimpan dan nomor barisnya ditampilkan.

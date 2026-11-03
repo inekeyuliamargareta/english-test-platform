@@ -127,6 +127,9 @@ const words = s => ((s || '').trim().match(/\S+/g) || []).length;
 const examStyle = k => `background-color: rgb(${DB.exams[k]?.rgb || '100 116 139'})`; // warna badge ujian
 const sectionMeta =(exam, id) => DB.exams[exam].sections.find(s => s.id === id);
 const chapterById = id => DB.chapters.find(c => c.id === id);
+// Kurikulum: setiap bab terbit = satu pertemuan, urut sesuai pengaturan admin (Meeting 1, 2, 3, …)
+const meetings = exam => DB.chapters.filter(c => c.exam === exam && !c.draft);
+const meetingNo = c => meetings(c.exam).findIndex(x => x.id === c.id) + 1;
 const questionById = id => DB.questions.find(q => q.id === id);
 const statusLabel = { done: 'Completed', progress: 'In progress', new: 'Not started' };
 const diffClass = { mudah: 'bg-emerald-50 text-emerald-700', sedang: 'bg-amber-50 text-amber-700', sulit: 'bg-rose-50 text-rose-700' };

@@ -39,13 +39,13 @@
   <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
     <div class="min-w-0">
       <p x-show="view !== 'master'" class="flex items-center gap-2 text-sm font-medium text-slate-500"><span class="h-2.5 w-2.5 rounded-full" :style="'background-color: rgb(' + (E?.rgb || '100 116 139') + ')'"></span><span x-text="E?.name"></span></p>
-      <h2 class="text-2xl font-bold tracking-tight" x-text="{ master: 'Master Program', siswa: 'Siswa', materi: 'Materi', soal: 'Soal' }[view]"></h2>
+      <h2 class="text-2xl font-bold tracking-tight" x-text="{ master: 'Master Program', siswa: 'Siswa', materi: 'Materi (Pertemuan)', soal: 'Soal' }[view]"></h2>
       <p class="text-sm text-slate-500" x-text="subtitle"></p>
     </div>
     <div class="flex flex-wrap gap-2">
       <button x-show="view==='master'" @click="openExam()" class="btn-primary"><i data-lucide="plus" class="h-4 w-4"></i>Tambah Program</button>
       <button x-show="view==='siswa'" @click="exportCsv()" class="btn-light"><i data-lucide="download" class="h-4 w-4"></i>Unduh Excel (CSV)</button>
-      <button x-show="view==='materi'" @click="openChapter()" class="btn-primary"><i data-lucide="plus" class="h-4 w-4"></i>Tambah Bab</button>
+      <button x-show="view==='materi'" @click="openChapter()" class="btn-primary"><i data-lucide="plus" class="h-4 w-4"></i>Tambah Pertemuan</button>
       <button x-show="view==='soal'" @click="openImport()" class="btn-light"><i data-lucide="file-up" class="h-4 w-4"></i>Import Soal</button>
       <button x-show="view==='soal'" @click="openQuestion()" class="btn-primary"><i data-lucide="plus" class="h-4 w-4"></i>Tambah Soal</button>
     </div>
@@ -71,7 +71,7 @@
         <p class="mt-3 line-clamp-2 text-sm text-slate-500" x-text="plain(e.about) || 'Belum ada penjelasan untuk siswa.'"></p>
         <div class="mt-4 grid grid-cols-3 gap-2 text-center">
           <a :href="'#p/' + e.key + '/siswa'" class="rounded-xl bg-slate-50 p-3 hover:bg-slate-100"><p class="grid h-7 place-items-center text-slate-400"><i data-lucide="users" class="h-5 w-5"></i></p><p class="text-xs font-semibold text-slate-600">Siswa</p></a>
-          <a :href="'#p/' + e.key + '/materi'" class="rounded-xl bg-slate-50 p-3 hover:bg-slate-100"><p class="text-lg font-bold" x-text="chapters.filter(c => c.exam === e.key).length"></p><p class="text-xs font-semibold text-slate-600">Bab materi</p></a>
+          <a :href="'#p/' + e.key + '/materi'" class="rounded-xl bg-slate-50 p-3 hover:bg-slate-100"><p class="text-lg font-bold" x-text="chapters.filter(c => c.exam === e.key && !c.draft).length"></p><p class="text-xs font-semibold text-slate-600">Pertemuan</p></a>
           <a :href="'#p/' + e.key + '/soal'" class="rounded-xl bg-slate-50 p-3 hover:bg-slate-100"><p class="text-lg font-bold" x-text="qCount({ exam: e.key })"></p><p class="text-xs font-semibold text-slate-600">Soal</p></a>
         </div>
         <p class="mt-4 text-xs font-semibold uppercase tracking-wider text-slate-400">Section</p>
@@ -124,14 +124,23 @@
         <button @click="mSec='all'; mPage=1" class="chip" :class="mSec==='all' && 'chip-on'">Semua section</button>
         <template x-for="x in E?.sections || []" :key="x.id"><button @click="mSec=x.id; mPage=1" class="chip" :class="mSec===x.id && 'chip-on'" x-text="x.name + ' (' + chapters.filter(c => c.exam === exam && c.section === x.id).length + ')'"></button></template>
       </div>
-      <div class="relative sm:max-w-sm"><i data-lucide="search" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"></i><input x-model="mQ" @input="mPage=1" placeholder="Cari judul bab…" class="w-full rounded-xl border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm outline-none focus:border-brand-500"></div>
+      <div class="relative sm:max-w-sm"><i data-lucide="search" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"></i><input x-model="mQ" @input="mPage=1" placeholder="Cari judul pertemuan…" class="w-full rounded-xl border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm outline-none focus:border-brand-500"></div>
     </div>
     <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-soft">
       <div class="overflow-x-auto"><table class="w-full text-sm">
-        <thead class="bg-slate-50 text-left text-xs uppercase tracking-wider text-slate-500"><tr><th class="px-5 py-3">Judul bab</th><th class="px-5 py-3">Section</th><th class="px-5 py-3 text-center">Sub-bab</th><th class="px-5 py-3 text-center">Soal latihan</th><th class="px-5 py-3">Status</th><th class="px-5 py-3 text-right">Aksi</th></tr></thead>
+        <thead class="bg-slate-50 text-left text-xs uppercase tracking-wider text-slate-500"><tr><th class="px-5 py-3">Pertemuan</th><th class="px-5 py-3">Judul</th><th class="px-5 py-3">Section</th><th class="px-5 py-3 text-center">Sub-bab</th><th class="px-5 py-3 text-center">Soal latihan</th><th class="px-5 py-3">Status</th><th class="px-5 py-3 text-right">Aksi</th></tr></thead>
         <tbody class="divide-y divide-slate-100">
           <template x-for="c in chapterPage" :key="c.id">
             <tr class="hover:bg-slate-50">
+              <td class="whitespace-nowrap px-5 py-3">
+                <div class="flex items-center gap-1">
+                  <span class="grid h-8 min-w-[32px] place-items-center rounded-lg px-1.5 text-sm font-bold" :class="c.draft ? 'bg-slate-50 text-slate-400' : 'bg-brand-50 text-brand-700'" x-text="meetingNo(c) || '—'" :title="c.draft ? 'Draft belum diberi nomor' : 'Pertemuan ke-' + meetingNo(c)"></span>
+                  <template x-if="canReorder"><span class="flex flex-col">
+                    <button @click="moveChapter(c, -1)" class="rounded p-0.5 text-slate-400 hover:bg-slate-100 hover:text-slate-900" title="Naikkan"><i data-lucide="chevron-up" class="h-3.5 w-3.5"></i></button>
+                    <button @click="moveChapter(c, 1)" class="rounded p-0.5 text-slate-400 hover:bg-slate-100 hover:text-slate-900" title="Turunkan"><i data-lucide="chevron-down" class="h-3.5 w-3.5"></i></button>
+                  </span></template>
+                </div>
+              </td>
               <td class="px-5 py-3"><button @click="openChapter(c)" class="text-left font-medium hover:text-brand-600" x-text="c.title"></button><p class="max-w-xs truncate text-xs text-slate-500" x-text="c.desc"></p></td>
               <td class="whitespace-nowrap px-5 py-3 text-slate-600" x-text="sectionName(c.section)"></td>
               <td class="px-5 py-3 text-center" x-text="c.subsCount"></td>
@@ -146,7 +155,8 @@
           </template>
         </tbody>
       </table></div>
-      <p x-show="!chapterList.length" class="p-10 text-center text-sm text-slate-500">Belum ada bab. Klik <b>Tambah Bab</b> untuk membuat materi.</p>
+      <p x-show="!chapterList.length" class="p-10 text-center text-sm text-slate-500">Belum ada pertemuan. Klik <b>Tambah Pertemuan</b> untuk membuat materi.</p>
+      <p x-show="chapterList.length && !canReorder" class="border-t border-slate-100 px-5 py-3 text-xs text-slate-500">Kosongkan pencarian dan pilih "Semua section" untuk mengubah urutan pertemuan.</p>
       <div x-show="mP.total > mP.limit" class="pager"><span x-text="rangeText(mP)"></span><div class="flex gap-1"><template x-for="n in pageList(mP)"><button @click="n !== '…' && (mPage = n)" class="pg" :class="n === mP.page && 'pg-on'" x-text="n"></button></template></div></div>
     </div>
   </section>
@@ -248,14 +258,14 @@
     <div class="absolute inset-0 bg-slate-900/40" @click="open=''"></div>
     <template x-if="open==='c'">
       <form @submit.prevent="saveChapter()" class="relative flex max-h-full w-full max-w-5xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl">
-        <div class="flex items-center justify-between border-b border-slate-200 px-6 py-4"><h3 class="text-lg font-bold" x-text="cForm.isNew ? 'Tambah Bab' : 'Edit Bab'"></h3><button type="button" @click="open=''" class="rounded-lg p-1.5 hover:bg-slate-100"><i data-lucide="x" class="h-5 w-5"></i></button></div>
+        <div class="flex items-center justify-between border-b border-slate-200 px-6 py-4"><h3 class="text-lg font-bold" x-text="cForm.isNew ? 'Tambah Pertemuan' : 'Edit Pertemuan ' + (meetingNo(cForm) || '')"></h3><button type="button" @click="open=''" class="rounded-lg p-1.5 hover:bg-slate-100"><i data-lucide="x" class="h-5 w-5"></i></button></div>
         <div class="thin-scroll flex-1 space-y-5 overflow-y-auto px-6 py-5 text-sm">
           <div class="grid gap-3 md:grid-cols-[2fr_1fr_.6fr]">
-            <label class="block"><span class="lbl">Judul bab</span><input x-model="cForm.title" required class="inp"></label>
+            <label class="block"><span class="lbl">Judul pertemuan</span><input x-model="cForm.title" required class="inp"></label>
             <label class="block"><span class="lbl">Section</span><select x-model="cForm.section" class="inp"><template x-for="x in E?.sections || []" :key="x.id"><option :value="x.id" x-text="x.name" :selected="x.id===cForm.section"></option></template></select></label>
             <label class="block"><span class="lbl">Durasi (menit)</span><input type="number" min="1" x-model.number="cForm.minutes" class="inp"></label>
           </div>
-          <label class="block"><span class="lbl">Deskripsi singkat</span><input x-model="cForm.desc" placeholder="Satu kalimat tentang isi bab ini" class="inp"></label>
+          <label class="block"><span class="lbl">Deskripsi singkat</span><input x-model="cForm.desc" placeholder="Satu kalimat tentang isi pertemuan ini" class="inp"></label>
           <div class="space-y-4">
             <template x-for="(sb, i) in cForm.subs" :key="sb.key">
               <div class="rounded-2xl border border-slate-200 p-3">
@@ -291,8 +301,8 @@
               <label class="block"><span class="lbl">Dipakai untuk</span><select x-model="qForm.pool" class="inp"><option value="bank">Simulasi & latihan bab</option><option value="placement">Placement test</option></select></label>
               <label class="block"><span class="lbl">Tingkat kesulitan</span><select x-model="qForm.difficulty" class="inp"><option value="mudah">Mudah</option><option value="sedang">Sedang</option><option value="sulit">Sulit</option></select></label>
               <label class="block"><span class="lbl">Topik</span><input x-model="qForm.topic" list="topics" placeholder="mis. Subject-Verb Agreement" class="inp"><datalist id="topics"><template x-for="t in topics"><option :value="t"></option></template></datalist></label>
-              <label class="block"><span class="lbl">Bab materi <span class="font-normal text-slate-500">· tampil di latihan bab</span></span>
-                <select x-model="qForm.chapter" :disabled="qForm.pool==='placement'" class="inp disabled:bg-slate-50"><option value="">— Tidak dipakai di latihan bab —</option><template x-for="c in chapters.filter(c => c.exam === exam && c.section === qForm.section)" :key="c.id"><option :value="c.id" x-text="c.title" :selected="c.id === qForm.chapter"></option></template></select></label>
+              <label class="block"><span class="lbl">Pertemuan <span class="font-normal text-slate-500">· soal tampil di latihan pertemuan ini</span></span>
+                <select x-model="qForm.chapter" :disabled="qForm.pool==='placement'" class="inp disabled:bg-slate-50"><option value="">— Tidak dipakai di latihan pertemuan —</option><template x-for="c in chapters.filter(c => c.exam === exam && c.section === qForm.section)" :key="c.id"><option :value="c.id" x-text="(meetingNo(c) ? meetingNo(c) + '. ' : '') + c.title" :selected="c.id === qForm.chapter"></option></template></select></label>
             </div>
 
             <div x-show="qForm.section==='reading'">
@@ -469,7 +479,7 @@ const IMPORT_HELP = [
   ['pembahasan', 'Penjelasan dalam Bahasa Indonesia'],
   ['topik', 'mis. Subject-Verb Agreement'],
   ['kesulitan', '<b>mudah</b>, <b>sedang</b>, atau <b>sulit</b>. Kosong = sedang'],
-  ['bab', 'ID bab materi agar tampil di latihan bab (opsional)'],
+  ['bab', 'ID pertemuan agar soal tampil di latihan pertemuan itu (opsional)'],
   ['instruksi', 'Instruksi di atas soal, mis. Write ONE WORD ONLY (opsional)'],
   ['passage', 'ID passage Reading yang sudah ada (opsional)'],
   ['audio', 'ID audio Listening yang sudah ada (opsional)'],
@@ -537,8 +547,19 @@ function admin() {
     get subtitle() {
       if (this.view === 'master') return 'Pilih program di sidebar kiri untuk mengelola siswa, materi, dan soalnya.';
       if (this.view === 'siswa') return this.sP.total + ' siswa di program ini';
-      if (this.view === 'materi') return this.chapters.filter(c => c.exam === this.exam).length + ' bab materi';
+      if (this.view === 'materi') return this.published.length + ' pertemuan terbit · urutan di sini = urutan Meeting 1, 2, 3… di halaman siswa';
       return this.qCount({ exam: this.exam }) + ' soal';
+    },
+    get published() { return this.chapters.filter(c => c.exam === this.exam && !c.draft); },
+    meetingNo(c) { return c.draft ? 0 : this.published.findIndex(x => x.id === c.id) + 1; },
+    get canReorder() { return this.mSec === 'all' && !this.mQ; },
+    moveChapter(c, dir) {
+      const list = this.chapters.filter(x => x.exam === this.exam), i = list.indexOf(c), j = i + dir;
+      if (j < 0 || j >= list.length) return;
+      [list[i], list[j]] = [list[j], list[i]];
+      this.chapters.splice(0, this.chapters.length, ...this.chapters.filter(x => x.exam !== this.exam), ...list);
+      if (j < (this.mP.page - 1) * 20 || j >= this.mP.page * 20) this.mPage += dir;
+      this.run(() => api('PUT', '/admin/chapter-order', { ids: list.map(x => x.id) }), 'Urutan pertemuan disimpan');
     },
     get chapterList() { const k = this.mQ.toLowerCase(); return this.chapters.filter(c => c.exam === this.exam && (this.mSec === 'all' || c.section === this.mSec) && c.title.toLowerCase().includes(k)); },
     get mP() { return { page: Math.min(this.mPage, Math.ceil(this.chapterList.length / PAGE) || 1), total: this.chapterList.length, limit: PAGE }; },
@@ -743,9 +764,9 @@ function admin() {
         const saved = await api('PUT', '/admin/chapters/' + encodeURIComponent(f.id), { ...f, subs: f.subs.map(s => ({ title: s.title, html: s.html })) });
         const meta = { id: saved.id, exam: saved.exam, section: saved.section, title: saved.title, desc: saved.desc, minutes: saved.minutes, draft: saved.draft, subsCount: saved.subs.length };
         const old = this.chapters.find(c => c.id === saved.id);
-        old ? Object.assign(old, meta) : this.chapters.unshift(meta);
+        old ? Object.assign(old, meta) : this.chapters.push(meta);
         this.open = '';
-      }, 'Bab "' + f.title + '" tersimpan');
+      }, 'Pertemuan "' + f.title + '" tersimpan');
     },
   };
 }
