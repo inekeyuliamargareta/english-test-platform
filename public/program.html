@@ -1,80 +1,92 @@
 <!doctype html>
-<html lang="id">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Tentang Program — EnglishOn</title>
+<title>About the Program — EnglishOn</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com/3.4.16"></script>
 <script src="https://cdn.jsdelivr.net/npm/lucide@0.460.0/dist/umd/lucide.min.js"></script>
 <script src="assets/app.js"></script>
 </head>
-<body data-shell="app" data-active="program" data-title="Tentang Program">
+<body data-shell="app" data-active="program" data-title="About the Program">
+<!-- Program mengikuti pilihan di kanan atas (getExam). ?p=kode hanya untuk pratinjau admin. -->
 <main x-data="program()" class="space-y-6">
-  <!-- Pilih program -->
-  <div class="thin-scroll -mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0">
-    <template x-for="e in exams" :key="e.key">
-      <button @click="pick(e.key)" class="flex shrink-0 items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition" :class="key===e.key ? 'bg-slate-900 text-white' : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50'">
-        <span class="h-2.5 w-2.5 rounded-full" :style="'background-color: rgb(' + e.rgb + ')'"></span><span x-text="e.name"></span>
-        <span x-show="!e.active" class="rounded-md bg-slate-100 px-1.5 text-[10px] font-semibold text-slate-500">segera</span>
-      </button>
-    </template>
-  </div>
-
-  <!-- Ringkasan program -->
-  <div class="relative overflow-hidden rounded-2xl p-6 text-white shadow-soft sm:p-8" :style="'background-image: linear-gradient(135deg, rgb(' + E.rgb + '), rgb(' + E.rgbDark + '))'">
+  <!-- Program summary -->
+  <div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-accent to-accent-dark p-6 text-white shadow-soft sm:p-8">
     <i data-lucide="graduation-cap" class="absolute -bottom-8 -right-8 h-48 w-48 text-white/10"></i>
-    <p class="text-sm font-medium text-white/70">Tentang program</p>
+    <p class="text-sm font-medium text-white/70">About the program</p>
     <h2 class="mt-1 text-2xl font-bold sm:text-3xl" x-text="E.full || E.name"></h2>
     <div class="mt-5 flex flex-wrap gap-2 text-xs">
-      <span class="flex items-center gap-1.5 rounded-lg bg-white/15 px-2.5 py-1.5"><i data-lucide="layout-grid" class="h-3.5 w-3.5"></i><span x-text="E.sections.length + ' section'"></span></span>
-      <span x-show="E.scale" class="flex items-center gap-1.5 rounded-lg bg-white/15 px-2.5 py-1.5"><i data-lucide="award" class="h-3.5 w-3.5"></i><span x-text="'Skor ' + E.scale"></span></span>
-      <span x-show="!E.active" class="rounded-lg bg-white/25 px-2.5 py-1.5 font-semibold">Segera hadir di platform</span>
+      <span class="flex items-center gap-1.5 rounded-lg bg-white/15 px-2.5 py-1.5"><i data-lucide="layout-grid" class="h-3.5 w-3.5"></i><span x-text="E.sections.length + (E.sections.length === 1 ? ' section' : ' sections')"></span></span>
+      <span x-show="E.scale" class="flex items-center gap-1.5 rounded-lg bg-white/15 px-2.5 py-1.5"><i data-lucide="award" class="h-3.5 w-3.5"></i><span x-text="'Score ' + E.scale"></span></span>
+      <span x-show="!E.active" class="rounded-lg bg-white/25 px-2.5 py-1.5 font-semibold">Coming soon</span>
     </div>
   </div>
 
   <div class="grid gap-6 lg:grid-cols-3">
     <div class="min-w-0 space-y-6 lg:col-span-2">
       <article class="rounded-2xl border border-slate-200 bg-white p-6 shadow-soft sm:p-8">
-        <h3 class="text-lg font-bold">Apa itu <span x-text="E.name"></span>?</h3>
-        <div class="content mt-2" x-html="E.about || '<p>Penjelasan program ini belum tersedia.</p>'"></div>
+        <h3 class="text-lg font-bold">What is <span x-text="E.name"></span>?</h3>
+        <div class="content mt-2" x-html="E.about || '<p>No description yet.</p>'"></div>
       </article>
 
       <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-soft">
-        <div class="p-5"><h3 class="font-semibold">Yang diujikan</h3><p class="text-sm text-slate-500">Format ujian asli per section.</p></div>
+        <div class="p-5"><h3 class="font-semibold">What is tested</h3><p class="text-sm text-slate-500">Official test format by section.</p></div>
         <div class="overflow-x-auto"><table class="w-full text-sm">
-          <thead class="bg-slate-50 text-left text-xs uppercase tracking-wider text-slate-500"><tr><th class="px-5 py-3">Section</th><th class="px-5 py-3">Jumlah soal & waktu</th><th class="px-5 py-3">Penilaian di platform</th></tr></thead>
+          <thead class="bg-slate-50 text-left text-xs uppercase tracking-wider text-slate-500"><tr><th class="px-5 py-3">Section</th><th class="px-5 py-3">Questions & time</th><th class="px-5 py-3">Scoring on the platform</th></tr></thead>
           <tbody class="divide-y divide-slate-100">
             <template x-for="s in E.sections" :key="s.id">
               <tr><td class="px-5 py-3 font-medium"><span class="flex items-center gap-2"><span class="text-accent" x-html="ico(s.icon)"></span><span x-text="s.name"></span></span></td>
                 <td class="whitespace-nowrap px-5 py-3 text-slate-600" x-text="s.official || '—'"></td>
-                <td class="px-5 py-3"><span class="rounded-md px-2 py-0.5 text-xs font-semibold" :class="s.tutor ? 'bg-violet-100 text-violet-700' : 'bg-emerald-50 text-emerald-700'" x-text="s.tutor ? 'Dinilai tutor' : 'Otomatis'"></span></td></tr>
+                <td class="px-5 py-3"><span class="rounded-md px-2 py-0.5 text-xs font-semibold" :class="s.tutor ? 'bg-violet-100 text-violet-700' : 'bg-emerald-50 text-emerald-700'" x-text="s.tutor ? 'Graded by tutor' : 'Automatic'"></span></td></tr>
             </template>
             <tr x-show="E.key === 'ielts'"><td class="px-5 py-3 font-medium"><span class="flex items-center gap-2"><span class="text-accent" x-html="ico('mic')"></span>Speaking</span></td>
-              <td class="whitespace-nowrap px-5 py-3 text-slate-600">Wawancara 11–14 menit</td>
-              <td class="px-5 py-3"><a :href="joinLink('Saya ingin latihan Speaking ' + E.name + ' bersama tutor di kantor Ponorogo.')" target="_blank" class="text-xs font-semibold text-emerald-700 hover:underline">Di kantor, via WhatsApp</a></td></tr>
+              <td class="whitespace-nowrap px-5 py-3 text-slate-600">Interview, 11–14 min</td>
+              <td class="px-5 py-3"><a :href="joinLink('I would like to practise ' + E.name + ' Speaking with a tutor at the Ponorogo office.')" target="_blank" class="text-xs font-semibold text-emerald-700 hover:underline">At our office, via WhatsApp</a></td></tr>
           </tbody>
         </table></div>
       </div>
 
       <div x-show="E.rules.length" class="rounded-2xl border border-slate-200 bg-white p-6 shadow-soft">
-        <h3 class="font-semibold">Aturan simulasi di platform</h3>
+        <h3 class="font-semibold">Mock test rules</h3>
         <ul class="mt-3 space-y-2 text-sm text-slate-600"><template x-for="r in E.rules"><li class="flex gap-2"><i data-lucide="check-circle" class="mt-0.5 h-4 w-4 shrink-0 text-emerald-500"></i><span x-html="r"></span></li></template></ul>
       </div>
     </div>
 
-    <!-- Langkah berikutnya -->
+    <!-- Next steps -->
     <aside class="space-y-4 lg:sticky lg:top-24 lg:self-start">
       <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-soft">
-        <h3 class="font-semibold">Mulai dari mana?</h3>
-        <a x-show="placement" :href="'placement.html?pkg=' + placement?.id" class="mt-4 flex items-center gap-3 rounded-xl bg-accent px-4 py-3 text-sm font-semibold text-white hover:bg-accent-dark"><i data-lucide="gauge" class="h-5 w-5"></i><span>Cek level dulu<span class="block text-xs font-normal text-white/80">Placement test singkat, gratis</span></span></a>
-        <a x-show="E.active" href="simulasi.html" @click="setExamOnly()" class="mt-2 flex items-center gap-3 rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold hover:bg-slate-50"><i data-lucide="timer" class="h-5 w-5 text-slate-500"></i>Simulasi test</a>
-        <a x-show="E.active" href="materi.html" @click="setExamOnly()" class="mt-2 flex items-center gap-3 rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold hover:bg-slate-50"><i data-lucide="book-open" class="h-5 w-5 text-slate-500"></i>Pelajari materi</a>
+        <h3 class="font-semibold">Where to start?</h3>
+        <a x-show="plPkg && !pl" :href="'test.html?pkg=' + plPkg?.id" class="mt-4 flex items-center gap-3 rounded-xl bg-accent px-4 py-3 text-sm font-semibold text-white hover:bg-accent-dark"><i data-lucide="gauge" class="h-5 w-5"></i><span>Check your level first<span class="block text-xs font-normal text-white/80">Short placement test, free</span></span></a>
+        <a x-show="E.active" href="materi.html" class="mt-2 flex items-center gap-3 rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold hover:bg-slate-50"><i data-lucide="book-open" class="h-5 w-5 text-slate-500"></i>Study the lessons</a>
+        <a x-show="E.active" href="simulasi.html" class="mt-2 flex items-center gap-3 rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold hover:bg-slate-50"><i data-lucide="timer" class="h-5 w-5 text-slate-500"></i>Take a mock test</a>
       </div>
+
+      <!-- Latest placement result -->
+      <template x-if="pl">
+        <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-soft">
+          <div class="flex items-center justify-between"><h3 class="font-semibold">Your placement result</h3><span class="text-xs text-slate-400" x-text="fmtDate(pl.date)"></span></div>
+          <div class="mt-4 flex items-center gap-4">
+            <span class="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-accent text-xl font-extrabold text-white" x-text="level.code"></span>
+            <div class="text-sm"><p class="font-semibold" x-text="level.name"></p><p class="text-slate-500" x-text="pl.total + '% correct'"></p>
+              <p x-show="LEVEL_RANGE[E.key]" class="text-slate-500" x-text="'Est. score ' + (LEVEL_RANGE[E.key]?.[level.code] || '')"></p></div>
+          </div>
+          <template x-for="s in pl.sections" :key="s.id">
+            <div class="mt-3 flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-sm"><span x-text="sectionMeta(E.key, s.id)?.short || s.id"></span><b x-text="s.correct + ' / ' + s.total"></b></div>
+          </template>
+          <p x-show="E.recommend?.[level.code]" class="mt-3 rounded-xl bg-accent-soft p-3 text-sm text-slate-800"><b>Recommended:</b> <span x-text="E.recommend?.[level.code]"></span></p>
+          <div class="mt-3 grid grid-cols-2 gap-2">
+            <a :href="'placement.html?id=' + pl.id" class="rounded-xl border border-slate-200 py-2 text-center text-xs font-semibold hover:bg-slate-50">Details</a>
+            <a :href="'test.html?pkg=' + plPkg?.id" class="rounded-xl border border-slate-200 py-2 text-center text-xs font-semibold hover:bg-slate-50">Retake</a>
+          </div>
+        </div>
+      </template>
+
       <div class="rounded-2xl border border-emerald-200 bg-emerald-50 p-6">
-        <h3 class="font-semibold text-emerald-900">Ingin belajar bersama tutor?</h3>
-        <p class="mt-1 text-sm text-emerald-800" x-text="'Gabung kelas ' + E.name + ' di ' + DB.contact.name + '.'"></p>
-        <a :href="joinLink('Saya ingin bergabung di program ' + E.name + '.')" target="_blank" class="mt-4 flex items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3 text-sm font-semibold text-white hover:bg-emerald-700"><i data-lucide="message-circle" class="h-4 w-4"></i>Join EnglishOn</a>
+        <h3 class="font-semibold text-emerald-900">Want to learn with a tutor?</h3>
+        <p class="mt-1 text-sm text-emerald-800" x-text="'Join the ' + E.name + ' class at ' + DB.contact.name + '.'"></p>
+        <a :href="joinLink(pl ? 'My ' + E.name + ' placement result: level ' + level.code + ' (' + pl.total + '% correct). I would like to join the ' + E.name + ' program.' : 'I would like to join the ' + E.name + ' program.')" target="_blank" class="mt-4 flex items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3 text-sm font-semibold text-white hover:bg-emerald-700"><i data-lucide="message-circle" class="h-4 w-4"></i>Join EnglishOn</a>
         <p class="mt-3 text-xs text-emerald-800/80" x-text="DB.contact.address + ' · ' + DB.contact.hours"></p>
       </div>
     </aside>
@@ -83,17 +95,10 @@
 
 <script>
 function program() {
-  const exams = Object.values(DB.exams), first = DB.exams[qs('p')] ? qs('p') : getExam();
-  return {
-    exams, key: first,
-    get E() { return DB.exams[this.key]; },
-    get placement() { return DB.packages.find(p => p.exam === this.key && p.type === 'placement'); },
-    init() { this.paint(); },
-    pick(k) { this.key = k; history.replaceState(null, '', '?p=' + k); this.paint(); },
-    paint() { document.documentElement.dataset.exam = this.key; },
-    // Pindah program aktif tanpa reload (hanya untuk program yang aktif)
-    setExamOnly() { try { localStorage.setItem('exam', this.key); } catch {} },
-  };
+  const key = DB.exams[qs('p')] ? qs('p') : getExam(), E = DB.exams[key];
+  document.documentElement.dataset.exam = key;
+  const pl = DB.attempts.find(a => a.exam === key && isPlacement(a)) || null;
+  return { E, pl, level: pl && levelOf(pl.total), plPkg: DB.packages.find(p => p.exam === key && p.type === 'placement') };
 }
 </script>
 </body>

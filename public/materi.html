@@ -1,25 +1,25 @@
 <!doctype html>
-<html lang="id">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Materi — EnglishOn</title>
+<title>Lessons — EnglishOn</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com/3.4.16"></script>
 <script src="https://cdn.jsdelivr.net/npm/lucide@0.460.0/dist/umd/lucide.min.js"></script>
 <script src="assets/app.js"></script>
 </head>
-<body data-shell="app" data-active="materi" data-title="Materi">
+<body data-shell="app" data-active="materi" data-title="Lessons">
 <main x-data="materi()">
   <!-- Header -->
   <div class="flex flex-col gap-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-soft md:flex-row md:items-center">
     <span class="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-accent-soft text-accent"><i data-lucide="book-open" class="h-7 w-7"></i></span>
     <div class="flex-1">
-      <h2 class="text-xl font-bold">Materi <span x-text="E.name"></span></h2>
-      <p class="mt-1 text-sm text-slate-500"><span x-text="all.length"></span> bab dalam <span x-text="E.sections.length"></span> section. Setiap bab berisi penjelasan, contoh, tips, dan latihan soal.</p>
+      <h2 class="text-xl font-bold"><span x-text="E.name"></span> Lessons</h2>
+      <p class="mt-1 text-sm text-slate-500"><span x-text="all.length"></span> chapters across <span x-text="E.sections.length"></span> sections. Each chapter has explanations, examples, tips, and practice questions.</p>
     </div>
     <div class="w-full md:w-56">
-      <div class="mb-1.5 flex justify-between text-sm"><span class="text-slate-500">Progres keseluruhan</span><b x-text="overall + '%'"></b></div>
+      <div class="mb-1.5 flex justify-between text-sm"><span class="text-slate-500">Overall progress</span><b x-text="overall + '%'"></b></div>
       <div class="h-2.5 overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full bg-accent" :style="'width:' + overall + '%'"></div></div>
     </div>
   </div>
@@ -27,7 +27,7 @@
   <!-- Filter -->
   <div class="mt-6 flex flex-col gap-3 lg:flex-row lg:items-center">
     <div class="thin-scroll -mx-4 flex gap-2 overflow-x-auto px-4 pb-1 lg:mx-0 lg:px-0">
-      <button @click="sec='all'" class="whitespace-nowrap rounded-xl px-4 py-2 text-sm font-medium transition" :class="sec==='all' ? 'bg-slate-900 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'">Semua section</button>
+      <button @click="sec='all'" class="whitespace-nowrap rounded-xl px-4 py-2 text-sm font-medium transition" :class="sec==='all' ? 'bg-slate-900 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'">All sections</button>
       <template x-for="s in E.sections" :key="s.id">
         <button @click="sec=s.id" class="flex items-center gap-2 whitespace-nowrap rounded-xl px-4 py-2 text-sm font-medium transition" :class="sec===s.id ? 'bg-slate-900 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'"><span x-text="s.short"></span></button>
       </template>
@@ -35,10 +35,10 @@
     <div class="flex gap-2 lg:ml-auto">
       <div class="relative flex-1 lg:w-64">
         <i data-lucide="search" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"></i>
-        <input x-model="q" type="search" placeholder="Cari bab…" class="w-full rounded-xl border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm outline-none focus:border-accent focus:ring-4 focus:ring-accent/10">
+        <input x-model="q" type="search" placeholder="Search chapters…" class="w-full rounded-xl border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm outline-none focus:border-accent focus:ring-4 focus:ring-accent/10">
       </div>
       <select x-model="st" class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-accent">
-        <option value="all">Semua status</option><option value="new">Belum mulai</option><option value="progress">Sedang dipelajari</option><option value="done">Selesai</option>
+        <option value="all">All statuses</option><option value="new">Not started</option><option value="progress">In progress</option><option value="done">Completed</option>
       </select>
     </div>
   </div>
@@ -52,8 +52,8 @@
       <section>
         <div class="mb-4 flex items-center gap-3">
           <span class="grid h-9 w-9 place-items-center rounded-xl bg-white text-accent shadow-sm ring-1 ring-slate-200"><i :data-lucide="s.icon" class="h-[18px] w-[18px]"></i></span>
-          <div><h3 class="font-semibold" x-text="s.name"></h3><p class="text-xs text-slate-500" x-text="'Ujian asli: ' + s.official"></p></div>
-          <span class="ml-auto text-sm text-slate-500" x-text="s.items.length + ' bab'"></span>
+          <div><h3 class="font-semibold" x-text="s.name"></h3><p class="text-xs text-slate-500" x-text="'Official test: ' + s.official"></p></div>
+          <span class="ml-auto text-sm text-slate-500" x-text="s.items.length + ' chapters'"></span>
         </div>
         <div class="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
           <template x-for="c in s.items" :key="c.id">
@@ -66,9 +66,9 @@
               <h4 class="mt-4 text-[17px] font-semibold group-hover:text-accent" x-text="c.title"></h4>
               <p class="mt-1.5 flex-1 text-sm leading-relaxed text-slate-500" x-text="c.desc"></p>
               <div class="mt-4 flex items-center gap-4 text-xs text-slate-500">
-                <span class="flex items-center gap-1"><i data-lucide="layers" class="h-3.5 w-3.5"></i><span x-text="c.subs.length + ' sub-bab'"></span></span>
-                <span class="flex items-center gap-1"><i data-lucide="file-question" class="h-3.5 w-3.5"></i><span x-text="c.nq + ' soal'"></span></span>
-                <span class="flex items-center gap-1"><i data-lucide="clock" class="h-3.5 w-3.5"></i><span x-text="c.minutes + ' mnt'"></span></span>
+                <span class="flex items-center gap-1"><i data-lucide="layers" class="h-3.5 w-3.5"></i><span x-text="c.subs.length + ' parts'"></span></span>
+                <span class="flex items-center gap-1"><i data-lucide="file-question" class="h-3.5 w-3.5"></i><span x-text="c.nq + ' questions'"></span></span>
+                <span class="flex items-center gap-1"><i data-lucide="clock" class="h-3.5 w-3.5"></i><span x-text="c.minutes + ' min'"></span></span>
               </div>
               <div class="mt-4 flex items-center gap-3">
                 <div class="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full" :class="c.status==='done' ? 'bg-emerald-500' : 'bg-accent'" :style="'width:' + c.progress + '%'"></div></div>
@@ -83,9 +83,9 @@
     <!-- Empty state -->
     <div x-show="!groups.length" class="flex flex-col items-center rounded-2xl border-2 border-dashed border-slate-200 bg-white px-6 py-16 text-center">
       <span class="grid h-14 w-14 place-items-center rounded-2xl bg-slate-100 text-slate-400"><i data-lucide="search-x" class="h-7 w-7"></i></span>
-      <h4 class="mt-4 font-semibold">Bab tidak ditemukan</h4>
-      <p class="mt-1 max-w-sm text-sm text-slate-500">Coba kata kunci lain atau ubah filter section dan status.</p>
-      <button @click="q=''; sec='all'; st='all'" class="mt-5 rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-white hover:bg-accent-dark">Reset filter</button>
+      <h4 class="mt-4 font-semibold">No chapters found</h4>
+      <p class="mt-1 max-w-sm text-sm text-slate-500">Try another keyword or change the section and status filters.</p>
+      <button @click="q=''; sec='all'; st='all'" class="mt-5 rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-white hover:bg-accent-dark">Reset filters</button>
     </div>
   </div>
 </main>

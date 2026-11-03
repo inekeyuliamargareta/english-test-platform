@@ -32,9 +32,9 @@ function scoreAttempt(pkg, meta, items, answers) {
   const sections = pkg.sections.map(([id]) => {
     const list = items(id);
     // Writing tidak dinilai otomatis: menunggu penilaian tutor
-    if (meta(id)?.tutor) return { id, score: null, pending: true, detail: list.map(t => `${t.title}: ${words(answers[t.id])} kata`).join(' · ') };
+    if (meta(id)?.tutor) return { id, score: null, pending: true, detail: list.map(t => `${t.title}: ${words(answers[t.id])} words`).join(' · ') };
     const correct = list.filter(q => isCorrect(q, answers[q.id])).length, total = list.length;
-    return { id, score: sectionScore(pkg.exam, id, total ? correct / total : 0), correct, total, detail: `${correct} dari ${total} benar` };
+    return { id, score: sectionScore(pkg.exam, id, total ? correct / total : 0), correct, total, detail: `${correct} of ${total} correct` };
   });
   const scored = sections.filter(s => s.score !== null).map(s => s.score);
   // Placement: total = persen jawaban benar (0–100), dipetakan ke level di halaman hasil

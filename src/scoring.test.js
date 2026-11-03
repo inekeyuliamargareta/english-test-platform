@@ -25,7 +25,7 @@ assert.strictEqual(scoreAttempt({ exam: 'toefl', type: 'full', sections: [['list
 
 // IELTS: writing menunggu tutor, overall dari section lain; paket per section tanpa total
 const ielts = scoreAttempt({ exam: 'ielts', type: 'full', sections: [['listening'], ['writing']] }, meta, items, { l1: 1, l2: 'x', w1: 'one two three' });
-assert.deepStrictEqual(ielts.sections[1], { id: 'writing', score: null, pending: true, detail: 'Task 1: 3 kata' });
+assert.deepStrictEqual(ielts.sections[1], { id: 'writing', score: null, pending: true, detail: 'Task 1: 3 words' });
 assert.strictEqual(ielts.sections[0].score, 5.5); // 1/2 benar
 assert.strictEqual(ielts.total, 5.5);
 assert.strictEqual(scoreAttempt({ exam: 'ielts', type: 'section', sections: [['reading']] }, meta, items, { r1: 3 }).total, null);

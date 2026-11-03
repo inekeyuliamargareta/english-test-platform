@@ -55,7 +55,7 @@ async function loadExams() {
 // Paket + soal-soalnya (lengkap dengan kunci) untuk menilai dan me-review simulasi
 async function packageContext(pkgId) {
   const [row] = await q('SELECT * FROM packages WHERE id = ?', [pkgId]);
-  if (!row) fail(404, 'Paket test tidak ditemukan');
+  if (!row) fail(404, 'Test package not found');
   const pkg = mapPackage(row), E = (await loadExams())[pkg.exam], ids = pkg.sections.map(s => s[0]);
   const pool = pkg.type === 'placement' ? 'placement' : 'bank';
   const [qs, ts] = await Promise.all([
@@ -79,26 +79,26 @@ app.use('/api', wrap(async (req, res, next) => {
   }
   next();
 }));
-const need = role => (req, res, next) => !req.user ? res.status(401).json({ error: 'Silakan masuk terlebih dahulu' })
-  : role && req.user.role !== role ? res.status(403).json({ error: 'Akses ditolak' }) : next();
+const need = role => (req, res, next) => !req.user ? res.status(401).json({ error: 'Please sign in first' })
+  : role && req.user.role !== role ? res.status(403).json({ error: 'Access denied' }) : next();
 
 app.post('/api/auth/register', wrap(async (req, res) => {
   const b = req.body || {}, email = String(b.email || '').trim().toLowerCase();
-  const name = text(b.name, 120, 'Nama');
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 160) fail(400, 'Format email tidak valid');
-  if (String(b.password || '').length < 8) fail(400, 'Kata sandi minimal 8 karakter');
-  if (!(await loadExams())[b.exam]?.active) fail(400, 'Pilih ujian yang tersedia');
+  const name = String(b.name ?? '').trim().slice(0, 120); if (!name) fail(400, 'Please enter your name');
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 160) fail(400, 'Please enter a valid email address');
+  if (String(b.password || '').length < 8) fail(400, 'Password must be at least 8 characters');
+  if (!(await loadExams())[b.exam]?.active) fail(400, 'Please choose an available program');
   const hash = await bcrypt.hash(String(b.password), 10);
   try {
     const r = await q('INSERT INTO users (name, email, phone, password_hash, exam) VALUES (?, ?, ?, ?, ?)', [name, email, String(b.phone || '').slice(0, 30) || null, hash, b.exam]);
     res.json({ token: sign(r.insertId) });
-  } catch (e) { if (e.code === 'ER_DUP_ENTRY') fail(409, 'Email sudah terdaftar. Silakan masuk.'); throw e; }
+  } catch (e) { if (e.code === 'ER_DUP_ENTRY') fail(409, 'This email is already registered. Please sign in.'); throw e; }
 }));
 
 app.post('/api/auth/login', wrap(async (req, res) => {
   const b = req.body || {};
   const [u] = await q('SELECT id, password_hash FROM users WHERE email = ?', [String(b.email || '').trim().toLowerCase()]);
-  if (!u || !(await bcrypt.compare(String(b.password || ''), u.password_hash))) fail(401, 'Email atau kata sandi salah');
+  if (!u || !(await bcrypt.compare(String(b.password || ''), u.password_hash))) fail(401, 'Incorrect email or password');
   res.json({ token: sign(u.id) });
 }));
 
@@ -134,9 +134,9 @@ app.get('/api/bootstrap', wrap(async (req, res) => {
   function isPlacement(id) { return packages.find(p => p.id === id)?.type === 'placement'; }
   out.activity = [
     ...attempts.map(a => isPlacement(a.package_id)
-      ? { exam: a.exam, icon: 'gauge', text: `Mengerjakan <b>${esc(pkgName(a.package_id))}</b> — ${+a.total}% benar`, at: a.created_at }
-      : { exam: a.exam, icon: 'timer', text: `Simulasi <b>${esc(pkgName(a.package_id))}</b>${a.total == null ? '' : ' — skor ' + +a.total}`, at: a.created_at }),
-    ...progress.filter(p => ch(p.chapter_id)).map(p => ({ exam: ch(p.chapter_id).exam, icon: p.progress >= 100 ? 'check-circle' : 'book-open', text: `${p.progress >= 100 ? 'Menyelesaikan' : 'Mempelajari'} bab <b>${esc(ch(p.chapter_id).title)}</b>`, at: p.updated_at })),
+      ? { exam: a.exam, icon: 'gauge', text: `Took the <b>${esc(pkgName(a.package_id))}</b> — ${+a.total}% correct`, at: a.created_at }
+      : { exam: a.exam, icon: 'timer', text: `Mock test <b>${esc(pkgName(a.package_id))}</b>${a.total == null ? '' : ' — score ' + +a.total}`, at: a.created_at }),
+    ...progress.filter(p => ch(p.chapter_id)).map(p => ({ exam: ch(p.chapter_id).exam, icon: p.progress >= 100 ? 'check-circle' : 'book-open', text: `${p.progress >= 100 ? 'Completed' : 'Studied'} chapter <b>${esc(ch(p.chapter_id).title)}</b>`, at: p.updated_at })),
   ].sort((a, b) => b.at - a.at).slice(0, 30);
   res.json(out);
 }));
@@ -145,7 +145,7 @@ app.get('/api/bootstrap', wrap(async (req, res) => {
 app.put('/api/progress/:chapterId', need(), wrap(async (req, res) => {
   const p = Math.max(0, Math.min(100, Math.round(+req.body?.progress || 0)));
   const [c] = await q('SELECT id FROM chapters WHERE id = ?', [req.params.chapterId]);
-  if (!c) fail(404, 'Bab tidak ditemukan');
+  if (!c) fail(404, 'Chapter not found');
   // Progres tidak pernah turun (membuka ulang bab tidak mereset)
   await q(`INSERT INTO chapter_progress (user_id, chapter_id, progress) VALUES (?, ?, ?)
     ON DUPLICATE KEY UPDATE progress = GREATEST(progress, VALUES(progress))`, [req.user.id, c.id, p]);
@@ -156,7 +156,7 @@ app.put('/api/progress/:chapterId', need(), wrap(async (req, res) => {
 // ponytail: soal latihan dan simulasi memakai bank soal yang sama; pisahkan jika kunci simulasi harus benar-benar rahasia.
 app.post('/api/questions/:id/check', need(), wrap(async (req, res) => {
   const [r] = await q('SELECT type, answer, explanation FROM questions WHERE id = ? AND chapter IS NOT NULL', [req.params.id]);
-  if (!r) fail(404, 'Soal tidak ditemukan');
+  if (!r) fail(404, 'Question not found');
   res.json({ correct: isCorrect(r, req.body?.answer), answer: r.answer, explain: r.explanation });
 }));
 
@@ -164,7 +164,7 @@ app.post('/api/attempts', need(), wrap(async (req, res) => {
   const u = req.user, b = req.body || {};
   const { pkg, E, meta, items } = await packageContext(b.pkg);
   const placement = pkg.type === 'placement'; // placement test bebas dicoba, termasuk program yang belum aktif
-  if (!E || (!E.active && !placement)) fail(400, 'Ujian ini belum tersedia');
+  if (!E || (!E.active && !placement)) fail(400, 'This program is not available yet');
   // Simpan hanya jawaban untuk soal di paket ini, dengan tipe yang benar
   const all = pkg.sections.flatMap(([id]) => items(id)), answers = {}, src = b.answers || {};
   for (const it of all) {
@@ -183,7 +183,7 @@ app.post('/api/attempts', need(), wrap(async (req, res) => {
     await conn.query('SELECT id FROM users WHERE id = ? FOR UPDATE', [u.id]);
     if (u.role !== 'admin' && !u.full_access && !placement) {
       const [[{ n }]] = await conn.query("SELECT COUNT(*) n FROM attempts a JOIN packages p ON p.id = a.package_id WHERE a.user_id = ? AND p.type <> 'placement'", [u.id]);
-      if (n) fail(403, 'Simulasi gratis sudah terpakai. Hubungi EnglishOn untuk membuka akses penuh.');
+      if (n) fail(403, 'Your free mock test has been used. Contact EnglishOn to unlock full access.');
     }
     const [r] = await conn.query('INSERT INTO attempts (user_id, package_id, exam, answers, flags, duration, result, total) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
       [u.id, pkg.id, pkg.exam, J(answers), J(flags), duration, J(result), result.total]);
@@ -195,7 +195,7 @@ app.post('/api/attempts', need(), wrap(async (req, res) => {
 // Review: soal + kunci + pembahasan + jawaban siswa
 app.get('/api/attempts/:id', need(), wrap(async (req, res) => {
   const [a] = await q('SELECT * FROM attempts WHERE id = ?', [+req.params.id || 0]);
-  if (!a || (a.user_id !== req.user.id && req.user.role !== 'admin')) fail(404, 'Hasil test tidak ditemukan');
+  if (!a || (a.user_id !== req.user.id && req.user.role !== 'admin')) fail(404, 'Test result not found');
   const { pkg, meta, items } = await packageContext(a.package_id);
   const list = pkg.sections.flatMap(([sid]) => items(sid).map(it => {
     const user = a.answers[it.id], kind = meta(sid)?.tutor ? 'writing' : 'q', blank = !isAnswered(user);
@@ -389,7 +389,7 @@ app.use('/api', (req, res) => res.status(404).json({ error: 'Endpoint tidak dite
 app.use((err, req, res, next) => {
   if (err.status && err.status < 500) return res.status(err.status).json({ error: err.type === 'entity.too.large' ? 'File terlalu besar (maks. 25 MB)' : err.message });
   console.error(err);
-  res.status(500).json({ error: 'Terjadi kesalahan di server' });
+  res.status(500).json({ error: 'Server error, please try again' });
 });
 
 const port = +process.env.PORT || 3000;

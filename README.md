@@ -39,6 +39,10 @@ Jalankan `npm run migrate` sekali setelah menarik versi baru. Kolom baru ditamba
 - **Import Soal**: Kelola Soal → Import Soal → unduh template CSV, isi di Excel/Google Sheets, simpan sebagai CSV, lalu unggah. Semua baris diperiksa dulu; jika ada yang salah, tidak ada yang disimpan dan nomor barisnya ditampilkan.
 - **Soal placement**: soal dengan "Dipakai untuk = Placement test" hanya muncul di placement test, tidak di simulasi.
 
+## Sisi siswa
+
+Tampilan siswa berbahasa Inggris (panel admin tetap bahasa Indonesia). Setelah login siswa masuk ke **About the Program**, sesuai program yang dipilih di kanan atas. Dashboard meminta placement test lebih dulu jika siswa belum punya hasilnya. Isi yang diketik admin (deskripsi program, materi, pembahasan) tampil apa adanya.
+
 ## Aturan penting
 
 - **Kunci jawaban tidak dikirim ke browser siswa.** Skor dihitung di server saat submit. Kunci dan pembahasan baru dikirim di halaman Review, atau setelah siswa menjawab latihan bab.

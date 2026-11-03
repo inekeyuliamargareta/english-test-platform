@@ -12,7 +12,7 @@ async function api(method, url, body) {
   const r = await fetch('/api' + url, { method, headers, body: file ? body : body === undefined ? undefined : JSON.stringify(body) });
   const data = await r.json().catch(() => ({}));
   if (r.status === 401 && needsLogin()) return logout();
-  if (!r.ok) throw new Error(data.error || 'Gagal terhubung ke server');
+  if (!r.ok) throw new Error(data.error || 'Could not connect to the server');
   return data;
 }
 const needsLogin = () => !!(document.body.dataset.shell || document.body.dataset.auth);
@@ -20,7 +20,7 @@ const needsLogin = () => !!(document.body.dataset.shell || document.body.dataset
 document.addEventListener('DOMContentLoaded', async () => {
   if (needsLogin() && !token()) return location.replace('login.html');
   try { DB = await api('GET', '/bootstrap'); }
-  catch (e) { document.body.innerHTML = `<p style="padding:2rem;text-align:center;font-family:sans-serif">Server tidak dapat dihubungi. Coba muat ulang halaman.<br><small>${e.message}</small></p>`; return; }
+  catch (e) { document.body.innerHTML = `<p style="padding:2rem;text-align:center;font-family:sans-serif">Cannot reach the server. Please reload the page.<br><small>${e.message}</small></p>`; return; }
   if (needsLogin() && !DB.user) return logout();
   if (document.body.dataset.shell === 'admin' && DB.user.role !== 'admin') return location.replace('dashboard.html');
   document.documentElement.dataset.exam = getExam();
@@ -51,13 +51,13 @@ const access = {
 };
 const waLink = msg => `https://wa.me/${DB.contact.wa}?text=${encodeURIComponent(msg)}`;
 // Kartu "fitur terkunci" yang dipakai lobby, halaman test, dan hasil (render via x-html)
-const lockedHTML = (title = 'Simulasi gratis sudah terpakai') => `
+const lockedHTML = (title = 'Free mock test already used') => `
   <div class="mx-auto max-w-xl rounded-3xl border border-slate-200 bg-white p-6 text-center shadow-soft sm:p-10">
     <span class="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-amber-100 text-amber-600"><i data-lucide="lock" class="h-8 w-8"></i></span>
     <h2 class="mt-5 text-xl font-bold sm:text-2xl">${title}</h2>
-    <p class="mt-2 text-slate-500">Akun gratis mendapat <b>1x simulasi test</b>. Untuk membuka simulasi berikutnya dan fitur lainnya, datang ke kantor atau hubungi ${DB.contact.name}.</p>
+    <p class="mt-2 text-slate-500">Free accounts get <b>1 mock test</b>. To unlock more mock tests and features, visit our office or contact ${DB.contact.name}.</p>
     <div class="mt-6">
-      <a href="${waLink('Halo EnglishOn, saya ingin membuka akses penuh simulasi test di platform.')}" target="_blank" class="flex items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3 text-sm font-semibold text-white hover:bg-emerald-700"><i data-lucide="message-circle" class="h-4 w-4"></i>Hubungi via WhatsApp</a>
+      <a href="${joinLink('I would like to unlock full access to the mock tests.')}" target="_blank" class="flex items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3 text-sm font-semibold text-white hover:bg-emerald-700"><i data-lucide="message-circle" class="h-4 w-4"></i>Contact us on WhatsApp</a>
     </div>
     <div class="mt-5 flex items-start gap-3 rounded-xl bg-slate-50 p-4 text-left text-sm text-slate-600">
       <i data-lucide="map-pin" class="mt-0.5 h-4 w-4 shrink-0 text-slate-400"></i>
@@ -104,14 +104,20 @@ document.head.insertAdjacentHTML('beforeend', `<style>
 // ---------- Helper ----------
 const qs = k => new URLSearchParams(location.search).get(k);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`);
-// "3 jam lalu", "2 hari lalu", lalu tanggal
+// Halaman siswa berbahasa Inggris, panel admin berbahasa Indonesia
+const isEN = () => document.body?.dataset.shell !== 'admin';
+const fmtDate = (d, style = 'medium') => new Date(d).toLocaleDateString(isEN() ? 'en-GB' : 'id-ID', { dateStyle: style });
+// "3 hours ago" / "3 jam lalu", lalu tanggal
 function ago(d) {
-  const s = (Date.now() - new Date(d)) / 1000;
-  if (s < 3600) return Math.max(1, Math.round(s / 60)) + ' menit lalu';
-  if (s < 86400) return Math.round(s / 3600) + ' jam lalu';
-  if (s < 7 * 86400) return Math.round(s / 86400) + ' hari lalu';
-  return new Date(d).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+  const s = (Date.now() - new Date(d)) / 1000, en = isEN();
+  const n = (v, unit, id) => en ? `${v} ${unit}${v === 1 ? '' : 's'} ago` : `${v} ${id} lalu`;
+  if (s < 3600) return n(Math.max(1, Math.round(s / 60)), 'minute', 'menit');
+  if (s < 86400) return n(Math.round(s / 3600), 'hour', 'jam');
+  if (s < 7 * 86400) return n(Math.round(s / 86400), 'day', 'hari');
+  return new Date(d).toLocaleDateString(en ? 'en-GB' : 'id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
 }
+// Keterangan section hasil tes (data lama tersimpan dalam bahasa Indonesia)
+const sectionDetail = s => s.pending ? String(s.detail || '').replace(/kata/g, 'words') : `${s.correct} of ${s.total} correct`;
 const fmt = s => { s = Math.max(0, Math.floor(s)); return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0'); };
 const L = i => 'ABCDEFG'[i];
 // Ikon yang namanya bisa berubah: pakai x-html="ico(...)" (Lucide mengganti <i> dengan <svg> sekali saja)
@@ -121,7 +127,7 @@ const examStyle = k => `background-color: rgb(${DB.exams[k]?.rgb || '100 116 139
 const sectionMeta =(exam, id) => DB.exams[exam].sections.find(s => s.id === id);
 const chapterById = id => DB.chapters.find(c => c.id === id);
 const questionById = id => DB.questions.find(q => q.id === id);
-const statusLabel = { done: 'Selesai', progress: 'Sedang dipelajari', new: 'Belum mulai' };
+const statusLabel = { done: 'Completed', progress: 'In progress', new: 'Not started' };
 const diffClass = { mudah: 'bg-emerald-50 text-emerald-700', sedang: 'bg-amber-50 text-amber-700', sulit: 'bg-rose-50 text-rose-700' };
 
 // Soal tipe "error": {kata} → digarisbawahi + huruf A-D
@@ -181,13 +187,13 @@ const findAttempt = (pred = () => true) => DB.attempts.find(a => DB.packages.som
 
 // ---------- Placement test ----------
 // Level dari persen jawaban benar. Perkiraan skor: TOEFL ITP mengikuti batas CEFR resmi ETS; IELTS perkiraan umum.
-const LEVELS = [{ code: 'A2', name: 'Dasar', min: 0 }, { code: 'B1', name: 'Menengah', min: 30 }, { code: 'B2', name: 'Menengah atas', min: 55 }, { code: 'C1', name: 'Mahir', min: 80 }];
+const LEVELS = [{ code: 'A2', name: 'Elementary', min: 0 }, { code: 'B1', name: 'Intermediate', min: 30 }, { code: 'B2', name: 'Upper-intermediate', min: 55 }, { code: 'C1', name: 'Advanced', min: 80 }];
 const LEVEL_RANGE = {
-  toefl: { A2: 'di bawah 460', B1: '460–542', B2: '543–626', C1: '627 ke atas' },
-  ielts: { A2: 'band 4.0 ke bawah', B1: 'band 4.0–5.0', B2: 'band 5.5–6.5', C1: 'band 7.0 ke atas' },
+  toefl: { A2: 'below 460', B1: '460–542', B2: '543–626', C1: '627 and above' },
+  ielts: { A2: 'band 4.0 or below', B1: 'band 4.0–5.0', B2: 'band 5.5–6.5', C1: 'band 7.0 and above' },
 };
 const levelOf = percent => [...LEVELS].reverse().find(l => percent >= l.min);
-const joinLink = extra => waLink(`Halo EnglishOn, saya ${DB.user?.name || ''}${DB.user?.email ? ' (' + DB.user.email + ')' : ''}. ${extra}`);
+const joinLink = extra => waLink(`Hello EnglishOn, I am ${DB.user?.name || ''}${DB.user?.email ? ' (' + DB.user.email + ')' : ''}. ${extra}`);
 const attemptScore = a => a.total ?? a.sections.find(s => s.score != null)?.score ?? null;
 function scoreAttempt(att) {
   const pkg = DB.packages.find(p => p.id === att.pkg);
@@ -196,10 +202,10 @@ function scoreAttempt(att) {
 
 // ---------- Layout ----------
 const NAV = {
-  app: [['dashboard', 'Dashboard', 'layout-dashboard', 'dashboard.html'], ['program', 'Tentang Program', 'info', 'program.html'], ['materi', 'Materi', 'book-open', 'materi.html'], ['simulasi', 'Simulasi Test', 'timer', 'simulasi.html'], ['placement', 'Placement Test', 'gauge', 'placement.html'], ['hasil', 'Hasil & Review', 'bar-chart-3', 'hasil.html']],
+  app: [['program', 'About the Program', 'info', 'program.html'], ['dashboard', 'Dashboard', 'layout-dashboard', 'dashboard.html'], ['materi', 'Lessons', 'book-open', 'materi.html'], ['simulasi', 'Mock Test', 'timer', 'simulasi.html'], ['hasil', 'Results & Review', 'bar-chart-3', 'hasil.html']],
   admin: [['ringkasan', 'Ringkasan', 'layout-dashboard', 'admin.html#ringkasan'], ['master', 'Master Program', 'layers', 'admin.html#master'], ['materi', 'Kelola Materi', 'book-open', 'admin.html#materi'], ['soal', 'Kelola Soal', 'file-question', 'admin.html#soal'], ['siswa', 'Siswa & Akses', 'users', 'admin.html#siswa']],
 };
-const logo = (sub = '') => `<a href="dashboard.html" class="flex items-center gap-2.5 font-bold text-slate-900">
+const logo = (sub = '') => `<a href="${sub ? 'admin.html' : 'program.html'}" class="flex items-center gap-2.5 font-bold text-slate-900">
   <span class="grid h-9 w-9 place-items-center rounded-xl bg-brand-600 text-white shadow-sm"><i data-lucide="graduation-cap" class="h-5 w-5"></i></span>
   <span class="text-[17px] tracking-tight">English<span class="text-brand-600">On</span>${sub}</span></a>`;
 
@@ -211,44 +217,44 @@ function mountShell() {
       <i data-lucide="${icon}" class="h-[18px] w-[18px]"></i>${label}</a>`;
   const examBtn = e => e.active
     ? `<button onclick="setExam('${e.key}')" class="whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-semibold transition ${exam === e.key ? 'bg-accent text-white shadow-sm' : 'text-slate-500 hover:text-slate-900'}">${e.name.split(' ')[0]}</button>`
-    : `<span title="${e.name} segera hadir" class="hidden cursor-not-allowed whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-300 md:inline">${e.name.split(' ')[0]} <span class="text-[10px]">· segera</span></span>`;
+    : `<span title="${e.name} coming soon" class="hidden cursor-not-allowed whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-300 md:inline">${e.name.split(' ')[0]} <span class="text-[10px]">· soon</span></span>`;
 
   const wrap = document.createElement('div');
   wrap.setAttribute('x-data', '{ nav: false, menu: false }');
   wrap.innerHTML = `
   <aside class="fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-slate-200 bg-white -translate-x-full transition-transform duration-200 lg:translate-x-0" :class="nav && '!translate-x-0 shadow-2xl'">
     <div class="flex h-16 items-center justify-between px-5">${logo(admin ? ' <span class="ml-1 rounded-md bg-slate-900 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white">Admin</span>' : '')}
-      <button class="lg:hidden rounded-lg p-1.5 text-slate-500 hover:bg-slate-100" @click="nav=false" aria-label="Tutup menu"><i data-lucide="x" class="h-5 w-5"></i></button></div>
+      <button class="lg:hidden rounded-lg p-1.5 text-slate-500 hover:bg-slate-100" @click="nav=false" aria-label="Close menu"><i data-lucide="x" class="h-5 w-5"></i></button></div>
     <nav class="flex-1 space-y-1 overflow-y-auto px-3 py-4">
-      <p class="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400">${admin ? 'Manajemen' : 'Belajar'}</p>
+      <p class="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400">${admin ? 'Manajemen' : 'Learn'}</p>
       ${NAV[kind].map(link).join('')}
     </nav>
     <div class="space-y-3 border-t border-slate-100 p-4">
       ${admin ? '' : `<div class="rounded-xl bg-gradient-to-br from-accent to-accent-dark p-4 text-white">
-        <p class="text-xs text-white/70">Target ${DB.exams[exam].name}</p>
+        <p class="text-xs text-white/70">${DB.exams[exam].name} target</p>
         <p class="mt-1 text-2xl font-bold">${DB.user.target[exam] ?? '-'}</p>
-        <p class="mt-1 flex items-center gap-1 text-xs text-white/80"><i data-lucide="${access.locked ? 'lock' : 'timer'}" class="h-3.5 w-3.5"></i> ${access.full ? 'Akses penuh aktif' : access.used ? 'Simulasi gratis terpakai' : '1x simulasi gratis tersedia'}</p></div>`}
-      ${DB.user.role === 'admin' ? `<a href="${admin ? 'dashboard.html' : 'admin.html'}" class="flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-slate-600 hover:bg-slate-100"><i data-lucide="${admin ? 'graduation-cap' : 'shield'}" class="h-[18px] w-[18px]"></i>${admin ? 'Ke Mode Siswa' : 'Panel Admin'}</a>` : ''}
-      <button onclick="logout()" class="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm text-slate-600 hover:bg-slate-100"><i data-lucide="log-out" class="h-[18px] w-[18px]"></i>Keluar</button>
+        <p class="mt-1 flex items-center gap-1 text-xs text-white/80"><i data-lucide="${access.locked ? 'lock' : 'timer'}" class="h-3.5 w-3.5"></i> ${access.full ? 'Full access active' : access.used ? 'Free mock test used' : '1 free mock test available'}</p></div>`}
+      ${DB.user.role === 'admin' ? `<a href="${admin ? 'dashboard.html' : 'admin.html'}" class="flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-slate-600 hover:bg-slate-100"><i data-lucide="${admin ? 'graduation-cap' : 'shield'}" class="h-[18px] w-[18px]"></i>${admin ? 'Ke Mode Siswa' : 'Admin Panel'}</a>` : ''}
+      <button onclick="logout()" class="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm text-slate-600 hover:bg-slate-100"><i data-lucide="log-out" class="h-[18px] w-[18px]"></i>${admin ? 'Keluar' : 'Log out'}</button>
     </div>
   </aside>
   <div x-show="nav" x-transition.opacity x-cloak @click="nav=false" class="fixed inset-0 z-30 bg-slate-900/40 backdrop-blur-sm lg:hidden"></div>
   <div class="lg:pl-64">
     <header class="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-slate-200 bg-white/85 px-4 backdrop-blur sm:px-6">
-      <button class="rounded-lg p-2 text-slate-600 hover:bg-slate-100 lg:hidden" @click="nav=true" aria-label="Buka menu"><i data-lucide="menu" class="h-5 w-5"></i></button>
+      <button class="rounded-lg p-2 text-slate-600 hover:bg-slate-100 lg:hidden" @click="nav=true" aria-label="Open menu"><i data-lucide="menu" class="h-5 w-5"></i></button>
       <h1 class="truncate text-base font-semibold text-slate-900 sm:text-lg">${title}</h1>
       <div class="ml-auto flex items-center gap-2 sm:gap-3">
         ${admin ? '' : `<div class="flex rounded-xl bg-slate-100 p-1">${Object.values(DB.exams).map(examBtn).join('')}</div>`}
-        <button class="relative hidden rounded-lg p-2 text-slate-500 hover:bg-slate-100 sm:block" aria-label="Notifikasi"><i data-lucide="bell" class="h-5 w-5"></i><span class="absolute right-2 top-2 h-2 w-2 rounded-full bg-rose-500 ring-2 ring-white"></span></button>
+        <button class="relative hidden rounded-lg p-2 text-slate-500 hover:bg-slate-100 sm:block" aria-label="Notifications"><i data-lucide="bell" class="h-5 w-5"></i><span class="absolute right-2 top-2 h-2 w-2 rounded-full bg-rose-500 ring-2 ring-white"></span></button>
         <div class="relative">
           <button @click="menu=!menu" @click.outside="menu=false" class="flex items-center gap-2 rounded-xl p-1 hover:bg-slate-100">
             <span class="grid h-9 w-9 place-items-center rounded-full bg-gradient-to-br from-brand-500 to-indigo-500 text-sm font-semibold text-white">${esc(DB.user.initials)}</span>
-            <span class="hidden text-left text-sm md:block"><span class="block font-medium leading-tight">${esc(DB.user.name)}</span><span class="block text-xs text-slate-500">${DB.user.role === 'admin' ? 'Admin' : access.full ? 'Akses penuh' : 'Akun gratis'}</span></span>
+            <span class="hidden text-left text-sm md:block"><span class="block font-medium leading-tight">${esc(DB.user.name)}</span><span class="block text-xs text-slate-500">${DB.user.role === 'admin' ? 'Admin' : access.full ? 'Full access' : 'Free account'}</span></span>
             <i data-lucide="chevron-down" class="hidden h-4 w-4 text-slate-400 md:block"></i>
           </button>
           <div x-show="menu" x-transition x-cloak class="absolute right-0 mt-2 w-48 rounded-xl border border-slate-200 bg-white p-1.5 text-sm shadow-soft">
             <p class="truncate px-3 py-2 text-xs text-slate-500">${esc(DB.user.email)}</p>
-            <button onclick="logout()" class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-rose-600 hover:bg-rose-50"><i data-lucide="log-out" class="h-4 w-4"></i>Keluar</button>
+            <button onclick="logout()" class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-rose-600 hover:bg-rose-50"><i data-lucide="log-out" class="h-4 w-4"></i>${admin ? 'Keluar' : 'Log out'}</button>
           </div>
         </div>
       </div>

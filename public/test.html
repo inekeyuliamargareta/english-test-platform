@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="id">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Test Berlangsung — EnglishOn</title>
+<title>Test in Progress — EnglishOn</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com/3.4.16"></script>
 <script src="https://cdn.jsdelivr.net/npm/lucide@0.460.0/dist/umd/lucide.min.js"></script>
@@ -20,9 +20,9 @@
 
   <!-- ===== Header ===== -->
   <header class="z-20 flex h-16 shrink-0 items-center gap-3 border-b border-slate-200 bg-white px-3 sm:px-5">
-    <button @click="exitOpen=true" class="grid h-9 w-9 place-items-center rounded-lg text-slate-500 hover:bg-slate-100" title="Keluar dari test"><i data-lucide="x" class="h-5 w-5"></i></button>
+    <button @click="exitOpen=true" class="grid h-9 w-9 place-items-center rounded-lg text-slate-500 hover:bg-slate-100" title="Leave test"><i data-lucide="x" class="h-5 w-5"></i></button>
     <div class="min-w-0">
-      <p class="truncate text-xs font-medium text-slate-500"><span class="hidden sm:inline" x-text="pkg.name + ' · '"></span><span x-text="'Section ' + (si+1) + ' dari ' + secs.length"></span></p>
+      <p class="truncate text-xs font-medium text-slate-500"><span class="hidden sm:inline" x-text="pkg.name + ' · '"></span><span x-text="'Section ' + (si+1) + ' of ' + secs.length"></span></p>
       <p class="flex items-center gap-1.5 truncate font-semibold text-slate-900"><span class="text-accent" x-html="ico(sec.meta.icon)"></span><span class="sm:hidden" x-text="sec.meta.short"></span><span class="hidden sm:inline" x-text="sec.meta.name"></span></p>
     </div>
 
@@ -31,7 +31,7 @@
         :class="phase!=='test' ? 'bg-slate-100 text-slate-500' : left < 300 ? 'bg-rose-600 text-white shadow-lg shadow-rose-600/30 animate-pulse' : 'bg-slate-900 text-white'">
         <i data-lucide="clock" class="h-4 w-4"></i><span x-text="fmt(phase==='test' ? left : sec.min*60)"></span>
       </div>
-      <button x-show="phase==='test'" @click="navOpen=true" class="hidden items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 md:flex"><i data-lucide="layout-grid" class="h-4 w-4"></i>Daftar Soal</button>
+      <button x-show="phase==='test'" @click="navOpen=true" class="hidden items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 md:flex"><i data-lucide="layout-grid" class="h-4 w-4"></i>Question List</button>
       <button x-show="phase==='test'" @click="modal=true" class="flex items-center gap-2 rounded-xl bg-accent px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-accent-dark sm:px-4">
         <i data-lucide="send" class="h-4 w-4"></i><span class="hidden sm:inline" x-text="last ? 'Submit' : 'Submit Section'"></span>
       </button>
@@ -43,22 +43,22 @@
   <div x-show="locked" class="flex-1 overflow-y-auto p-4 sm:py-12" x-html="lockedHTML()"></div>
   <div x-show="phase==='intro' && !locked" class="flex-1 overflow-y-auto p-4">
     <div class="mx-auto my-6 max-w-xl rounded-3xl border border-slate-200 bg-white p-6 text-center shadow-soft sm:my-12 sm:p-10">
-      <div x-show="timeUpNote" class="mb-6 flex items-center gap-2 rounded-xl bg-amber-50 p-3 text-left text-sm text-amber-800"><i data-lucide="alarm-clock" class="h-4 w-4 shrink-0"></i>Waktu section sebelumnya habis. Jawabanmu sudah tersimpan otomatis.</div>
+      <div x-show="timeUpNote" class="mb-6 flex items-center gap-2 rounded-xl bg-amber-50 p-3 text-left text-sm text-amber-800"><i data-lucide="alarm-clock" class="h-4 w-4 shrink-0"></i>Time ran out for the previous section. Your answers were saved automatically.</div>
       <span class="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-accent-soft text-accent" x-html="ico(sec.meta.icon, 'h-8 w-8')"></span>
-      <p class="mt-5 text-sm font-semibold uppercase tracking-wider text-accent" x-text="'Section ' + (si+1) + ' dari ' + secs.length"></p>
+      <p class="mt-5 text-sm font-semibold uppercase tracking-wider text-accent" x-text="'Section ' + (si+1) + ' of ' + secs.length"></p>
       <h1 class="mt-1 text-2xl font-bold sm:text-3xl" x-text="sec.meta.name"></h1>
       <div class="mt-5 flex justify-center gap-3 text-sm">
-        <span class="flex items-center gap-1.5 rounded-xl bg-slate-100 px-3 py-2"><i data-lucide="file-question" class="h-4 w-4 text-slate-500"></i><span x-text="sec.items.length + (sec.id==='writing' ? ' task' : ' soal')"></span></span>
-        <span class="flex items-center gap-1.5 rounded-xl bg-slate-100 px-3 py-2"><i data-lucide="clock" class="h-4 w-4 text-slate-500"></i><span x-text="sec.min + ' menit'"></span></span>
+        <span class="flex items-center gap-1.5 rounded-xl bg-slate-100 px-3 py-2"><i data-lucide="file-question" class="h-4 w-4 text-slate-500"></i><span x-text="sec.items.length + (sec.id==='writing' ? ' tasks' : ' questions')"></span></span>
+        <span class="flex items-center gap-1.5 rounded-xl bg-slate-100 px-3 py-2"><i data-lucide="clock" class="h-4 w-4 text-slate-500"></i><span x-text="sec.min + ' minutes'"></span></span>
       </div>
       <div class="mt-6 rounded-2xl bg-slate-50 p-5 text-left">
         <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Directions</p>
         <p class="mt-2 leading-relaxed text-slate-700" x-text="directions"></p>
       </div>
       <button @click="startSection()" class="mt-8 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-accent py-3.5 font-semibold text-white shadow-lg shadow-accent/25 transition hover:bg-accent-dark sm:w-auto sm:px-10">
-        <i data-lucide="play" class="h-4 w-4"></i><span x-text="si===0 ? 'Mulai Test' : 'Mulai Section'"></span>
+        <i data-lucide="play" class="h-4 w-4"></i><span x-text="si===0 ? 'Start Test' : 'Start Section'"></span>
       </button>
-      <p class="mt-3 text-xs text-slate-400">Timer mulai berjalan saat tombol ditekan.</p>
+      <p class="mt-3 text-xs text-slate-400">The timer starts when you press the button.</p>
     </div>
   </div>
 
@@ -85,26 +85,26 @@
         <div class="rounded-2xl bg-slate-900 p-5 text-white shadow-xl">
           <div class="flex items-center gap-4">
             <button @click="playAudio(item.clip)" :disabled="clipSt.st !== 'idle'" class="grid h-14 w-14 shrink-0 place-items-center rounded-full transition"
-              :class="clipSt.st==='idle' ? 'bg-accent hover:scale-105 shadow-lg shadow-accent/40' : clipSt.st==='playing' ? 'bg-white/10' : 'bg-emerald-500'" :title="clipSt.st==='idle' ? 'Putar audio' : ''">
+              :class="clipSt.st==='idle' ? 'bg-accent hover:scale-105 shadow-lg shadow-accent/40' : clipSt.st==='playing' ? 'bg-white/10' : 'bg-emerald-500'" :title="clipSt.st==='idle' ? 'Play audio' : ''">
               <i x-show="clipSt.st==='idle'" data-lucide="play" class="ml-0.5 h-6 w-6 fill-white"></i>
               <span x-show="clipSt.st==='playing'" class="wave flex h-6 items-center gap-0.5"><span class="h-6 w-1 rounded bg-white"></span><span class="h-6 w-1 rounded bg-white [animation-delay:.2s]"></span><span class="h-6 w-1 rounded bg-white [animation-delay:.4s]"></span><span class="h-6 w-1 rounded bg-white [animation-delay:.1s]"></span></span>
               <i x-show="clipSt.st==='done'" data-lucide="check" class="h-6 w-6"></i>
             </button>
             <div class="min-w-0 flex-1">
               <p class="truncate font-semibold" x-text="DB.clips[item.clip].title"></p>
-              <p class="text-xs text-slate-400" x-text="clipSt.st==='idle' ? 'Audio hanya dapat diputar satu kali' : clipSt.st==='playing' ? 'Sedang diputar… dengarkan baik-baik' : 'Audio selesai diputar'"></p>
+              <p class="text-xs text-slate-400" x-text="clipSt.st==='idle' ? 'The audio can only be played once' : clipSt.st==='playing' ? 'Playing… listen carefully' : 'Audio finished'"></p>
               <div class="mt-3 h-1.5 overflow-hidden rounded-full bg-white/15"><div class="h-full rounded-full bg-accent transition-all duration-200" :class="clipSt.st==='done' && '!bg-emerald-400'" :style="'width:' + clipSt.p*100 + '%'"></div></div>
               <div class="mt-1.5 flex justify-between font-mono text-[11px] text-slate-400"><span x-text="fmt(clipSt.t)"></span><span x-text="clipSt.dur ? fmt(clipSt.dur) : '--:--'"></span></div>
             </div>
             <i data-lucide="volume-2" class="hidden h-5 w-5 text-slate-400 sm:block"></i>
           </div>
-          <div x-show="clipSt.st==='playing' && !DB.clips[item.clip].audio" class="mt-3 border-t border-white/10 pt-3 text-right"><button @click="skipAudio(item.clip)" class="text-xs text-slate-400 underline hover:text-white">Lewati audio (mode demo)</button></div>
+          <div x-show="clipSt.st==='playing' && !DB.clips[item.clip].audio" class="mt-3 border-t border-white/10 pt-3 text-right"><button @click="skipAudio(item.clip)" class="text-xs text-slate-400 underline hover:text-white">Skip audio (demo mode)</button></div>
         </div>
 
         <div x-show="exam==='toefl' && clipSt.st!=='done'" class="flex flex-col items-center rounded-2xl border-2 border-dashed border-slate-300 bg-white/60 px-6 py-12 text-center">
           <i data-lucide="headphones" class="h-10 w-10 text-slate-300"></i>
-          <p class="mt-3 font-semibold text-slate-700" x-text="clipSt.st==='idle' ? 'Putar audio untuk memulai' : 'Dengarkan sampai selesai…'"></p>
-          <p class="mt-1 text-sm text-slate-500">Pertanyaan akan muncul setelah audio selesai diputar.</p>
+          <p class="mt-3 font-semibold text-slate-700" x-text="clipSt.st==='idle' ? 'Play the audio to begin' : 'Listen until the end…'"></p>
+          <p class="mt-1 text-sm text-slate-500">Questions appear after the audio finishes.</p>
         </div>
         <div x-show="exam==='ielts' || clipSt.st==='done'" x-html="questionBlock()"></div>
       </div>
@@ -119,7 +119,7 @@
     <template x-if="item.kind==='writing'">
       <div class="grid lg:h-full lg:grid-cols-2">
         <section class="thin-scroll border-b border-slate-200 bg-white p-5 sm:p-8 lg:h-full lg:overflow-y-auto lg:border-b-0 lg:border-r">
-          <div class="flex items-center gap-2"><span class="rounded-lg bg-accent px-2.5 py-1 text-xs font-bold text-white" x-text="item.title"></span><span class="text-xs text-slate-500" x-text="'Disarankan ' + item.minutes + ' menit · minimal ' + item.minWords + ' kata'"></span></div>
+          <div class="flex items-center gap-2"><span class="rounded-lg bg-accent px-2.5 py-1 text-xs font-bold text-white" x-text="item.title"></span><span class="text-xs text-slate-500" x-text="'Suggested ' + item.minutes + ' minutes · at least ' + item.minWords + ' words'"></span></div>
           <div class="mt-4 leading-relaxed text-slate-700" x-html="item.prompt"></div>
           <div x-show="item.chart" class="mt-5 rounded-xl border border-slate-200 p-4">
             <p class="mb-2 text-center text-sm font-semibold">Households with internet access (%)</p>
@@ -128,12 +128,12 @@
           <p class="mt-5 text-sm font-semibold text-slate-900" x-text="'Write at least ' + item.minWords + ' words.'"></p>
         </section>
         <section class="flex flex-col p-4 sm:p-8 lg:h-full">
-          <textarea x-model="answers[item.id]" spellcheck="false" placeholder="Mulai menulis jawabanmu di sini…" class="min-h-[50vh] w-full flex-1 resize-none rounded-2xl border border-slate-200 bg-white p-5 text-[15px] leading-7 shadow-soft outline-none focus:border-accent focus:ring-4 focus:ring-accent/10 lg:min-h-0"></textarea>
+          <textarea x-model="answers[item.id]" spellcheck="false" placeholder="Start writing your answer here…" class="min-h-[50vh] w-full flex-1 resize-none rounded-2xl border border-slate-200 bg-white p-5 text-[15px] leading-7 shadow-soft outline-none focus:border-accent focus:ring-4 focus:ring-accent/10 lg:min-h-0"></textarea>
           <div class="mt-3 flex flex-wrap items-center gap-3 text-sm">
             <span class="flex items-center gap-2 rounded-xl px-3 py-1.5 font-semibold" :class="words(answers[item.id]) >= item.minWords ? 'bg-emerald-50 text-emerald-700' : 'bg-white text-slate-700 ring-1 ring-slate-200'">
-              <i data-lucide="type" class="h-4 w-4"></i><span x-text="words(answers[item.id]) + ' / ' + item.minWords + ' kata'"></span></span>
+              <i data-lucide="type" class="h-4 w-4"></i><span x-text="words(answers[item.id]) + ' / ' + item.minWords + ' words'"></span></span>
             <div class="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-200"><div class="h-full rounded-full transition-all" :class="words(answers[item.id]) >= item.minWords ? 'bg-emerald-500' : 'bg-accent'" :style="'width:' + Math.min(100, words(answers[item.id]) / item.minWords * 100) + '%'"></div></div>
-            <span class="text-xs text-slate-400">Tersimpan otomatis</span>
+            <span class="text-xs text-slate-400">Saved automatically</span>
           </div>
         </section>
       </div>
@@ -143,7 +143,7 @@
 
   <!-- ===== Footer navigasi ===== -->
   <footer x-show="phase==='test'" x-cloak class="z-10 flex shrink-0 items-center gap-2 border-t border-slate-200 bg-white px-3 py-3 sm:px-5">
-    <button @click="prev()" :disabled="cur===0" class="flex items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40 sm:px-4"><i data-lucide="chevron-left" class="h-4 w-4"></i><span class="hidden sm:inline">Sebelumnya</span></button>
+    <button @click="prev()" :disabled="cur===0" class="flex items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40 sm:px-4"><i data-lucide="chevron-left" class="h-4 w-4"></i><span class="hidden sm:inline">Previous</span></button>
     <button @click="navOpen=true" class="flex items-center gap-1.5 rounded-xl bg-slate-100 px-3 py-2.5 text-sm font-semibold md:hidden"><span x-text="(cur+1) + ' / ' + sec.items.length"></span><i data-lucide="chevron-up" class="h-4 w-4"></i></button>
     <div class="thin-scroll hidden min-w-0 flex-1 gap-1.5 overflow-x-auto px-2 md:flex md:justify-center">
       <template x-for="(it, i) in sec.items" :key="it.id">
@@ -155,9 +155,9 @@
     </div>
     <div class="ml-auto flex items-center gap-2 md:ml-0">
       <button @click="toggleFlag()" class="flex items-center gap-1.5 rounded-xl border px-3 py-2.5 text-sm font-semibold transition" :class="flags.includes(item.id) ? 'border-amber-400 bg-amber-50 text-amber-700' : 'border-slate-200 text-slate-600 hover:bg-slate-50'">
-        <i data-lucide="flag" class="h-4 w-4"></i><span class="hidden lg:inline">Ragu-ragu</span></button>
+        <i data-lucide="flag" class="h-4 w-4"></i><span class="hidden lg:inline">Flag</span></button>
       <button @click="next()" class="flex items-center gap-1.5 rounded-xl bg-slate-900 px-3 py-2.5 text-sm font-semibold text-white hover:bg-slate-800 sm:px-4">
-        <span x-text="cur === sec.items.length-1 ? (last ? 'Selesai' : 'Akhiri Section') : 'Berikutnya'"></span><i data-lucide="chevron-right" class="h-4 w-4"></i></button>
+        <span x-text="cur === sec.items.length-1 ? (last ? 'Finish' : 'End Section') : 'Next'"></span><i data-lucide="chevron-right" class="h-4 w-4"></i></button>
     </div>
   </footer>
 
@@ -166,12 +166,12 @@
     <div x-show="navOpen" x-transition.opacity @click="navOpen=false" class="absolute inset-0 bg-slate-900/40"></div>
     <aside x-show="navOpen" x-transition:enter="transition duration-200" x-transition:enter-start="translate-y-full md:translate-y-0 md:translate-x-full" x-transition:leave="transition duration-150" x-transition:leave-end="translate-y-full md:translate-y-0 md:translate-x-full"
       class="absolute inset-x-0 bottom-0 max-h-[85vh] overflow-y-auto rounded-t-3xl bg-white p-6 shadow-2xl md:inset-y-0 md:left-auto md:right-0 md:max-h-none md:w-96 md:rounded-none">
-      <div class="flex items-center justify-between"><h3 class="font-bold">Daftar Soal</h3><button @click="navOpen=false" class="rounded-lg p-1.5 hover:bg-slate-100"><i data-lucide="x" class="h-5 w-5"></i></button></div>
+      <div class="flex items-center justify-between"><h3 class="font-bold">Question List</h3><button @click="navOpen=false" class="rounded-lg p-1.5 hover:bg-slate-100"><i data-lucide="x" class="h-5 w-5"></i></button></div>
       <p class="mt-1 text-sm text-slate-500" x-text="sec.meta.name"></p>
       <div class="mt-5 grid grid-cols-3 gap-2 text-center">
-        <div class="rounded-xl bg-accent-soft p-3"><p class="text-xl font-bold text-accent" x-text="answeredCount"></p><p class="text-xs text-slate-600">Dijawab</p></div>
-        <div class="rounded-xl bg-amber-50 p-3"><p class="text-xl font-bold text-amber-600" x-text="flagCount"></p><p class="text-xs text-slate-600">Ragu-ragu</p></div>
-        <div class="rounded-xl bg-slate-100 p-3"><p class="text-xl font-bold text-slate-700" x-text="sec.items.length - answeredCount"></p><p class="text-xs text-slate-600">Belum</p></div>
+        <div class="rounded-xl bg-accent-soft p-3"><p class="text-xl font-bold text-accent" x-text="answeredCount"></p><p class="text-xs text-slate-600">Answered</p></div>
+        <div class="rounded-xl bg-amber-50 p-3"><p class="text-xl font-bold text-amber-600" x-text="flagCount"></p><p class="text-xs text-slate-600">Flagged</p></div>
+        <div class="rounded-xl bg-slate-100 p-3"><p class="text-xl font-bold text-slate-700" x-text="sec.items.length - answeredCount"></p><p class="text-xs text-slate-600">Not yet</p></div>
       </div>
       <div class="mt-5 grid grid-cols-6 gap-2">
         <template x-for="(it, i) in sec.items" :key="it.id">
@@ -181,16 +181,16 @@
         </template>
       </div>
       <div class="mt-5 space-y-2 border-t border-slate-100 pt-4 text-xs text-slate-600">
-        <p class="flex items-center gap-2"><span class="h-4 w-4 rounded bg-accent"></span>Sudah dijawab</p>
-        <p class="flex items-center gap-2"><span class="h-4 w-4 rounded border border-slate-300 bg-white"></span>Belum dijawab</p>
-        <p class="flex items-center gap-2"><span class="h-4 w-4 rounded bg-amber-100 ring-1 ring-amber-400"></span>Ditandai ragu-ragu</p>
-        <p class="flex items-center gap-2"><span class="h-4 w-4 rounded ring-2 ring-slate-900 ring-offset-1"></span>Soal yang sedang dibuka</p>
+        <p class="flex items-center gap-2"><span class="h-4 w-4 rounded bg-accent"></span>Answered</p>
+        <p class="flex items-center gap-2"><span class="h-4 w-4 rounded border border-slate-300 bg-white"></span>Not answered</p>
+        <p class="flex items-center gap-2"><span class="h-4 w-4 rounded bg-amber-100 ring-1 ring-amber-400"></span>Flagged</p>
+        <p class="flex items-center gap-2"><span class="h-4 w-4 rounded ring-2 ring-slate-900 ring-offset-1"></span>Current question</p>
       </div>
       <div class="mt-5 space-y-2 border-t border-slate-100 pt-4">
         <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Section</p>
         <template x-for="(s, i) in secs" :key="s.id">
           <div class="flex items-center gap-2 text-sm" :class="i===si ? 'font-semibold text-slate-900' : i<si ? 'text-slate-400 line-through' : 'text-slate-500'">
-            <span x-html="ico(i<si ? 'check-circle' : s.meta.icon)"></span><span x-text="s.meta.short"></span><span class="ml-auto text-xs" x-text="s.min + ' mnt'"></span>
+            <span x-html="ico(i<si ? 'check-circle' : s.meta.icon)"></span><span x-text="s.meta.short"></span><span class="ml-auto text-xs" x-text="s.min + ' min'"></span>
           </div>
         </template>
       </div>
@@ -203,20 +203,20 @@
     <div x-show="modal" x-transition.opacity class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" @click="modal=false"></div>
     <div x-show="modal" x-transition.scale.95 class="relative w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl sm:p-8">
       <span class="grid h-12 w-12 place-items-center rounded-2xl" :class="unanswered ? 'bg-amber-100 text-amber-600' : 'bg-emerald-100 text-emerald-600'" x-html="ico(unanswered ? 'alert-triangle' : 'check-circle', 'h-6 w-6')"></span>
-      <h3 class="mt-4 text-xl font-bold" x-text="last ? 'Selesaikan test sekarang?' : 'Kumpulkan section ' + sec.meta.short + '?'"></h3>
-      <p class="mt-1 text-sm text-slate-500" x-text="last ? 'Skor akan langsung dihitung setelah kamu submit.' : 'Setelah dikumpulkan, kamu tidak bisa kembali ke section ini.'"></p>
+      <h3 class="mt-4 text-xl font-bold" x-text="last ? 'Finish the test now?' : 'Submit the ' + sec.meta.short + ' section?'"></h3>
+      <p class="mt-1 text-sm text-slate-500" x-text="last ? 'Your score is calculated right after you submit.' : 'Once submitted, you cannot return to this section.'"></p>
       <div class="mt-5 divide-y divide-slate-100 rounded-2xl border border-slate-200 text-sm">
-        <div class="flex justify-between px-4 py-3"><span class="text-slate-600">Sudah dijawab</span><b x-text="answeredCount + ' / ' + sec.items.length"></b></div>
-        <div class="flex justify-between px-4 py-3" :class="unanswered && 'bg-rose-50'"><span :class="unanswered ? 'font-medium text-rose-700' : 'text-slate-600'">Belum dijawab</span><b :class="unanswered && 'text-rose-600'" x-text="unanswered"></b></div>
-        <div class="flex justify-between px-4 py-3"><span class="text-slate-600">Ditandai ragu-ragu</span><b class="text-amber-600" x-text="flagCount"></b></div>
-        <div class="flex justify-between px-4 py-3"><span class="text-slate-600">Sisa waktu</span><b class="font-mono" x-text="fmt(left)"></b></div>
+        <div class="flex justify-between px-4 py-3"><span class="text-slate-600">Answered</span><b x-text="answeredCount + ' / ' + sec.items.length"></b></div>
+        <div class="flex justify-between px-4 py-3" :class="unanswered && 'bg-rose-50'"><span :class="unanswered ? 'font-medium text-rose-700' : 'text-slate-600'">Not answered</span><b :class="unanswered && 'text-rose-600'" x-text="unanswered"></b></div>
+        <div class="flex justify-between px-4 py-3"><span class="text-slate-600">Flagged</span><b class="text-amber-600" x-text="flagCount"></b></div>
+        <div class="flex justify-between px-4 py-3"><span class="text-slate-600">Time left</span><b class="font-mono" x-text="fmt(left)"></b></div>
       </div>
       <div x-show="unanswered" class="mt-3 flex flex-wrap gap-1.5">
-        <template x-for="(it, i) in sec.items" :key="it.id"><button x-show="!isAnswered(it, answers[it.id])" @click="modal=false; goto(i)" class="rounded-lg bg-rose-50 px-2.5 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-100" x-text="'Soal ' + (i+1)"></button></template>
+        <template x-for="(it, i) in sec.items" :key="it.id"><button x-show="!isAnswered(it, answers[it.id])" @click="modal=false; goto(i)" class="rounded-lg bg-rose-50 px-2.5 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-100" x-text="'Question ' + (i+1)"></button></template>
       </div>
       <div class="mt-6 grid grid-cols-2 gap-3">
-        <button @click="modal=false" class="rounded-xl border border-slate-200 py-3 text-sm font-semibold hover:bg-slate-50">Periksa Lagi</button>
-        <button @click="submitSection()" class="rounded-xl bg-accent py-3 text-sm font-semibold text-white hover:bg-accent-dark">Ya, Kumpulkan</button>
+        <button @click="modal=false" class="rounded-xl border border-slate-200 py-3 text-sm font-semibold hover:bg-slate-50">Check Again</button>
+        <button @click="submitSection()" class="rounded-xl bg-accent py-3 text-sm font-semibold text-white hover:bg-accent-dark">Yes, Submit</button>
       </div>
     </div>
   </div>
@@ -226,11 +226,11 @@
     <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" @click="exitOpen=false"></div>
     <div x-show="exitOpen" x-transition.scale.95 class="relative w-full max-w-sm rounded-3xl bg-white p-6 text-center shadow-2xl">
       <span class="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-rose-100 text-rose-600"><i data-lucide="log-out" class="h-6 w-6"></i></span>
-      <h3 class="mt-4 text-lg font-bold">Keluar dari test?</h3>
-      <p class="mt-1 text-sm text-slate-500">Progres test ini tidak akan disimpan.</p>
+      <h3 class="mt-4 text-lg font-bold">Leave the test?</h3>
+      <p class="mt-1 text-sm text-slate-500">Your progress in this test will not be saved.</p>
       <div class="mt-6 grid grid-cols-2 gap-3">
-        <button @click="exitOpen=false" class="rounded-xl border border-slate-200 py-2.5 text-sm font-semibold hover:bg-slate-50">Lanjutkan Test</button>
-        <a :href="placement ? 'placement.html' : 'simulasi.html'" @click="leaving=true" class="rounded-xl bg-rose-600 py-2.5 text-sm font-semibold text-white hover:bg-rose-700">Keluar</a>
+        <button @click="exitOpen=false" class="rounded-xl border border-slate-200 py-2.5 text-sm font-semibold hover:bg-slate-50">Continue Test</button>
+        <a :href="placement ? 'placement.html' : 'simulasi.html'" @click="leaving=true" class="rounded-xl bg-rose-600 py-2.5 text-sm font-semibold text-white hover:bg-rose-700">Leave</a>
       </div>
     </div>
   </div>
@@ -239,12 +239,12 @@
   <div x-show="toast" x-transition x-cloak class="fixed left-1/2 top-20 z-50 -translate-x-1/2 rounded-xl bg-rose-600 px-4 py-3 text-sm font-semibold text-white shadow-xl"><span x-text="toast"></span></div>
   <div x-show="submitError" x-cloak class="fixed inset-0 z-[60] grid place-items-center bg-white/95 p-4">
     <div class="max-w-md text-center"><span class="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-rose-100 text-rose-600"><i data-lucide="alert-triangle" class="h-6 w-6"></i></span>
-      <p class="mt-4 font-semibold">Jawaban gagal dikirim</p><p class="mt-1 text-sm text-slate-500" x-text="submitError"></p>
-      <div class="mt-6 flex justify-center gap-3"><a href="simulasi.html" @click="leaving=true" class="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold">Kembali</a><button @click="submitError=''; submitSection()" class="rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-white">Coba Kirim Lagi</button></div></div>
+      <p class="mt-4 font-semibold">Your answers could not be sent</p><p class="mt-1 text-sm text-slate-500" x-text="submitError"></p>
+      <div class="mt-6 flex justify-center gap-3"><a href="simulasi.html" @click="leaving=true" class="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold">Back</a><button @click="submitError=''; submitSection()" class="rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-white">Try Again</button></div></div>
   </div>
   <div x-show="finishing" x-cloak class="fixed inset-0 z-[60] grid place-items-center bg-white/90 backdrop-blur">
     <div class="text-center"><svg class="mx-auto h-10 w-10 animate-spin text-accent" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-opacity=".2" stroke-width="4"/><path d="M22 12a10 10 0 0 0-10-10" stroke="currentColor" stroke-width="4"/></svg>
-      <p class="mt-4 font-semibold">Menghitung skor…</p><p class="text-sm text-slate-500">Mohon tunggu sebentar</p></div>
+      <p class="mt-4 font-semibold">Calculating your score…</p><p class="text-sm text-slate-500">Please wait a moment</p></div>
   </div>
 </div>
 
@@ -270,7 +270,7 @@ function test() {
     get sec() { return this.secs[this.si]; },
     get item() { return this.sec.items[this.cur] || {}; },
     get last() { return this.si === this.secs.length - 1; },
-    get directions() { return placement ? 'Jawab sesuai kemampuanmu tanpa bantuan. Soal disusun dari mudah ke sulit. Hasilnya berupa perkiraan level, bukan skor resmi.' : DIRECTIONS[exam + '-' + this.sec.id] || ''; },
+    get directions() { return placement ? 'Answer on your own without help. Questions go from easy to hard. The result is an estimated level, not an official score.' : DIRECTIONS[exam + '-' + this.sec.id] || ''; },
     get answeredCount() { return this.sec.items.filter(it => isAnswered(it, this.answers[it.id])).length; },
     get unanswered() { return this.sec.items.length - this.answeredCount; },
     get flagCount() { return this.sec.items.filter(it => this.flags.includes(it.id)).length; },
@@ -299,8 +299,8 @@ function test() {
     tick() {
       if (this.phase !== 'test') return;
       this.left--;
-      if (this.left === 300) this.flash('⏰ Sisa waktu 5 menit!');
-      if (this.left <= 0) { this.timeUpNote = true; this.flash('Waktu habis! Jawaban tersimpan otomatis.'); this.submitSection(); }
+      if (this.left === 300) this.flash('⏰ 5 minutes left!');
+      if (this.left <= 0) { this.timeUpNote = true; this.flash('Time is up! Your answers were saved automatically.'); this.submitSection(); }
     },
     flash(msg) { this.toast = msg; setTimeout(() => this.toast = '', 3000); },
 
@@ -318,7 +318,7 @@ function test() {
           try { localStorage.setItem('exam', exam); } catch {}
           return location.href = (placement ? 'placement.html?id=' : 'hasil.html?id=') + id;
         } catch (e) {
-          if (i >= 2 || /terpakai|tidak ditemukan|belum tersedia/.test(e.message)) { this.finishing = false; this.submitError = e.message; return; }
+          if (i >= 2 || /used|not found|not available/.test(e.message)) { this.finishing = false; this.submitError = e.message; return; }
           await new Promise(r => setTimeout(r, 2000));
         }
       }
@@ -339,13 +339,13 @@ function test() {
       const q = this.item; if (q.kind !== 'q') return '';
       // isian dibaca tanpa reaktivitas agar input tidak dirender ulang (dan kehilangan fokus) saat mengetik
       const a = q.type === 'fill' ? Alpine.raw(this.answers)[q.id] : this.answers[q.id], n = this.cur + 1;
-      const head = `<div class="flex items-center gap-2 text-sm"><span class="rounded-lg bg-slate-900 px-2.5 py-1 text-xs font-bold text-white">Soal ${n}</span>
-        ${this.flags.includes(q.id) ? '<span class="rounded-lg bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-700">⚑ Ragu-ragu</span>' : ''}</div>
+      const head = `<div class="flex items-center gap-2 text-sm"><span class="rounded-lg bg-slate-900 px-2.5 py-1 text-xs font-bold text-white">Question ${n}</span>
+        ${this.flags.includes(q.id) ? '<span class="rounded-lg bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-700">⚑ Flagged</span>' : ''}</div>
         ${q.instr ? `<p class="mt-4 text-xs font-semibold uppercase tracking-wide text-slate-500">${q.instr}</p>` : ''}
         <p class="stem mt-3 text-lg font-medium leading-relaxed text-slate-900">${stemHTML(q)}</p>`;
       if (q.type === 'fill') return `<div class="rounded-2xl bg-white p-6 shadow-soft ring-1 ring-slate-200">${head}
-        <input data-fill="${q.id}" value="${(a || '').replace(/"/g, '&quot;')}" autocomplete="off" placeholder="Ketik jawaban…" class="mt-5 w-full rounded-xl border-2 border-slate-200 px-4 py-3 text-lg outline-none transition focus:border-accent focus:ring-4 focus:ring-accent/10">
-        <p class="mt-2 text-xs text-slate-400">Ejaan harus tepat. Huruf besar/kecil tidak berpengaruh.</p></div>`;
+        <input data-fill="${q.id}" value="${(a || '').replace(/"/g, '&quot;')}" autocomplete="off" placeholder="Type your answer…" class="mt-5 w-full rounded-xl border-2 border-slate-200 px-4 py-3 text-lg outline-none transition focus:border-accent focus:ring-4 focus:ring-accent/10">
+        <p class="mt-2 text-xs text-slate-400">Spelling must be exact. Upper/lower case does not matter.</p></div>`;
       return `<div class="rounded-2xl bg-white p-6 shadow-soft ring-1 ring-slate-200">${head}
         <div class="mt-5 grid gap-2.5">${q.options.map((o, j) => `
           <button data-pick="${j}" class="group flex items-center gap-3 rounded-xl border-2 px-4 py-3.5 text-left transition ${a === j ? 'border-accent bg-accent-soft' : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'}">

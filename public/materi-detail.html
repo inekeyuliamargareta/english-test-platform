@@ -1,19 +1,19 @@
 <!doctype html>
-<html lang="id">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Detail Materi — EnglishOn</title>
+<title>Lesson — EnglishOn</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com/3.4.16"></script>
 <script src="https://cdn.jsdelivr.net/npm/lucide@0.460.0/dist/umd/lucide.min.js"></script>
 <script src="assets/app.js"></script>
 </head>
-<body data-shell="app" data-active="materi" data-title="Materi">
+<body data-shell="app" data-active="materi" data-title="Lessons">
 <main x-data="detail()">
   <!-- Breadcrumb -->
   <nav class="flex flex-wrap items-center gap-1.5 text-sm text-slate-500">
-    <a href="materi.html" class="hover:text-slate-900">Materi</a><i data-lucide="chevron-right" class="h-4 w-4"></i>
+    <a href="materi.html" class="hover:text-slate-900">Lessons</a><i data-lucide="chevron-right" class="h-4 w-4"></i>
     <a :href="'materi.html?section=' + c.section" class="hover:text-slate-900" x-text="sec.short"></a><i data-lucide="chevron-right" class="h-4 w-4"></i>
     <span class="font-medium text-slate-900" x-text="c.title"></span>
   </nav>
@@ -29,7 +29,7 @@
         </button>
         <div x-show="open" class="border-t border-slate-100 p-3 lg:!block">
           <div class="px-2 pb-3 pt-1">
-            <div class="mb-1.5 flex justify-between text-xs"><span class="text-slate-500">Progres bab</span><b x-text="progress + '%'"></b></div>
+            <div class="mb-1.5 flex justify-between text-xs"><span class="text-slate-500">Chapter progress</span><b x-text="progress + '%'"></b></div>
             <div class="h-1.5 overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full bg-accent transition-all" :style="'width:' + progress + '%'"></div></div>
           </div>
           <template x-for="(s, i) in c.subs" :key="i">
@@ -39,10 +39,10 @@
             </button>
           </template>
           <a href="#latihan" class="mt-1 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-slate-600 transition hover:bg-slate-50">
-            <span class="grid h-6 w-6 place-items-center rounded-full bg-amber-100 text-amber-700"><i data-lucide="pencil" class="h-3.5 w-3.5"></i></span>Latihan Soal <span class="ml-auto rounded-md bg-slate-100 px-1.5 text-xs" x-text="items.length"></span>
+            <span class="grid h-6 w-6 place-items-center rounded-full bg-amber-100 text-amber-700"><i data-lucide="pencil" class="h-3.5 w-3.5"></i></span>Practice <span class="ml-auto rounded-md bg-slate-100 px-1.5 text-xs" x-text="items.length"></span>
           </a>
           <div class="mt-3 border-t border-slate-100 px-2 pt-3">
-            <p class="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-400">Bab lain di section ini</p>
+            <p class="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-400">Other chapters in this section</p>
             <template x-for="o in others" :key="o.id">
               <a :href="'materi-detail.html?id=' + o.id" class="block truncate rounded-lg py-1.5 text-sm text-slate-600 hover:text-accent" x-text="o.title"></a>
             </template>
@@ -54,47 +54,47 @@
     <div class="min-w-0 space-y-6">
       <!-- Konten -->
       <article class="rounded-2xl border border-slate-200 bg-white p-6 shadow-soft sm:p-8">
-        <p class="text-sm font-medium text-accent" x-text="'Sub-bab ' + (cur + 1) + ' dari ' + c.subs.length"></p>
+        <p class="text-sm font-medium text-accent" x-text="'Part ' + (cur + 1) + ' of ' + c.subs.length"></p>
         <h2 class="mt-1 text-2xl font-bold tracking-tight" x-text="c.subs[cur].title"></h2>
         <div class="content mt-4" x-html="c.subs[cur].html"></div>
         <div class="mt-8 flex items-center justify-between gap-3 border-t border-slate-100 pt-5">
-          <button @click="go(cur-1)" :disabled="cur===0" class="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold transition hover:bg-slate-50 disabled:opacity-40"><i data-lucide="arrow-left" class="h-4 w-4"></i> <span class="hidden sm:inline">Sebelumnya</span></button>
-          <button x-show="cur < c.subs.length-1" @click="go(cur+1)" class="inline-flex items-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-accent-dark">Sub-bab berikutnya <i data-lucide="arrow-right" class="h-4 w-4"></i></button>
-          <a x-show="cur === c.subs.length-1" href="#latihan" class="inline-flex items-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-accent-dark">Kerjakan Latihan <i data-lucide="arrow-down" class="h-4 w-4"></i></a>
+          <button @click="go(cur-1)" :disabled="cur===0" class="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold transition hover:bg-slate-50 disabled:opacity-40"><i data-lucide="arrow-left" class="h-4 w-4"></i> <span class="hidden sm:inline">Previous</span></button>
+          <button x-show="cur < c.subs.length-1" @click="go(cur+1)" class="inline-flex items-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-accent-dark">Next part <i data-lucide="arrow-right" class="h-4 w-4"></i></button>
+          <a x-show="cur === c.subs.length-1" href="#latihan" class="inline-flex items-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-accent-dark">Start Practice <i data-lucide="arrow-down" class="h-4 w-4"></i></a>
         </div>
       </article>
 
       <!-- Latihan -->
       <section id="latihan" class="scroll-mt-24">
         <div class="mb-4 flex flex-wrap items-end justify-between gap-3">
-          <div><h3 class="text-lg font-bold">Latihan Soal</h3><p class="text-sm text-slate-500">Pilih jawaban, pembahasan langsung muncul.</p></div>
+          <div><h3 class="text-lg font-bold">Practice Questions</h3><p class="text-sm text-slate-500">Pick an answer to see the explanation right away.</p></div>
           <div class="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm shadow-sm">
-            <span>Benar <b class="text-emerald-600" x-text="score"></b> / <span x-text="items.length"></span></span>
-            <button x-show="Object.keys(ans).length" @click="ans={}; fill={}; res={}" class="flex items-center gap-1 text-slate-500 hover:text-slate-900"><i data-lucide="rotate-ccw" class="h-3.5 w-3.5"></i>Ulangi</button>
+            <span>Correct <b class="text-emerald-600" x-text="score"></b> / <span x-text="items.length"></span></span>
+            <button x-show="Object.keys(ans).length" @click="ans={}; fill={}; res={}" class="flex items-center gap-1 text-slate-500 hover:text-slate-900"><i data-lucide="rotate-ccw" class="h-3.5 w-3.5"></i>Retry</button>
           </div>
         </div>
 
-        <div x-show="!items.length" class="rounded-2xl border-2 border-dashed border-slate-200 bg-white p-10 text-center text-sm text-slate-500">Belum ada latihan untuk bab ini.</div>
+        <div x-show="!items.length" class="rounded-2xl border-2 border-dashed border-slate-200 bg-white p-10 text-center text-sm text-slate-500">No practice questions for this chapter yet.</div>
 
         <div class="space-y-4">
           <template x-for="(q, n) in items" :key="q.id">
             <div class="rounded-2xl border bg-white p-5 shadow-soft transition sm:p-6" :class="res[q.id] ? (res[q.id].correct ? 'border-emerald-200' : 'border-rose-200') : 'border-slate-200'">
               <div class="flex flex-wrap items-center gap-2 text-xs">
-                <span class="rounded-md bg-slate-900 px-2 py-0.5 font-semibold text-white" x-text="'Soal ' + (n+1)"></span>
+                <span class="rounded-md bg-slate-900 px-2 py-0.5 font-semibold text-white" x-text="'Question ' + (n+1)"></span>
                 <span class="rounded-md bg-slate-100 px-2 py-0.5 text-slate-600" x-text="q.topic"></span>
-                <span class="rounded-md px-2 py-0.5 capitalize" :class="diffClass[q.difficulty]" x-text="q.difficulty"></span>
+                <span class="rounded-md px-2 py-0.5 capitalize" :class="diffClass[q.difficulty]" x-text="{ mudah: 'Easy', sedang: 'Medium', sulit: 'Hard' }[q.difficulty]"></span>
               </div>
 
               <!-- Konteks audio / passage -->
               <div x-show="q.clip" class="mt-4 flex flex-wrap items-center gap-3 rounded-xl bg-slate-50 p-3" x-data="{ t: false, playing: false }">
-                <button @click="playing=true; playClip(DB.clips[q.clip], () => playing=false)" :disabled="playing" class="flex items-center gap-2 rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"><i data-lucide="volume-2" class="h-3.5 w-3.5"></i><span x-text="playing ? 'Memutar…' : 'Putar audio'"></span></button>
-                <button @click="t=!t" class="text-xs font-medium text-slate-600 hover:text-slate-900" x-text="t ? 'Sembunyikan transkrip' : 'Lihat transkrip'"></button>
+                <button @click="playing=true; playClip(DB.clips[q.clip], () => playing=false)" :disabled="playing" class="flex items-center gap-2 rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"><i data-lucide="volume-2" class="h-3.5 w-3.5"></i><span x-text="playing ? 'Playing…' : 'Play audio'"></span></button>
+                <button @click="t=!t" class="text-xs font-medium text-slate-600 hover:text-slate-900" x-text="t ? 'Hide transcript' : 'Show transcript'"></button>
                 <div x-show="t" class="w-full space-y-1 text-sm text-slate-600">
                   <template x-for="l in (DB.clips[q.clip]?.lines || [])"><p><b x-text="l[0] + ':'"></b> <span x-text="l[1]"></span></p></template>
                 </div>
               </div>
               <details x-show="q.passage" class="mt-4 rounded-xl bg-slate-50 p-3 text-sm">
-                <summary class="cursor-pointer font-medium text-slate-700" x-text="'Baca passage: ' + (DB.passages[q.passage]?.title || '')"></summary>
+                <summary class="cursor-pointer font-medium text-slate-700" x-text="'Read passage: ' + (DB.passages[q.passage]?.title || '')"></summary>
                 <div class="passage mt-3 max-h-72 overflow-y-auto pr-2 leading-relaxed text-slate-600 thin-scroll" x-html="DB.passages[q.passage]?.html"></div>
               </details>
 
@@ -115,17 +115,17 @@
               </div>
               <!-- Isian -->
               <form x-show="q.type === 'fill'" @submit.prevent="if ((fill[q.id]||'').trim()) check(q, fill[q.id])" class="mt-4 flex gap-2">
-                <input x-model="fill[q.id]" :disabled="q.id in ans" placeholder="Ketik jawaban…" class="w-full max-w-xs rounded-xl border-2 border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-accent disabled:bg-slate-50">
-                <button x-show="!(q.id in ans)" class="rounded-xl bg-accent px-4 text-sm font-semibold text-white hover:bg-accent-dark">Cek</button>
+                <input x-model="fill[q.id]" :disabled="q.id in ans" placeholder="Type your answer…" class="w-full max-w-xs rounded-xl border-2 border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-accent disabled:bg-slate-50">
+                <button x-show="!(q.id in ans)" class="rounded-xl bg-accent px-4 text-sm font-semibold text-white hover:bg-accent-dark">Check</button>
               </form>
 
               <!-- Feedback -->
               <div x-show="res[q.id]" x-transition class="mt-4 rounded-xl p-4 text-sm" :class="res[q.id]?.correct ? 'bg-emerald-50 text-emerald-900' : 'bg-rose-50 text-rose-900'">
                 <p class="flex items-center gap-2 font-semibold">
-                  <span x-text="res[q.id]?.correct ? '✅ Benar!' : '❌ Kurang tepat.'"></span>
-                  <span x-show="res[q.id] && !res[q.id].correct" class="font-normal" x-text="'Jawaban benar: ' + (res[q.id] ? correctText({ ...q, answer: res[q.id].answer }) : '')"></span>
+                  <span x-text="res[q.id]?.correct ? '✅ Correct!' : '❌ Not quite.'"></span>
+                  <span x-show="res[q.id] && !res[q.id].correct" class="font-normal" x-text="'Correct answer: ' + (res[q.id] ? correctText({ ...q, answer: res[q.id].answer }) : '')"></span>
                 </p>
-                <p class="mt-2 leading-relaxed text-slate-700"><b>Pembahasan:</b> <span x-html="res[q.id]?.explain"></span></p>
+                <p class="mt-2 leading-relaxed text-slate-700"><b>Explanation:</b> <span x-html="res[q.id]?.explain"></span></p>
               </div>
             </div>
           </template>
@@ -133,8 +133,8 @@
 
         <div x-show="items.length && Object.keys(res).length === items.length" x-transition class="mt-6 flex flex-col items-center gap-3 rounded-2xl bg-gradient-to-br from-accent to-accent-dark p-6 text-center text-white sm:flex-row sm:text-left">
           <span class="text-4xl">🎉</span>
-          <div class="flex-1"><p class="text-lg font-bold">Latihan selesai! Skor kamu <span x-text="score + '/' + items.length"></span></p><p class="text-sm text-white/80">Lanjut ke bab berikutnya atau uji dengan simulasi test.</p></div>
-          <a :href="next ? 'materi-detail.html?id=' + next.id : 'simulasi.html'" class="rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-accent" x-text="next ? 'Bab berikutnya →' : 'Ke Simulasi →'"></a>
+          <div class="flex-1"><p class="text-lg font-bold">Practice complete! Your score <span x-text="score + '/' + items.length"></span></p><p class="text-sm text-white/80">Move on to the next chapter or test yourself with a mock test.</p></div>
+          <a :href="next ? 'materi-detail.html?id=' + next.id : 'simulasi.html'" class="rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-accent" x-text="next ? 'Next chapter →' : 'Go to Mock Test →'"></a>
         </div>
       </section>
     </div>

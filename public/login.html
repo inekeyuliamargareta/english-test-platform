@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="id">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Masuk — EnglishOn</title>
+<title>Sign In — EnglishOn</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com/3.4.16"></script>
 <script src="https://cdn.jsdelivr.net/npm/lucide@0.460.0/dist/umd/lucide.min.js"></script>
@@ -18,10 +18,10 @@
     <div class="absolute -bottom-32 -left-16 h-80 w-80 rounded-full bg-ielts-500/20"></div>
     <a href="index.html" class="relative flex items-center gap-2.5 text-lg font-bold"><span class="grid h-9 w-9 place-items-center rounded-xl bg-white text-brand-600"><i data-lucide="graduation-cap" class="h-5 w-5"></i></span>EnglishOn</a>
     <div class="relative my-auto max-w-md">
-      <h2 class="text-4xl font-bold leading-tight">Persiapan TOEFL & IELTS bersama EnglishOn Ponorogo.</h2>
-      <p class="mt-4 text-brand-100">Materi per bab, latihan soal dengan pembahasan, dan simulasi test seperti ujian asli.</p>
+      <h2 class="text-4xl font-bold leading-tight">TOEFL & IELTS preparation with EnglishOn Ponorogo.</h2>
+      <p class="mt-4 text-brand-100">Lessons by chapter, practice questions with explanations, and mock tests just like the real exam.</p>
       <ul class="mt-8 space-y-3 text-sm text-brand-50">
-        <li class="flex items-center gap-3"><span class="grid h-8 w-8 place-items-center rounded-lg bg-white/15"><i data-lucide="gift" class="h-4 w-4"></i></span>1x simulasi test gratis untuk akun baru</li>
+        <li class="flex items-center gap-3"><span class="grid h-8 w-8 place-items-center rounded-lg bg-white/15"><i data-lucide="gift" class="h-4 w-4"></i></span>1 free mock test for new accounts</li>
         <li class="flex items-center gap-3"><span class="grid h-8 w-8 place-items-center rounded-lg bg-white/15"><i data-lucide="map-pin" class="h-4 w-4"></i></span><span x-text="DB.contact.address"></span></li>
       </ul>
     </div>
@@ -29,45 +29,45 @@
 
   <!-- Form -->
   <div class="flex flex-col px-4 py-8 sm:px-8">
-    <a href="index.html" class="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-900"><i data-lucide="arrow-left" class="h-4 w-4"></i> Kembali ke beranda</a>
+    <a href="index.html" class="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-900"><i data-lucide="arrow-left" class="h-4 w-4"></i> Back to home</a>
     <div class="mx-auto my-auto w-full max-w-sm py-10">
-      <h1 class="text-2xl font-bold tracking-tight" x-text="mode === 'login' ? 'Selamat datang kembali 👋' : 'Buat akun gratis'"></h1>
-      <p class="mt-2 text-sm text-slate-500" x-text="mode === 'login' ? 'Masuk untuk melanjutkan belajar.' : 'Daftar dan dapatkan 1x simulasi test gratis.'"></p>
+      <h1 class="text-2xl font-bold tracking-tight" x-text="mode === 'login' ? 'Welcome back 👋' : 'Create a free account'"></h1>
+      <p class="mt-2 text-sm text-slate-500" x-text="mode === 'login' ? 'Sign in to continue learning.' : 'Sign up and get 1 free mock test.'"></p>
 
       <div class="mt-6 grid grid-cols-2 rounded-xl bg-slate-100 p-1 text-sm font-semibold">
-        <button @click="mode='login'" class="rounded-lg py-2 transition" :class="mode==='login' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500'">Masuk</button>
-        <button @click="mode='register'" class="rounded-lg py-2 transition" :class="mode==='register' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500'">Daftar</button>
+        <button @click="mode='login'" class="rounded-lg py-2 transition" :class="mode==='login' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500'">Sign In</button>
+        <button @click="mode='register'" class="rounded-lg py-2 transition" :class="mode==='register' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500'">Sign Up</button>
       </div>
 
       <form @submit.prevent="submit()" class="mt-6 space-y-4">
         <div x-show="mode==='register'" x-cloak>
-          <label class="mb-1.5 block text-sm font-medium">Nama lengkap</label>
+          <label class="mb-1.5 block text-sm font-medium">Full name</label>
           <div class="relative"><i data-lucide="user" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"></i>
-            <input x-model="f.name" :required="mode==='register'" type="text" autocomplete="name" placeholder="Nama sesuai KTP" class="w-full rounded-xl border border-slate-200 py-2.5 pl-10 pr-3 text-sm outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-100"></div>
+            <input x-model="f.name" :required="mode==='register'" type="text" autocomplete="name" placeholder="Your full name" class="w-full rounded-xl border border-slate-200 py-2.5 pl-10 pr-3 text-sm outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-100"></div>
         </div>
         <div x-show="mode==='register'" x-cloak>
-          <label class="mb-1.5 block text-sm font-medium">No. WhatsApp</label>
+          <label class="mb-1.5 block text-sm font-medium">WhatsApp number</label>
           <div class="relative"><i data-lucide="phone" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"></i>
             <input x-model="f.phone" type="tel" autocomplete="tel" placeholder="08xx-xxxx-xxxx" class="w-full rounded-xl border border-slate-200 py-2.5 pl-10 pr-3 text-sm outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-100"></div>
         </div>
         <div>
           <label class="mb-1.5 block text-sm font-medium">Email</label>
           <div class="relative"><i data-lucide="mail" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"></i>
-            <input x-model="f.email" required type="email" autocomplete="email" placeholder="nama@email.com" class="w-full rounded-xl border border-slate-200 py-2.5 pl-10 pr-3 text-sm outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-100"></div>
+            <input x-model="f.email" required type="email" autocomplete="email" placeholder="name@email.com" class="w-full rounded-xl border border-slate-200 py-2.5 pl-10 pr-3 text-sm outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-100"></div>
         </div>
         <div>
-          <div class="mb-1.5 flex justify-between"><label class="text-sm font-medium">Kata sandi</label><a :href="waLink('Halo EnglishOn, saya lupa kata sandi akun platform.')" target="_blank" x-show="mode==='login'" class="text-sm font-medium text-brand-600 hover:underline">Lupa?</a></div>
+          <div class="mb-1.5 flex justify-between"><label class="text-sm font-medium">Password</label><a :href="waLink('Hello EnglishOn, I forgot my platform account password.')" target="_blank" x-show="mode==='login'" class="text-sm font-medium text-brand-600 hover:underline">Forgot?</a></div>
           <div class="relative"><i data-lucide="lock" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"></i>
-            <input x-model="f.password" required :minlength="mode==='register' ? 8 : null" :type="show ? 'text' : 'password'" :autocomplete="mode==='login' ? 'current-password' : 'new-password'" placeholder="Minimal 8 karakter" class="w-full rounded-xl border border-slate-200 py-2.5 pl-10 pr-10 text-sm outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-100">
-            <button type="button" @click="show=!show" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600" aria-label="Tampilkan sandi"><i data-lucide="eye" class="h-4 w-4"></i></button></div>
+            <input x-model="f.password" required :minlength="mode==='register' ? 8 : null" :type="show ? 'text' : 'password'" :autocomplete="mode==='login' ? 'current-password' : 'new-password'" placeholder="At least 8 characters" class="w-full rounded-xl border border-slate-200 py-2.5 pl-10 pr-10 text-sm outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-100">
+            <button type="button" @click="show=!show" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600" aria-label="Show password"><i data-lucide="eye" class="h-4 w-4"></i></button></div>
         </div>
         <div x-show="mode==='register'" x-cloak>
-          <label class="mb-1.5 block text-sm font-medium">Ujian yang dipersiapkan</label>
+          <label class="mb-1.5 block text-sm font-medium">Test you are preparing for</label>
           <div class="grid grid-cols-2 gap-2 text-sm">
             <template x-for="e in Object.values(DB.exams)" :key="e.key">
               <label class="flex items-center gap-2 rounded-xl border border-slate-200 p-3" :class="e.active ? 'cursor-pointer has-[:checked]:border-brand-600 has-[:checked]:bg-brand-50' : 'cursor-not-allowed opacity-50'">
                 <input type="radio" name="ex" :value="e.key" x-model="f.exam" :disabled="!e.active" class="accent-brand-600">
-                <span><span x-text="e.name"></span><span x-show="!e.active" class="block text-[11px] text-slate-500">Segera hadir</span></span>
+                <span><span x-text="e.name"></span><span x-show="!e.active" class="block text-[11px] text-slate-500">Coming soon</span></span>
               </label>
             </template>
           </div>
@@ -75,10 +75,10 @@
         <p x-show="error" x-cloak class="rounded-xl bg-rose-50 px-3 py-2.5 text-sm text-rose-700" x-text="error"></p>
         <button type="submit" :disabled="loading" class="flex w-full items-center justify-center gap-2 rounded-xl bg-brand-600 py-3 text-sm font-semibold text-white shadow-sm shadow-brand-600/30 transition hover:bg-brand-700 disabled:opacity-70">
           <svg x-show="loading" x-cloak class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-opacity=".3" stroke-width="4"/><path d="M22 12a10 10 0 0 0-10-10" stroke="currentColor" stroke-width="4"/></svg>
-          <span x-text="loading ? 'Memproses…' : (mode === 'login' ? 'Masuk' : 'Buat Akun')"></span>
+          <span x-text="loading ? 'Processing…' : (mode === 'login' ? 'Sign In' : 'Create Account')"></span>
         </button>
       </form>
-      <p class="mt-6 text-center text-sm text-slate-500">Butuh bantuan? <a :href="waLink('Halo EnglishOn, saya butuh bantuan untuk masuk ke akun.')" target="_blank" class="font-semibold text-brand-600 hover:underline">Hubungi EnglishOn</a></p>
+      <p class="mt-6 text-center text-sm text-slate-500">Need help? <a :href="waLink('Hello EnglishOn, I need help signing in to my account.')" target="_blank" class="font-semibold text-brand-600 hover:underline">Contact EnglishOn</a></p>
     </div>
   </div>
 </div>
@@ -87,7 +87,7 @@ function login() {
   return {
     mode: qs('mode') === 'register' ? 'register' : 'login', show: false, loading: false, error: '',
     f: { name: '', phone: '', email: '', password: '', exam: activeExams()[0].key },
-    init() { if (DB.user) location.replace(DB.user.role === 'admin' ? 'admin.html' : 'dashboard.html'); this.$watch('mode', () => this.error = ''); },
+    init() { if (DB.user) location.replace(DB.user.role === 'admin' ? 'admin.html' : 'program.html'); this.$watch('mode', () => this.error = ''); },
     async submit() {
       this.loading = true; this.error = '';
       try {
@@ -95,7 +95,7 @@ function login() {
         localStorage.setItem('token', t);
         if (this.mode === 'register') localStorage.setItem('exam', this.f.exam);
         const { user } = await api('GET', '/bootstrap');
-        location.href = user.role === 'admin' ? 'admin.html' : 'dashboard.html';
+        location.href = user.role === 'admin' ? 'admin.html' : 'program.html';
       } catch (e) { this.error = e.message; this.loading = false; }
     },
   };

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="id">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -9,74 +9,65 @@
 <script src="https://cdn.jsdelivr.net/npm/lucide@0.460.0/dist/umd/lucide.min.js"></script>
 <script src="assets/app.js"></script>
 </head>
-<body data-shell="app" data-active="placement" data-title="Placement Test">
+<!-- Tidak ada di menu: dibuka dari Dashboard, About the Program, dan Results. Program = pilihan di kanan atas. -->
+<body data-shell="app" data-active="dashboard" data-title="Placement Test">
 <main x-data="placement()" class="space-y-6">
 
-  <!-- ===== Hasil placement ===== -->
+  <!-- ===== Result ===== -->
   <template x-if="att">
     <div class="space-y-6">
-      <a href="placement.html" class="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-900"><i data-lucide="arrow-left" class="h-4 w-4"></i>Semua placement test</a>
+      <a href="hasil.html" class="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-900"><i data-lucide="arrow-left" class="h-4 w-4"></i>Back to results</a>
       <div class="grid gap-6 lg:grid-cols-3">
         <div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-accent to-accent-dark p-6 text-white shadow-soft sm:p-8 lg:col-span-2">
           <i data-lucide="gauge" class="absolute -bottom-8 -right-8 h-48 w-48 text-white/10"></i>
-          <p class="text-sm font-medium text-white/70" x-text="pkg.name + ' · ' + new Date(att.date).toLocaleDateString('id-ID', { dateStyle: 'long' })"></p>
+          <p class="text-sm font-medium text-white/70" x-text="pkg.name + ' · ' + fmtDate(att.date, 'long')"></p>
           <div class="mt-4 flex items-center gap-5">
             <div class="grid h-24 w-24 shrink-0 place-items-center rounded-2xl bg-white text-4xl font-extrabold text-accent" x-text="level.code"></div>
             <div>
-              <h2 class="text-2xl font-bold sm:text-3xl" x-text="'Level ' + level.name"></h2>
-              <p class="mt-1 text-white/85" x-text="correct + ' dari ' + total + ' soal benar (' + att.total + '%)'"></p>
-              <p x-show="range" class="mt-1 text-sm text-white/85">Perkiraan skor <span x-text="E.name"></span>: <b x-text="range"></b></p>
+              <h2 class="text-2xl font-bold sm:text-3xl" x-text="level.name + ' level'"></h2>
+              <p class="mt-1 text-white/85" x-text="correct + ' of ' + total + ' correct (' + att.total + '%)'"></p>
+              <p x-show="range" class="mt-1 text-sm text-white/85">Estimated <span x-text="E.name"></span> score: <b x-text="range"></b></p>
             </div>
           </div>
-          <!-- Skala level -->
           <div class="mt-6 grid grid-cols-4 gap-1.5 text-center text-xs">
             <template x-for="l in LEVELS" :key="l.code">
               <div class="rounded-lg px-2 py-2" :class="l.code === level.code ? 'bg-white font-bold text-accent' : 'bg-white/15 text-white/80'"><p x-text="l.code"></p><p class="hidden sm:block" x-text="l.name"></p></div>
             </template>
           </div>
-          <p class="mt-4 text-xs text-white/70">Ini perkiraan dari tes singkat, bukan skor resmi. Untuk gambaran lengkap, kerjakan simulasi penuh.</p>
+          <p class="mt-4 text-xs text-white/70">This is an estimate from a short test, not an official score. Take a full mock test for a complete picture.</p>
         </div>
 
         <div class="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-6 shadow-soft">
-          <h3 class="font-semibold">Rekomendasi untukmu</h3>
+          <h3 class="font-semibold">Our recommendation</h3>
           <p class="rounded-xl bg-accent-soft p-4 text-sm leading-relaxed text-slate-800" x-text="recommendation"></p>
-          <a :href="joinLink('Hasil ' + pkg.name + ' saya: level ' + level.code + ' (' + level.name + '), ' + att.total + '% benar. Saya ingin bergabung' + (recommendation ? ' — rekomendasi: ' + recommendation : '') + '.')" target="_blank"
+          <a :href="joinLink('My ' + pkg.name + ' result: level ' + level.code + ' (' + level.name + '), ' + att.total + '% correct. I would like to join' + (recommendation ? ' — recommendation: ' + recommendation : '') + '.')" target="_blank"
             class="flex items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3 text-sm font-semibold text-white hover:bg-emerald-700"><i data-lucide="message-circle" class="h-4 w-4"></i>Join EnglishOn</a>
-          <a :href="'review.html?id=' + att.id" class="flex items-center gap-3 rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold hover:bg-slate-50"><i data-lucide="list-checks" class="h-5 w-5 text-slate-500"></i>Lihat pembahasan</a>
-          <a :href="'test.html?pkg=' + pkg.id" class="flex items-center gap-3 rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold hover:bg-slate-50"><i data-lucide="rotate-ccw" class="h-5 w-5 text-slate-500"></i>Ulangi placement test</a>
-          <a :href="'program.html?p=' + E.key" class="mt-auto text-center text-sm font-medium text-slate-500 hover:text-slate-900" x-text="'Tentang program ' + E.name"></a>
+          <a :href="'review.html?id=' + att.id" class="flex items-center gap-3 rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold hover:bg-slate-50"><i data-lucide="list-checks" class="h-5 w-5 text-slate-500"></i>Review answers</a>
+          <a :href="'test.html?pkg=' + pkg.id" class="flex items-center gap-3 rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold hover:bg-slate-50"><i data-lucide="rotate-ccw" class="h-5 w-5 text-slate-500"></i>Retake placement test</a>
+          <a href="program.html" class="mt-auto text-center text-sm font-medium text-slate-500 hover:text-slate-900" x-text="'About ' + E.name"></a>
         </div>
       </div>
     </div>
   </template>
 
-  <!-- ===== Pilih placement test ===== -->
+  <!-- ===== Start (program selected at the top right) ===== -->
   <template x-if="!att">
-    <div class="space-y-6">
-      <div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-brand-600 to-indigo-800 p-6 text-white shadow-soft sm:p-8">
-        <i data-lucide="gauge" class="absolute -right-8 -top-8 h-48 w-48 text-white/10"></i>
-        <p class="text-sm font-medium text-white/70">Placement Test</p>
-        <h2 class="mt-1 text-2xl font-bold sm:text-3xl">Cek level bahasa Inggrismu dalam ±15 menit</h2>
-        <p class="mt-2 max-w-2xl text-white/80">Tes singkat dari mudah ke sulit. Hasilnya berupa level (A2–C1), perkiraan skor, dan rekomendasi kelas. Gratis dan tidak memakai jatah simulasi.</p>
-      </div>
-      <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        <template x-for="p in pkgs" :key="p.id">
-          <div class="flex flex-col rounded-2xl border-2 bg-white p-5 shadow-soft" :class="p.id === qs('pkg') ? 'border-brand-600' : 'border-transparent ring-1 ring-slate-200'">
-            <div class="flex items-center gap-3">
-              <span class="grid h-11 w-11 place-items-center rounded-xl text-white" :style="'background-color: rgb(' + DB.exams[p.exam].rgb + ')'"><i data-lucide="gauge" class="h-5 w-5"></i></span>
-              <div class="min-w-0"><h3 class="font-semibold" x-text="p.name"></h3><p class="text-xs text-slate-500" x-text="count(p) + ' soal · ' + minutes(p) + ' menit'"></p></div>
-            </div>
-            <p class="mt-3 flex-1 text-sm text-slate-500" x-text="p.desc"></p>
-            <div x-show="last(p)" class="mt-4 flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2 text-sm">
-              <span class="text-slate-500">Hasil terakhir</span>
-              <a :href="'placement.html?id=' + last(p)?.id" class="font-semibold text-brand-600 hover:underline" x-text="last(p) ? 'Level ' + levelOf(last(p).total).code + ' · ' + last(p).total + '%' : ''"></a>
-            </div>
-            <a :href="count(p) ? 'test.html?pkg=' + p.id : null" class="mt-4 flex items-center justify-center gap-2 rounded-xl py-3 text-sm font-semibold" :class="count(p) ? 'bg-slate-900 text-white hover:bg-slate-800' : 'cursor-not-allowed bg-slate-100 text-slate-400'">
-              <i data-lucide="play" class="h-4 w-4"></i><span x-text="!count(p) ? 'Soal belum tersedia' : last(p) ? 'Ulangi Tes' : 'Mulai Tes'"></span></a>
+    <div class="mx-auto max-w-2xl">
+      <div x-show="!pkg" class="rounded-2xl border-2 border-dashed border-slate-200 bg-white p-10 text-center text-sm text-slate-500">There is no placement test for this program yet.</div>
+      <template x-if="pkg">
+        <div class="rounded-3xl border border-slate-200 bg-white p-6 text-center shadow-soft sm:p-10">
+          <span class="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-accent-soft text-accent"><i data-lucide="gauge" class="h-8 w-8"></i></span>
+          <h2 class="mt-5 text-2xl font-bold" x-text="pkg.name"></h2>
+          <p class="mt-2 text-slate-500">A short test from easy to hard. You will get your level (A2–C1), an estimated score, and a class recommendation. It is free and does not use your mock test quota.</p>
+          <div class="mt-5 flex justify-center gap-3 text-sm">
+            <span class="flex items-center gap-1.5 rounded-xl bg-slate-100 px-3 py-2"><i data-lucide="file-question" class="h-4 w-4 text-slate-500"></i><span x-text="count + ' questions'"></span></span>
+            <span class="flex items-center gap-1.5 rounded-xl bg-slate-100 px-3 py-2"><i data-lucide="clock" class="h-4 w-4 text-slate-500"></i><span x-text="minutes + ' minutes'"></span></span>
           </div>
-        </template>
-      </div>
-      <p x-show="!pkgs.length" class="rounded-2xl border-2 border-dashed border-slate-200 bg-white p-10 text-center text-sm text-slate-500">Placement test belum tersedia.</p>
+          <a :href="count ? 'test.html?pkg=' + pkg.id : null" class="mt-8 inline-flex w-full items-center justify-center gap-2 rounded-xl py-3.5 font-semibold sm:w-auto sm:px-10" :class="count ? 'bg-accent text-white hover:bg-accent-dark' : 'cursor-not-allowed bg-slate-100 text-slate-400'">
+            <i data-lucide="play" class="h-4 w-4"></i><span x-text="count ? (last ? 'Retake Test' : 'Start Test') : 'No questions yet'"></span></a>
+          <a x-show="last" :href="'placement.html?id=' + last?.id" class="mt-4 block text-sm font-medium text-accent hover:underline" x-text="last ? 'Latest result: level ' + levelOf(last.total).code + ' · ' + last.total + '%' : ''"></a>
+        </div>
+      </template>
     </div>
   </template>
 </main>
@@ -84,19 +75,19 @@
 <script>
 function placement() {
   const att = DB.attempts.find(a => a.id === +qs('id') && isPlacement(a)) || null;
-  const pkgs = DB.packages.filter(p => p.type === 'placement');
-  const base = { att, pkgs, LEVELS,
-    count: p => p.sections.reduce((n, [s]) => n + sectionItems(p.exam, s, 'placement').length, 0),
-    minutes: p => p.sections.reduce((n, s) => n + s[1], 0),
-    last: p => DB.attempts.find(a => a.pkg === p.id) || null,
-  };
-  if (!att) return base;
+  if (!att) {
+    const exam = getExam(), pkg = DB.packages.find(p => p.exam === exam && p.type === 'placement') || null;
+    return { att, pkg, LEVELS,
+      count: pkg ? pkg.sections.reduce((n, [s]) => n + sectionItems(exam, s, 'placement').length, 0) : 0,
+      minutes: pkg ? pkg.sections.reduce((n, s) => n + s[1], 0) : 0,
+      last: pkg && DB.attempts.find(a => a.pkg === pkg.id) };
+  }
   document.documentElement.dataset.exam = att.exam;
   const E = DB.exams[att.exam], level = levelOf(att.total);
-  return { ...base, E, level, pkg: DB.packages.find(p => p.id === att.pkg),
+  return { att, E, level, LEVELS, pkg: DB.packages.find(p => p.id === att.pkg),
     correct: att.sections.reduce((n, s) => n + (s.correct || 0), 0), total: att.sections.reduce((n, s) => n + (s.total || 0), 0),
     range: LEVEL_RANGE[att.exam]?.[level.code] || '',
-    recommendation: E.recommend?.[level.code] || 'Konsultasikan hasil ini dengan admin EnglishOn untuk memilih kelas yang tepat.',
+    recommendation: E.recommend?.[level.code] || 'Discuss this result with the EnglishOn team to choose the right class.',
   };
 }
 </script>
