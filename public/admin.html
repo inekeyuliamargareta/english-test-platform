@@ -31,7 +31,7 @@
   .rte table { display: table; }
 </style>
 </head>
-<!-- Alamat halaman: #master, atau #p/<kode program>/<siswa|materi|soal|pengaturan> -->
+<!-- Alamat halaman: #master, atau #p/<kode program>/<siswa|materi|soal|ebook|pengaturan> -->
 <body data-shell="admin" data-active="master" data-title="Panel Admin">
 <main x-data="admin()" class="space-y-5">
 
@@ -39,7 +39,7 @@
   <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
     <div class="min-w-0">
       <p x-show="view !== 'master'" class="flex items-center gap-2 text-sm font-medium text-slate-500"><span class="h-2.5 w-2.5 rounded-full" :style="'background-color: rgb(' + (E?.rgb || '100 116 139') + ')'"></span><span x-text="E?.name"></span></p>
-      <h2 class="text-2xl font-bold tracking-tight" x-text="{ master: 'Master Program', siswa: 'Siswa', materi: 'Materi (Pertemuan)', soal: 'Soal' }[view]"></h2>
+      <h2 class="text-2xl font-bold tracking-tight" x-text="{ master: 'Master Program', siswa: 'Siswa', materi: 'Curriculum', soal: 'Soal', ebook: 'Ebook' }[view]"></h2>
       <p class="text-sm text-slate-500" x-text="subtitle"></p>
     </div>
     <div class="flex flex-wrap gap-2">
@@ -48,12 +48,13 @@
       <button x-show="view==='materi'" @click="openChapter()" class="btn-primary"><i data-lucide="plus" class="h-4 w-4"></i>Tambah Pertemuan</button>
       <button x-show="view==='soal'" @click="openImport()" class="btn-light"><i data-lucide="file-up" class="h-4 w-4"></i>Import Soal</button>
       <button x-show="view==='soal'" @click="openQuestion()" class="btn-primary"><i data-lucide="plus" class="h-4 w-4"></i>Tambah Soal</button>
+      <button x-show="view==='ebook'" @click="openEbook()" class="btn-primary"><i data-lucide="plus" class="h-4 w-4"></i>Tambah Ebook</button>
     </div>
   </div>
 
   <!-- Pindah cepat antar menu program -->
   <div x-show="view !== 'master'" class="flex gap-1 overflow-x-auto rounded-xl bg-white p-1 shadow-sm ring-1 ring-slate-200 sm:w-fit">
-    <template x-for="t in [['siswa', 'Siswa', 'users'], ['materi', 'Materi', 'book-open'], ['soal', 'Soal', 'file-question']]" :key="t[0]">
+    <template x-for="t in [['siswa', 'Siswa', 'users'], ['materi', 'Curriculum', 'book-open'], ['soal', 'Soal', 'file-question'], ['ebook', 'Ebook', 'book-marked']]" :key="t[0]">
       <a :href="'#p/' + exam + '/' + t[0]" class="flex items-center gap-2 whitespace-nowrap rounded-lg px-4 py-2 text-sm font-semibold transition" :class="view===t[0] ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-50'"><span x-html="ico(t[2])"></span><span x-text="t[1]"></span></a>
     </template>
     <button @click="openExam(E)" class="flex items-center gap-2 whitespace-nowrap rounded-lg px-4 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"><span x-html="ico('settings')"></span>Pengaturan</button>
@@ -71,7 +72,7 @@
         <p class="mt-3 line-clamp-2 text-sm text-slate-500" x-text="plain(e.about) || 'Belum ada penjelasan untuk siswa.'"></p>
         <div class="mt-4 grid grid-cols-3 gap-2 text-center">
           <a :href="'#p/' + e.key + '/siswa'" class="rounded-xl bg-slate-50 p-3 hover:bg-slate-100"><p class="grid h-7 place-items-center text-slate-400"><i data-lucide="users" class="h-5 w-5"></i></p><p class="text-xs font-semibold text-slate-600">Siswa</p></a>
-          <a :href="'#p/' + e.key + '/materi'" class="rounded-xl bg-slate-50 p-3 hover:bg-slate-100"><p class="text-lg font-bold" x-text="chapters.filter(c => c.exam === e.key && !c.draft).length"></p><p class="text-xs font-semibold text-slate-600">Pertemuan</p></a>
+          <a :href="'#p/' + e.key + '/materi'" class="rounded-xl bg-slate-50 p-3 hover:bg-slate-100"><p class="text-lg font-bold" x-text="chapters.filter(c => c.exam === e.key && !c.draft).length"></p><p class="text-xs font-semibold text-slate-600">Curriculum</p></a>
           <a :href="'#p/' + e.key + '/soal'" class="rounded-xl bg-slate-50 p-3 hover:bg-slate-100"><p class="text-lg font-bold" x-text="qCount({ exam: e.key })"></p><p class="text-xs font-semibold text-slate-600">Soal</p></a>
         </div>
         <p class="mt-4 text-xs font-semibold uppercase tracking-wider text-slate-400">Section</p>
@@ -197,6 +198,57 @@
     </div>
   </section>
 
+  <!-- ================= EBOOK ================= -->
+  <section x-show="view==='ebook'" x-cloak class="space-y-4">
+    <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-soft">
+      <div class="overflow-x-auto"><table class="w-full text-sm">
+        <thead class="bg-slate-50 text-left text-xs uppercase tracking-wider text-slate-500"><tr><th class="px-5 py-3">Ebook</th><th class="px-5 py-3">Akses</th><th class="px-5 py-3">File</th><th class="px-5 py-3 text-right">Aksi</th></tr></thead>
+        <tbody class="divide-y divide-slate-100">
+          <template x-for="e in ebookList" :key="e.id">
+            <tr class="hover:bg-slate-50">
+              <td class="px-5 py-3"><div class="flex items-center gap-3"><span class="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-rose-50 text-rose-600"><i data-lucide="file-text" class="h-5 w-5"></i></span><div class="min-w-0"><button @click="openEbook(e)" class="text-left font-medium hover:text-brand-600" x-text="e.title"></button><p class="max-w-md truncate text-xs text-slate-500" x-text="e.desc"></p></div></div></td>
+              <td class="px-5 py-3"><span class="rounded-full px-2.5 py-0.5 text-xs font-semibold" :class="e.access === 'paid' ? 'bg-amber-50 text-amber-700' : 'bg-emerald-50 text-emerald-700'" x-text="e.access === 'paid' ? 'Berbayar (Akses Penuh)' : 'Gratis'"></span></td>
+              <td class="whitespace-nowrap px-5 py-3 text-slate-600" x-text="e.hasFile ? 'PDF · ' + fmtSize(e.size) : 'Belum ada file'"></td>
+              <td class="whitespace-nowrap px-5 py-3 text-right">
+                <button x-show="e.hasFile" @click="previewEbook(e)" class="icon-btn" title="Buka"><i data-lucide="eye" class="h-4 w-4"></i></button>
+                <button @click="openEbook(e)" class="icon-btn" title="Edit"><i data-lucide="pencil" class="h-4 w-4"></i></button>
+                <button @click="askDelete('ebooks', e, e.title)" class="icon-btn text-rose-500 hover:bg-rose-50" title="Hapus"><i data-lucide="trash-2" class="h-4 w-4"></i></button>
+              </td>
+            </tr>
+          </template>
+        </tbody>
+      </table></div>
+      <p x-show="!ebookList.length" class="p-10 text-center text-sm text-slate-500">Belum ada ebook. Klik <b>Tambah Ebook</b> untuk mengunggah PDF.</p>
+    </div>
+    <p class="text-xs text-slate-500">Pastikan ebook yang diunggah adalah milik EnglishOn atau sudah memiliki izin/lisensi.</p>
+  </section>
+
+  <!-- ================= Form ebook ================= -->
+  <div x-show="open==='b'" x-cloak class="fixed inset-0 z-50 grid place-items-center p-4">
+    <div class="absolute inset-0 bg-slate-900/40" @click="open=''"></div>
+    <template x-if="open==='b'">
+      <form @submit.prevent="saveEbook()" class="relative w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl">
+        <h3 class="text-lg font-bold" x-text="bForm.isNew ? 'Tambah Ebook' : 'Edit Ebook'"></h3>
+        <div class="mt-5 space-y-4 text-sm">
+          <label class="block"><span class="lbl">Judul ebook</span><input x-model="bForm.title" required placeholder="mis. TOEFL Structure Cheat Sheet" class="inp"></label>
+          <label class="block"><span class="lbl">Deskripsi singkat</span><textarea x-model="bForm.desc" rows="2" placeholder="Isi ebook ini secara singkat" class="inp"></textarea></label>
+          <div><span class="lbl">Akses</span>
+            <div class="grid grid-cols-2 gap-2">
+              <label class="flex cursor-pointer items-start gap-2 rounded-xl border-2 p-3" :class="bForm.access === 'free' ? 'border-emerald-500 bg-emerald-50' : 'border-slate-200'"><input type="radio" value="free" x-model="bForm.access" class="mt-0.5 accent-emerald-600"><span><b>Gratis</b><span class="block text-xs text-slate-500">Semua siswa bisa membaca</span></span></label>
+              <label class="flex cursor-pointer items-start gap-2 rounded-xl border-2 p-3" :class="bForm.access === 'paid' ? 'border-amber-500 bg-amber-50' : 'border-slate-200'"><input type="radio" value="paid" x-model="bForm.access" class="mt-0.5 accent-amber-600"><span><b>Berbayar</b><span class="block text-xs text-slate-500">Hanya siswa Akses Penuh</span></span></label>
+            </div></div>
+          <div><span class="lbl">File PDF</span>
+            <label class="flex cursor-pointer flex-col items-center rounded-xl border-2 border-dashed border-slate-300 px-4 py-6 text-center transition hover:border-brand-500 hover:bg-brand-50">
+              <i data-lucide="upload-cloud" class="h-8 w-8 text-slate-400"></i>
+              <span class="mt-2 font-medium" x-text="bForm.file ? bForm.file.name : (bForm.hasFile ? 'Klik untuk mengganti file PDF' : 'Klik untuk memilih file PDF')"></span>
+              <span class="text-xs text-slate-500" x-text="bForm.hasFile && !bForm.file ? 'File saat ini: ' + fmtSize(bForm.size) : 'PDF · maks. 50 MB'"></span>
+              <input type="file" accept="application/pdf,.pdf" class="hidden" @change="bForm.file = $event.target.files[0] || null"></label></div>
+        </div>
+        <div class="mt-6 flex justify-end gap-3"><button type="button" @click="open=''" class="btn-light">Batal</button><button :disabled="saving" class="btn-primary" x-text="saving ? 'Mengunggah…' : 'Simpan'"></button></div>
+      </form>
+    </template>
+  </div>
+
   <!-- ================= Form program (besar) ================= -->
   <div x-show="open==='e'" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-6">
     <div class="absolute inset-0 bg-slate-900/40" @click="open=''"></div>
@@ -237,11 +289,17 @@
               <p x-show="!eForm.isNew" class="mt-1 text-xs text-amber-700">Menghapus section tidak menghapus soal/babnya, tapi soal itu tidak tampil sampai dipindah ke section lain.</p>
             </div>
             <div>
-              <span class="lbl">Rekomendasi kelas setelah placement test</span>
+              <span class="lbl">Track belajar per level placement <span class="font-normal text-slate-500">· tampil di halaman Curriculum siswa</span></span>
               <div class="space-y-2">
                 <template x-for="lv in LEVELS" :key="lv.code">
-                  <label class="block rounded-xl border border-slate-200 p-2"><span class="mb-1 block text-xs"><b x-text="'Level ' + lv.code"></b> <span class="text-slate-500" x-text="'(' + lv.name + ', mulai ' + lv.min + '% benar)'"></span></span>
-                    <textarea x-model="eForm.recommend[lv.code]" rows="2" :placeholder="'Kelas yang disarankan untuk level ' + lv.code" class="w-full resize-y rounded-lg px-2 py-1 outline-none"></textarea></label>
+                  <div class="rounded-xl border border-slate-200 p-3">
+                    <p class="mb-2 text-xs"><b x-text="'Level ' + lv.code"></b> <span class="text-slate-500" x-text="'(' + lv.name + ', mulai ' + lv.min + '% benar di placement test)'"></span></p>
+                    <div class="grid gap-2 sm:grid-cols-[1.4fr_1fr]">
+                      <input x-model="eForm.recommend[lv.code].name" placeholder="Nama track, mis. Foundation Track" class="w-full rounded-lg border border-slate-200 px-3 py-2 outline-none focus:border-brand-500">
+                      <input x-model="eForm.recommend[lv.code].target" placeholder="Target skor, mis. 500–550" class="w-full rounded-lg border border-slate-200 px-3 py-2 outline-none focus:border-brand-500">
+                    </div>
+                    <textarea x-model="eForm.recommend[lv.code].desc" rows="3" placeholder="Track ini cocok untuk… (satu poin per baris)" class="w-full rounded-lg border border-slate-200 px-3 py-2 outline-none focus:border-brand-500 mt-2 resize-y"></textarea>
+                  </div>
                 </template>
               </div>
             </div>
@@ -541,6 +599,7 @@ function admin() {
     students: [], sQ: '', sP: { page: 1, total: 0, limit: PAGE }, sLoading: false,
     questions: [], topics: [], qQ: '', qSec: 'all', qPool: 'all', qP: { page: 1, total: 0, limit: PAGE }, qLoading: false,
     mQ: '', mSec: 'all', mPage: 1,
+    ebooks: DB.ebooks, bForm: {},
     typeLabel: { mc: 'Pilihan ganda', error: 'Written expression', fill: 'Isian singkat' },
 
     get E() { return DB.exams[this.exam]; },
@@ -548,6 +607,7 @@ function admin() {
       if (this.view === 'master') return 'Pilih program di sidebar kiri untuk mengelola siswa, materi, dan soalnya.';
       if (this.view === 'siswa') return this.sP.total + ' siswa di program ini';
       if (this.view === 'materi') return this.published.length + ' pertemuan terbit · urutan di sini = urutan Meeting 1, 2, 3… di halaman siswa';
+      if (this.view === 'ebook') return this.ebooks.filter(e => e.exam === this.exam).length + ' ebook · Berbayar = hanya untuk siswa dengan Akses Penuh';
       return this.qCount({ exam: this.exam }) + ' soal';
     },
     get published() { return this.chapters.filter(c => c.exam === this.exam && !c.draft); },
@@ -640,8 +700,9 @@ function admin() {
     async toggleExam(e) { if (await this.putExam(e.key, { ...this.examBody(e), active: !e.active }, e.name + (e.active ? ' dinonaktifkan' : ' diaktifkan'))) this.reloadSidebar(); },
     openExam(e) {
       const hex = rgb => '#' + rgb.split(' ').map(n => (+n).toString(16).padStart(2, '0')).join('');
-      this.eForm = e ? { ...e, isNew: false, color: hex(e.rgb), recommend: { ...e.recommend }, sections: e.sections.map(s => ({ id: s.id, name: s.name, official: s.official || '', mode: s.tutor ? 'tutor' : 'online' })) }
-        : { isNew: true, key: '', name: '', full: '', scale: '0–100', color: '#7c3aed', active: false, about: '', recommend: {}, sections: [{ name: 'Listening', official: '', mode: 'online' }, { name: 'Reading', official: '', mode: 'online' }] };
+      const tracks = r => Object.fromEntries(LEVELS.map(l => [l.code, { name: '', target: '', desc: '', ...(typeof r?.[l.code] === 'object' ? r[l.code] : {}) }]));
+      this.eForm = e ? { ...e, isNew: false, color: hex(e.rgb), recommend: tracks(e.recommend), sections: e.sections.map(s => ({ id: s.id, name: s.name, official: s.official || '', mode: s.tutor ? 'tutor' : 'online' })) }
+        : { isNew: true, key: '', name: '', full: '', scale: '0–100', color: '#7c3aed', active: false, about: '', recommend: tracks(), sections: [{ name: 'Listening', official: '', mode: 'online' }, { name: 'Reading', official: '', mode: 'online' }] };
       this.open = 'e';
     },
     async saveExam() {
@@ -660,7 +721,7 @@ function admin() {
       const { list, obj, label } = this.del;
       this.del = null;
       if (!(await this.run(() => api('DELETE', `/admin/${list}/${encodeURIComponent(obj.id)}`), label + ' dihapus'))) return;
-      if (list === 'chapters') this.chapters.splice(this.chapters.indexOf(obj), 1);
+      if (list === 'chapters' || list === 'ebooks') this[list].splice(this[list].indexOf(obj), 1);
       else { await this.refreshCounts(); this.loadQuestions(Math.min(this.qP.page, Math.ceil((this.qP.total - 1) / PAGE) || 1)); }
     },
 
@@ -744,6 +805,30 @@ function admin() {
         await this.refreshCounts();
         await this.loadQuestions(1);
       }, (this.imp.result?.count || 0) + ' soal berhasil diimport');
+    },
+
+    // ---------- Ebook ----------
+    get ebookList() { return this.ebooks.filter(e => e.exam === this.exam); },
+    fmtSize,
+    openEbook(e) { this.bForm = e ? { ...e, file: null } : { id: newId('ebook'), isNew: true, exam: this.exam, title: '', desc: '', access: 'free', file: null }; this.open = 'b'; },
+    async saveEbook() {
+      const f = this.bForm;
+      if (f.isNew && !f.file) return this.flash('Pilih file PDF ebook');
+      if (f.file && f.file.size > 50 * 1024 * 1024) return this.flash('File ebook maksimal 50 MB');
+      // Cek isi file sebelum menyimpan apa pun, agar tidak ada ebook tanpa file
+      if (f.file && (await f.file.slice(0, 5).text()) !== '%PDF-') return this.flash('File harus PDF');
+      this.run(async () => {
+        const saved = await api('PUT', '/admin/ebooks/' + encodeURIComponent(f.id), { exam: this.exam, title: f.title, desc: f.desc, access: f.access });
+        if (f.file) Object.assign(saved, await api('PUT', '/admin/ebooks/' + encodeURIComponent(f.id) + '/file', new Blob([f.file], { type: 'application/pdf' })), { hasFile: true });
+        const i = this.ebooks.findIndex(e => e.id === saved.id);
+        i < 0 ? this.ebooks.push(saved) : this.ebooks.splice(i, 1, saved);
+        this.open = '';
+      }, 'Ebook "' + f.title + '" tersimpan');
+    },
+    async previewEbook(e) {
+      const w = window.open('', '_blank');
+      try { const r = await fetch('/api/ebooks/' + e.id + '/file', { headers: { Authorization: 'Bearer ' + token() } }); if (!r.ok) throw new Error((await r.json()).error); w.location = URL.createObjectURL(await r.blob()); }
+      catch (err) { w.close(); this.flash('Gagal membuka: ' + err.message); }
     },
 
     // ---------- Materi ----------

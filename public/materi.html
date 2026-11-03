@@ -3,98 +3,109 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Lessons — EnglishOn</title>
+<title>Curriculum — EnglishOn</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com/3.4.16"></script>
 <script src="https://cdn.jsdelivr.net/npm/lucide@0.460.0/dist/umd/lucide.min.js"></script>
 <script src="assets/app.js"></script>
 </head>
-<body data-shell="app" data-active="materi" data-title="Lessons">
-<main x-data="materi()" class="space-y-6">
-  <!-- Curriculum progress -->
-  <div class="flex flex-col gap-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-soft md:flex-row md:items-center">
-    <span class="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-accent-soft text-accent"><i data-lucide="book-open" class="h-7 w-7"></i></span>
-    <div class="flex-1">
-      <h2 class="text-xl font-bold"><span x-text="E.name"></span> Curriculum</h2>
-      <p class="mt-1 text-sm text-slate-500"><span x-text="all.length"></span> meetings. Each meeting has explanations, examples, tips, and practice questions.</p>
+<!-- Pertemuan terbuka berurutan: Meeting N bisa dimulai setelah Meeting N-1 selesai 100% -->
+<body data-shell="app" data-active="materi" data-title="Curriculum">
+<main x-data="curriculum()" class="mx-auto max-w-4xl space-y-5">
+  <!-- Title -->
+  <div class="text-center">
+    <h2 class="text-3xl font-extrabold tracking-tight text-accent" x-text="'Program ' + E.name"></h2>
+    <div class="mt-2 flex flex-wrap items-center justify-center gap-2 text-sm text-slate-500">
+      <span x-show="track" class="rounded-full bg-accent px-3 py-0.5 text-xs font-semibold text-white" x-text="track?.name"></span>
+      <span x-show="track && diag">·</span>
+      <span x-show="diag" x-text="'Diagnostic score: ' + (diag?.total ?? diag?.range ?? '—')"></span>
     </div>
-    <div class="w-full md:w-64">
-      <div class="mb-1.5 flex items-baseline justify-between text-sm"><span class="text-slate-500">Meetings completed</span><span><b class="text-lg" x-text="done"></b><span class="text-slate-400" x-text="' / ' + all.length"></span></span></div>
-      <div class="h-2.5 overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full bg-accent transition-all" :style="'width:' + (all.length ? done / all.length * 100 : 0) + '%'"></div></div>
-      <p x-show="next" class="mt-2 text-xs text-slate-500" x-text="next ? 'Up next: Meeting ' + next.no + ' · ' + next.title : ''"></p>
-    </div>
+    <p x-show="track" class="mt-1 text-sm text-slate-500" x-text="(track?.target ? 'Target score: ' + track.target : '') + (track?.points[0] ? ' · ' + track.points[0] : '')"></p>
   </div>
 
-  <!-- Filters -->
-  <div class="flex flex-col gap-3 lg:flex-row lg:items-center">
-    <div class="thin-scroll -mx-4 flex gap-2 overflow-x-auto px-4 pb-1 lg:mx-0 lg:px-0">
-      <button @click="sec='all'" class="whitespace-nowrap rounded-xl px-4 py-2 text-sm font-medium transition" :class="sec==='all' ? 'bg-slate-900 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'">All sections</button>
-      <template x-for="s in E.sections" :key="s.id">
-        <button @click="sec=s.id" class="whitespace-nowrap rounded-xl px-4 py-2 text-sm font-medium transition" :class="sec===s.id ? 'bg-slate-900 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'" x-text="s.short"></button>
-      </template>
-    </div>
-    <div class="flex gap-2 lg:ml-auto">
-      <div class="relative flex-1 lg:w-64">
-        <i data-lucide="search" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"></i>
-        <input x-model="q" type="search" placeholder="Search meetings…" class="w-full rounded-xl border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm outline-none focus:border-accent focus:ring-4 focus:ring-accent/10">
+  <!-- Track -->
+  <template x-if="track">
+    <div class="rounded-2xl border-2 border-accent/40 bg-accent-soft p-5">
+      <h3 class="flex items-center gap-2 text-lg font-bold text-accent"><i data-lucide="graduation-cap" class="h-5 w-5"></i><span x-text="track.name"></span></h3>
+      <p x-show="track.target" class="text-xs text-slate-500" x-text="'Target score: ' + track.target"></p>
+      <div x-show="track.points.length" class="mt-3 text-sm text-slate-700">
+        <p class="font-semibold">This track is for:</p>
+        <ul class="mt-1 space-y-0.5"><template x-for="p in track.points"><li x-text="'• ' + p"></li></template></ul>
       </div>
-      <select x-model="st" class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-accent">
-        <option value="all">All statuses</option><option value="new">Not started</option><option value="progress">In progress</option><option value="done">Completed</option>
-      </select>
     </div>
+  </template>
+  <div x-show="!track && plPkg" class="flex flex-col gap-3 rounded-2xl border-2 border-dashed border-accent/40 bg-white p-5 sm:flex-row sm:items-center">
+    <span class="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-accent-soft text-accent"><i data-lucide="gauge" class="h-5 w-5"></i></span>
+    <p class="flex-1 text-sm"><b>Find your learning track.</b> <span class="text-slate-500">Take the short placement test to get your track and target score.</span></p>
+    <a :href="'test.html?pkg=' + plPkg?.id" class="rounded-xl bg-accent px-4 py-2 text-center text-sm font-semibold text-white hover:bg-accent-dark">Start Placement Test</a>
   </div>
 
-  <!-- Meetings in curriculum order -->
-  <ol class="space-y-3">
-    <template x-for="c in list" :key="c.id">
-      <li>
-        <a :href="'materi-detail.html?id=' + c.id" class="group flex gap-4 rounded-2xl border bg-white p-4 shadow-soft transition hover:border-accent/40 hover:shadow-lg sm:p-5" :class="next && c.id === next.id ? 'border-accent ring-4 ring-accent/10' : 'border-slate-200'">
-          <div class="flex flex-col items-center">
-            <span class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl text-lg font-extrabold" :class="c.status==='done' ? 'bg-emerald-500 text-white' : c.status==='progress' ? 'bg-accent text-white' : 'bg-slate-100 text-slate-500'" x-html="c.status==='done' ? ico('check', 'h-6 w-6') : c.no"></span>
-            <span class="mt-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Meeting</span>
+  <!-- Overall progress -->
+  <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-soft">
+    <div class="flex items-center justify-between text-sm"><h3 class="font-semibold">Overall Progress</h3><span class="text-slate-500" x-text="done + ' / ' + all.length + ' meetings completed'"></span></div>
+    <div class="mt-3 h-2.5 overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full bg-accent transition-all" :style="'width:' + pct + '%'"></div></div>
+    <p class="mt-1.5 text-xs text-slate-500" x-text="pct + '% complete'"></p>
+  </div>
+
+  <!-- Section scores -->
+  <div>
+    <div class="grid grid-cols-2 gap-3" :class="E.sections.length >= 3 ? 'md:grid-cols-4' : 'md:grid-cols-3'">
+      <template x-for="(s, i) in E.sections" :key="s.id">
+        <div class="rounded-2xl border p-4 text-center" :class="COLORS[i % COLORS.length]">
+          <p class="text-sm font-semibold" x-text="s.short"></p>
+          <p class="mt-1 text-2xl font-extrabold" x-text="fmt1(diag?.sections[s.id])"></p>
+          <p class="text-xs opacity-70" x-text="s.tutor ? 'tutor graded' : E.key === 'toefl' ? '/' + (TOEFL_MAX[s.id] || 67) : E.key === 'ielts' ? '/9' : '/100'"></p>
+        </div>
+      </template>
+      <div class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-center text-amber-700">
+        <p class="text-sm font-semibold">Total Score</p>
+        <p class="mt-1 text-2xl font-extrabold" x-text="diag?.total != null ? fmt1(diag.total) : diag?.range ? '~' : '—'"></p>
+        <p class="text-xs opacity-70" x-text="diag?.total != null ? (E.scale ? '/' + E.scale.split(/[–-]/).pop().trim() : '') : diag?.range || ''"></p>
+      </div>
+    </div>
+    <p class="mt-2 text-center text-xs text-slate-400" x-text="diag ? 'From: ' + diag.source + ' · ' + fmtDate(diag.date) : 'Take the placement test or a full mock test to see your scores.'"></p>
+  </div>
+
+  <!-- Locked notice (redirect from a locked meeting) -->
+  <div x-show="lockedMsg" x-cloak class="flex items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800"><i data-lucide="lock" class="h-5 w-5 shrink-0"></i><span x-text="lockedMsg"></span></div>
+
+  <!-- Meetings -->
+  <ol class="space-y-2.5">
+    <template x-for="c in all" :key="c.id">
+      <li class="flex items-center gap-4 rounded-2xl border bg-white p-4 shadow-soft transition" :class="c.locked ? 'border-slate-100 opacity-50 shadow-none' : c.status === 'done' ? 'border-accent/30 bg-accent-soft/50' : 'border-slate-200'">
+        <span class="grid h-11 w-11 shrink-0 place-items-center rounded-full border-2 text-base font-bold" :class="c.status === 'done' ? 'border-accent bg-accent text-white' : c.locked ? 'border-slate-200 text-slate-400' : 'border-accent text-accent'" x-html="c.status === 'done' ? ico('check', 'h-5 w-5') : c.no"></span>
+        <div class="min-w-0 flex-1">
+          <p class="truncate font-semibold" :class="c.locked && 'text-slate-500'" x-text="c.title"></p>
+          <p class="flex flex-wrap items-center gap-x-3 text-xs text-slate-500"><span class="truncate" x-text="c.desc"></span><span class="flex items-center gap-1 whitespace-nowrap"><i data-lucide="clock" class="h-3 w-3"></i><span x-text="c.minutes + ' min'"></span></span>
+            <span x-show="c.status === 'progress'" class="whitespace-nowrap font-semibold text-accent" x-text="c.progress + '% done'"></span></p>
+        </div>
+        <template x-if="c.locked"><span class="flex shrink-0 items-center gap-1.5 text-xs font-medium text-slate-400"><i data-lucide="lock" class="h-4 w-4"></i>Locked</span></template>
+        <template x-if="!c.locked">
+          <div class="flex shrink-0 items-center gap-2">
+            <a :href="'materi-detail.html?id=' + c.id" class="rounded-lg border-2 border-accent px-3 py-1 text-xs font-semibold text-accent transition hover:bg-accent hover:text-white" x-text="c.status === 'done' ? 'Review' : c.status === 'progress' ? 'Continue' : 'Start'"></a>
+            <span :class="c.status === 'done' ? 'text-accent' : 'text-emerald-500'" x-html="ico(c.status === 'done' ? 'circle-check' : 'lock-open', 'h-4 w-4')"></span>
           </div>
-          <div class="min-w-0 flex-1">
-            <div class="flex flex-wrap items-center gap-2 text-xs">
-              <span class="font-semibold text-slate-500" x-text="'Meeting ' + c.no"></span>
-              <span class="rounded-md bg-slate-100 px-2 py-0.5 text-slate-600" x-text="sectionMeta(c.exam, c.section)?.short || c.section"></span>
-              <span class="rounded-md px-2 py-0.5 font-semibold" :class="{ done: 'bg-emerald-50 text-emerald-700', progress: 'bg-amber-50 text-amber-700', new: 'bg-slate-50 text-slate-500' }[c.status]" x-text="statusLabel[c.status]"></span>
-              <span x-show="next && c.id === next.id" class="rounded-md bg-accent px-2 py-0.5 font-semibold text-white">Up next</span>
-            </div>
-            <h4 class="mt-1.5 text-[17px] font-semibold group-hover:text-accent" x-text="c.title"></h4>
-            <p class="mt-0.5 text-sm text-slate-500" x-text="c.desc"></p>
-            <div class="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-500">
-              <span class="flex items-center gap-1"><i data-lucide="layers" class="h-3.5 w-3.5"></i><span x-text="c.subs.length + ' parts'"></span></span>
-              <span class="flex items-center gap-1"><i data-lucide="file-question" class="h-3.5 w-3.5"></i><span x-text="c.nq + ' questions'"></span></span>
-              <span class="flex items-center gap-1"><i data-lucide="clock" class="h-3.5 w-3.5"></i><span x-text="c.minutes + ' min'"></span></span>
-              <span class="flex min-w-[140px] flex-1 items-center gap-2 sm:max-w-[220px]"><span class="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-100"><span class="block h-full rounded-full" :class="c.status==='done' ? 'bg-emerald-500' : 'bg-accent'" :style="'width:' + c.progress + '%'"></span></span><b class="text-slate-600" x-text="c.progress + '%'"></b></span>
-            </div>
-          </div>
-          <i data-lucide="chevron-right" class="mt-3 hidden h-5 w-5 shrink-0 text-slate-300 group-hover:text-accent sm:block"></i>
-        </a>
+        </template>
       </li>
     </template>
   </ol>
-
-  <div x-show="!list.length" class="flex flex-col items-center rounded-2xl border-2 border-dashed border-slate-200 bg-white px-6 py-16 text-center">
-    <span class="grid h-14 w-14 place-items-center rounded-2xl bg-slate-100 text-slate-400"><i data-lucide="search-x" class="h-7 w-7"></i></span>
-    <h4 class="mt-4 font-semibold" x-text="all.length ? 'No meetings found' : 'No meetings yet'"></h4>
-    <p x-show="all.length" class="mt-1 max-w-sm text-sm text-slate-500">Try another keyword or change the section and status filters.</p>
-    <button x-show="all.length" @click="q=''; sec='all'; st='all'" class="mt-5 rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-white hover:bg-accent-dark">Reset filters</button>
-  </div>
+  <p x-show="!all.length" class="rounded-2xl border-2 border-dashed border-slate-200 bg-white p-10 text-center text-sm text-slate-500">The curriculum for this program is not available yet.</p>
 </main>
 
 <script>
-function materi() {
+function curriculum() {
   const exam = getExam(), E = DB.exams[exam];
-  const all = meetings(exam).map((c, i) => ({ ...c, no: i + 1, nq: DB.questions.filter(q => q.chapter === c.id).length }));
+  // Meeting N terbuka jika Meeting N-1 sudah 100%
+  const all = meetings(exam).map((c, i, list) => ({ ...c, no: i + 1, locked: i > 0 && list[i - 1].progress < 100 }));
+  const done = all.filter(c => c.status === 'done').length;
+  const lockedC = all.find(c => c.id === qs('locked'));
   return {
-    E, all, sec: qs('section') || 'all', st: 'all', q: '',
-    done: all.filter(c => c.status === 'done').length,
-    next: all.find(c => c.status !== 'done') || null,
-    get list() {
-      const k = this.q.toLowerCase();
-      return all.filter(c => (this.sec === 'all' || c.section === this.sec) && (this.st === 'all' || c.status === this.st) && (c.title + c.desc).toLowerCase().includes(k));
-    },
+    E, all, done, pct: all.length ? Math.round(done / all.length * 100) : 0,
+    track: trackOf(exam), diag: diagnostic(exam),
+    plPkg: DB.packages.find(p => p.exam === exam && p.type === 'placement'),
+    lockedMsg: lockedC ? `Meeting ${lockedC.no} is locked. Complete Meeting ${lockedC.no - 1} first (read all parts and answer all practice questions).` : '',
+    COLORS: ['border-blue-200 bg-blue-50 text-blue-700', 'border-violet-200 bg-violet-50 text-violet-700', 'border-emerald-200 bg-emerald-50 text-emerald-700', 'border-rose-200 bg-rose-50 text-rose-700'],
+    fmt1: v => v == null ? '—' : exam === 'ielts' ? Number(v).toFixed(1) : v,
   };
 }
 </script>

@@ -75,7 +75,7 @@
           <template x-for="s in pl.sections" :key="s.id">
             <div class="mt-3 flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-sm"><span x-text="sectionMeta(E.key, s.id)?.short || s.id"></span><b x-text="s.correct + ' / ' + s.total"></b></div>
           </template>
-          <p x-show="E.recommend?.[level.code]" class="mt-3 rounded-xl bg-accent-soft p-3 text-sm text-slate-800"><b>Recommended:</b> <span x-text="E.recommend?.[level.code]"></span></p>
+          <p x-show="track" class="mt-3 rounded-xl bg-accent-soft p-3 text-sm text-slate-800"><b x-text="track?.name"></b><span x-show="track?.target" x-text="' · target ' + track?.target"></span></p>
           <div class="mt-3 grid grid-cols-2 gap-2">
             <a :href="'placement.html?id=' + pl.id" class="rounded-xl border border-slate-200 py-2 text-center text-xs font-semibold hover:bg-slate-50">Details</a>
             <a :href="'test.html?pkg=' + plPkg?.id" class="rounded-xl border border-slate-200 py-2 text-center text-xs font-semibold hover:bg-slate-50">Retake</a>
@@ -98,7 +98,7 @@ function program() {
   const key = DB.exams[qs('p')] ? qs('p') : getExam(), E = DB.exams[key];
   document.documentElement.dataset.exam = key;
   const pl = DB.attempts.find(a => a.exam === key && isPlacement(a)) || null;
-  return { E, pl, level: pl && levelOf(pl.total), plPkg: DB.packages.find(p => p.exam === key && p.type === 'placement') };
+  return { E, pl, level: pl && levelOf(pl.total), track: trackOf(key), plPkg: DB.packages.find(p => p.exam === key && p.type === 'placement') };
 }
 </script>
 </body>

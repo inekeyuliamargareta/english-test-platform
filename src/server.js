@@ -8,6 +8,7 @@ const SECRET = process.env.JWT_SECRET;
 if (!SECRET) throw new Error('JWT_SECRET belum diisi di .env');
 const PUBLIC = path.join(__dirname, '..', 'public');
 const AUDIO_DIR = path.join(PUBLIC, 'uploads', 'audio');
+const EBOOK_DIR = path.join(__dirname, '..', 'storage', 'ebooks');
 const CONTACT = {
   name: process.env.CONTACT_NAME, address: process.env.CONTACT_ADDRESS, wa: process.env.CONTACT_WA,
   waLabel: process.env.CONTACT_WA_LABEL, hours: process.env.CONTACT_HOURS,
@@ -43,6 +44,7 @@ function mapQuestion(r, full) {
   return o;
 }
 const mapTask = (t, full) => ({ id: t.id, exam: t.exam, section: t.section, task: t.task, minutes: t.minutes, minWords: t.min_words, title: t.title, prompt: t.prompt, chart: t.chart, ...(full && { sample: t.sample }) });
+const mapEbook = (e, full) => ({ id: e.id, exam: e.exam, title: e.title, desc: e.descr, access: e.access, size: e.size, hasFile: !!e.file, locked: e.access === 'paid' && !full });
 const mapAttempt = a => ({ id: a.id, pkg: a.package_id, exam: a.exam, date: a.created_at, duration: a.duration, total: a.total == null ? null : +a.total, sections: a.result.sections, flags: a.flags });
 
 async function loadExams() {
@@ -110,10 +112,10 @@ app.get('/api/bootstrap', wrap(async (req, res) => {
   if (!u) return res.json(out);
   const admin = u.role === 'admin';
   if (admin && req.query.lite) {
-    const [chapters, passages, clips, packages, counts] = await Promise.all([
+    const [chapters, passages, clips, packages, counts, ebooks] = await Promise.all([
       q('SELECT id, exam, section, title, descr, minutes, draft, JSON_LENGTH(subs) n FROM chapters ORDER BY sort, id'),
       q('SELECT id, title FROM passages ORDER BY title'), q('SELECT * FROM clips ORDER BY title'),
-      q('SELECT * FROM packages ORDER BY sort, id'), questionCounts(),
+      q('SELECT * FROM packages ORDER BY sort, id'), questionCounts(), q('SELECT * FROM ebooks ORDER BY sort, created_at'),
     ]);
     out.user = { id: u.id, name: u.name, email: u.email, role: u.role, initials: initials(u.name), target: {}, access: { full: true, used: false } };
     out.chapters = chapters.map(c => ({ id: c.id, exam: c.exam, section: c.section, title: c.title, desc: c.descr, minutes: c.minutes, draft: !!c.draft, subsCount: c.n }));
@@ -121,15 +123,17 @@ app.get('/api/bootstrap', wrap(async (req, res) => {
     out.clips = Object.fromEntries(clips.map(c => [c.id, mapClip(c)]));
     out.packages = packages.map(mapPackage);
     out.counts = counts;
+    out.ebooks = ebooks.map(e => mapEbook(e, true));
     return res.json(out);
   }
-  const [chapters, passages, clips, questions, tasks, packages, progress, attempts] = await Promise.all([
+  const [chapters, passages, clips, questions, tasks, packages, progress, attempts, ebooks] = await Promise.all([
     q(`SELECT * FROM chapters ${admin ? '' : 'WHERE draft = 0'} ORDER BY sort, id`),
     q('SELECT * FROM passages'), q('SELECT * FROM clips'),
     q('SELECT * FROM questions ORDER BY sort, id'), q('SELECT * FROM writing_tasks ORDER BY task, id'),
     q('SELECT * FROM packages ORDER BY sort, id'),
     q('SELECT chapter_id, progress, updated_at FROM chapter_progress WHERE user_id = ?', [u.id]),
     q('SELECT * FROM attempts WHERE user_id = ? ORDER BY created_at DESC, id DESC', [u.id]),
+    q('SELECT * FROM ebooks WHERE file IS NOT NULL ORDER BY sort, created_at'),
   ]);
   const prog = Object.fromEntries(progress.map(p => [p.chapter_id, p.progress]));
   out.user = {
@@ -144,6 +148,7 @@ app.get('/api/bootstrap', wrap(async (req, res) => {
   out.writingTasks = tasks.map(t => mapTask(t, admin));
   out.packages = packages.map(mapPackage);
   out.attempts = attempts.map(mapAttempt);
+  out.ebooks = ebooks.map(e => mapEbook(e, admin || !!u.full_access));
   // Aktivitas terbaru: gabungan simulasi & progres bab
   const pkgName = id => packages.find(p => p.id === id)?.name || id, ch = id => chapters.find(c => c.id === id);
   function isPlacement(id) { return packages.find(p => p.id === id)?.type === 'placement'; }
@@ -167,10 +172,10 @@ app.put('/api/progress/:chapterId', need(), wrap(async (req, res) => {
   res.json({ ok: true });
 }));
 
-// Latihan di akhir bab: kunci & pembahasan dikirim setelah siswa menjawab.
+// Latihan bab & latihan per skill: kunci & pembahasan dikirim setelah siswa menjawab.
 // ponytail: soal latihan dan simulasi memakai bank soal yang sama; pisahkan jika kunci simulasi harus benar-benar rahasia.
 app.post('/api/questions/:id/check', need(), wrap(async (req, res) => {
-  const [r] = await q('SELECT type, answer, explanation FROM questions WHERE id = ? AND chapter IS NOT NULL', [req.params.id]);
+  const [r] = await q("SELECT type, answer, explanation FROM questions WHERE id = ? AND pool = 'bank'", [req.params.id]);
   if (!r) fail(404, 'Question not found');
   res.json({ correct: isCorrect(r, req.body?.answer), answer: r.answer, explain: r.explanation });
 }));
@@ -413,7 +418,7 @@ app.put('/api/admin/exams/:code', admin, wrap(async (req, res) => {
   if (parts.length !== 3 || parts.some(n => !(n >= 0 && n <= 255))) fail(400, 'Warna tidak valid');
   const mix = t => parts.map(n => Math.round(t > 0 ? n + (255 - n) * t : n * (1 + t))).join(' ');
   const secs = (Array.isArray(b.sections) ? b.sections : []).map(s => ({ ...s, name: text(s.name, 80, 'Nama section'), official: String(s.official || '').slice(0, 60) || null }));
-  const recommend = Object.fromEntries(['A2', 'B1', 'B2', 'C1'].map(k => [k, String(b.recommend?.[k] || '').slice(0, 500)]));
+  const recommend = Object.fromEntries(['A2', 'B1', 'B2', 'C1'].map(k => { const t = b.recommend?.[k] || {}; return [k, { name: String(t.name || '').slice(0, 80), target: String(t.target || '').slice(0, 40), desc: String(t.desc || '').slice(0, 1000) }]; }));
   if (!secs.length) fail(400, 'Minimal satu section');
   const used = new Set();
   for (const s of secs) {
@@ -441,10 +446,53 @@ app.put('/api/admin/exams/:code', admin, wrap(async (req, res) => {
   res.json((await loadExams())[code]);
 }));
 
+// ---------- Ebook ----------
+// Siswa membuka file lewat API (bukan URL publik), agar ebook berbayar tidak bisa dibagikan sembarangan.
+app.get('/api/ebooks/:id/file', need(), wrap(async (req, res) => {
+  const [e] = await q('SELECT * FROM ebooks WHERE id = ?', [req.params.id]);
+  if (!e || !e.file) fail(404, 'Ebook not found');
+  if (e.access === 'paid' && req.user.role !== 'admin' && !req.user.full_access) fail(403, 'This ebook is for students with full access. Contact EnglishOn to unlock it.');
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader('Content-Disposition', `inline; filename="${e.title.replace(/[^\w .-]+/g, '').slice(0, 80) || 'ebook'}.pdf"`);
+  res.sendFile(path.join(EBOOK_DIR, e.file));
+}));
+
+app.put('/api/admin/ebooks/:id', admin, wrap(async (req, res) => {
+  const id = req.params.id, b = req.body || {}; validId(id);
+  if (!(await loadExams())[b.exam]) fail(400, 'Program tidak valid');
+  const [{ sort }] = await q('SELECT COALESCE(MAX(sort), 0) + 1 sort FROM ebooks');
+  await q(`INSERT INTO ebooks (id, exam, title, descr, access, sort) VALUES (?, ?, ?, ?, ?, ?)
+    ON DUPLICATE KEY UPDATE title = VALUES(title), descr = VALUES(descr), access = VALUES(access)`,
+    [id, b.exam, text(b.title, 160, 'Judul ebook'), String(b.desc || '').slice(0, 1000), b.access === 'paid' ? 'paid' : 'free', sort]);
+  const [e] = await q('SELECT * FROM ebooks WHERE id = ?', [id]);
+  res.json(mapEbook(e, true));
+}));
+
+app.put('/api/admin/ebooks/:id/file', admin, express.raw({ type: 'application/pdf', limit: '50mb' }), wrap(async (req, res) => {
+  const id = req.params.id; validId(id);
+  if (!Buffer.isBuffer(req.body) || req.body.subarray(0, 5).toString() !== '%PDF-') fail(400, 'File harus PDF');
+  const [e] = await q('SELECT file FROM ebooks WHERE id = ?', [id]);
+  if (!e) fail(404, 'Ebook tidak ditemukan');
+  fs.mkdirSync(EBOOK_DIR, { recursive: true });
+  const file = `${id}-${Date.now()}.pdf`;
+  fs.writeFileSync(path.join(EBOOK_DIR, file), req.body);
+  await q('UPDATE ebooks SET file = ?, size = ? WHERE id = ?', [file, req.body.length, id]);
+  if (e.file) fs.rm(path.join(EBOOK_DIR, e.file), { force: true }, () => {});
+  res.json({ size: req.body.length });
+}));
+
+app.delete('/api/admin/ebooks/:id', admin, wrap(async (req, res) => {
+  const [e] = await q('SELECT file FROM ebooks WHERE id = ?', [req.params.id]);
+  if (!e) fail(404, 'Ebook tidak ditemukan');
+  await q('DELETE FROM ebooks WHERE id = ?', [req.params.id]);
+  if (e.file) fs.rm(path.join(EBOOK_DIR, e.file), { force: true }, () => {});
+  res.json({ ok: true });
+}));
+
 // ---------- Error ----------
 app.use('/api', (req, res) => res.status(404).json({ error: 'Endpoint tidak ditemukan' }));
 app.use((err, req, res, next) => {
-  if (err.status && err.status < 500) return res.status(err.status).json({ error: err.type === 'entity.too.large' ? 'File terlalu besar (maks. 25 MB)' : err.message });
+  if (err.status && err.status < 500) return res.status(err.status).json({ error: err.type === 'entity.too.large' ? 'File terlalu besar (audio maks. 25 MB, ebook maks. 50 MB)' : err.message });
   console.error(err);
   res.status(500).json({ error: 'Server error, please try again' });
 });

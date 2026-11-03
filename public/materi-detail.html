@@ -145,6 +145,8 @@
 function detail() {
   const c = chapterById(qs('id')) || DB.chapters.find(x => x.exam === getExam());
   if (!c) { location.replace('materi.html'); return {}; }
+  const prev = meetings(c.exam)[meetingNo(c) - 2];
+  if (prev && prev.progress < 100 && DB.user.role !== 'admin') { location.replace('materi.html?locked=' + c.id); return {}; }
   if (c.exam !== getExam()) document.documentElement.dataset.exam = c.exam;
   const same = DB.chapters.filter(x => x.exam === c.exam && x.section === c.section);
   const list = meetings(c.exam);
@@ -156,7 +158,7 @@ function detail() {
     next: list[list.indexOf(c) + 1], no: meetingNo(c), total: list.length,
     get score() { return Object.values(this.res).filter(r => r.correct).length; },
     // 70% dari sub-bab yang dibaca + 30% dari latihan yang dijawab; tidak pernah turun dari progres tersimpan
-    get progress() { return Math.max(c.progress || 0, Math.round(this.seen.length / this.c.subs.length * 70 + Object.keys(this.res).length / (this.items.length || 1) * 30)); },
+    get progress() { return Math.max(c.progress || 0, Math.round(this.seen.length / this.c.subs.length * 70 + (this.items.length ? Object.keys(this.res).length / this.items.length : 1) * 30)); },
     init() { this.save(); },
     save() { if (this.progress > (this._saved ?? -1)) { this._saved = this.progress; api('PUT', '/progress/' + c.id, { progress: this.progress }).catch(() => {}); } },
     go(i) { if (i < 0 || i >= c.subs.length) return; this.cur = i; if (!this.seen.includes(i)) this.seen.push(i); this.save(); window.scrollTo({ top: 0, behavior: 'smooth' }); },

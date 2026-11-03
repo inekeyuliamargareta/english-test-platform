@@ -104,6 +104,7 @@ document.head.insertAdjacentHTML('beforeend', `<style>
 
 // ---------- Helper ----------
 const qs = k => new URLSearchParams(location.search).get(k);
+const fmtSize = n => !n ? '—' : n < 1048576 ? Math.max(1, Math.round(n / 1024)) + ' KB' : (n / 1048576).toFixed(1) + ' MB';
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`);
 // Halaman siswa berbahasa Inggris, panel admin berbahasa Indonesia
 const isEN = () => document.body?.dataset.shell !== 'admin';
@@ -197,6 +198,21 @@ const LEVEL_RANGE = {
   ielts: { A2: 'band 4.0 or below', B1: 'band 4.0–5.0', B2: 'band 5.5–6.5', C1: 'band 7.0 and above' },
 };
 const levelOf = percent => [...LEVELS].reverse().find(l => percent >= l.min);
+// Track belajar sesuai level placement terakhir di program ini (null jika belum placement)
+const latestPlacement = exam => DB.attempts?.find(a => a.exam === exam && isPlacement(a)) || null;
+function trackOf(exam) {
+  const pl = latestPlacement(exam); if (!pl) return null;
+  const lv = levelOf(pl.total), t = DB.exams[exam]?.recommend?.[lv.code];
+  return { level: lv, name: t?.name || lv.name, target: t?.target || '', points: String(t?.desc || '').split('\n').map(x => x.trim()).filter(Boolean) };
+}
+// Skor diagnostic: mock test Full terakhir; jika belum ada, dari placement test terakhir
+function diagnostic(exam) {
+  const full = DB.attempts?.find(a => a.exam === exam && DB.packages.find(p => p.id === a.pkg)?.type === 'full');
+  if (full) return { source: 'Latest full mock test', date: full.date, total: full.total, sections: Object.fromEntries(full.sections.map(s => [s.id, s.score])) };
+  const pl = latestPlacement(exam);
+  if (pl) return { source: 'Placement test (estimate)', date: pl.date, total: null, range: LEVEL_RANGE[exam]?.[levelOf(pl.total).code], sections: Object.fromEntries(pl.sections.map(s => [s.id, s.score])) };
+  return null;
+}
 const joinLink = extra => waLink(`Hello EnglishOn, I am ${DB.user?.name || ''}${DB.user?.email ? ' (' + DB.user.email + ')' : ''}. ${extra}`);
 const attemptScore = a => a.total ?? a.sections.find(s => s.score != null)?.score ?? null;
 function scoreAttempt(att) {
@@ -206,14 +222,14 @@ function scoreAttempt(att) {
 
 // ---------- Layout ----------
 const NAV = {
-  app: [['program', 'About the Program', 'info', 'program.html'], ['dashboard', 'Dashboard', 'layout-dashboard', 'dashboard.html'], ['materi', 'Lessons', 'book-open', 'materi.html'], ['simulasi', 'Mock Test', 'timer', 'simulasi.html'], ['hasil', 'Results & Review', 'bar-chart-3', 'hasil.html']],
+  app: [['program', 'About the Program', 'info', 'program.html'], ['dashboard', 'Dashboard', 'layout-dashboard', 'dashboard.html'], ['materi', 'Curriculum', 'book-open', 'materi.html'], ['skills', 'Skills', 'target', 'skills.html'], ['simulasi', 'Mock Test', 'timer', 'simulasi.html'], ['hasil', 'Results & Review', 'bar-chart-3', 'hasil.html'], ['ebook', 'Ebooks', 'book-marked', 'ebook.html'], ['consult', 'Consultation', 'message-circle', '#wa']],
   admin: [['master', 'Master Program', 'layers', 'admin.html#master']],
 };
 const logo = (sub = '') => `<a href="${sub ? 'admin.html' : 'program.html'}" class="flex items-center gap-2.5 font-bold text-slate-900">
   <span class="grid h-9 w-9 place-items-center rounded-xl bg-brand-600 text-white shadow-sm"><i data-lucide="graduation-cap" class="h-5 w-5"></i></span>
   <span class="text-[17px] tracking-tight">English<span class="text-brand-600">On</span>${sub}</span></a>`;
 
-const ADMIN_SUB = [['siswa', 'Siswa', 'users'], ['materi', 'Materi', 'book-open'], ['soal', 'Soal', 'file-question'], ['pengaturan', 'Pengaturan', 'settings']];
+const ADMIN_SUB = [['siswa', 'Siswa', 'users'], ['materi', 'Curriculum', 'book-open'], ['soal', 'Soal', 'file-question'], ['ebook', 'Ebook', 'book-marked'], ['pengaturan', 'Pengaturan', 'settings']];
 function adminPrograms(link) {
   return `<p class="px-3 pb-2 pt-5 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Program</p>` + Object.values(DB.exams).map(e => `
     <div>
@@ -233,7 +249,7 @@ function mountShell() {
   const kind = document.body.dataset.shell; if (!kind) return;
   const main = document.querySelector('main'), active = document.body.dataset.active, title = document.body.dataset.title || '';
   const exam = getExam(), admin = kind === 'admin';
-  const link = ([k, label, icon, href]) => `<a href="${href}" data-nav="${k}" @click="nav=false" class="nav-link group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${k === active ? 'bg-brand-50 text-brand-700' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'}">
+  const link = ([k, label, icon, href]) => `<a href="${href === '#wa' ? esc(joinLink('I would like to consult about my class or access.')) + '" target="_blank" rel="noopener' : href}" data-nav="${k}" @click="nav=false" class="nav-link group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${k === active ? 'bg-brand-50 text-brand-700' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'}">
       <i data-lucide="${icon}" class="h-[18px] w-[18px]"></i>${label}</a>`;
   const examBtn = e => e.active
     ? `<button onclick="setExam('${e.key}')" class="whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-semibold transition ${exam === e.key ? 'bg-accent text-white shadow-sm' : 'text-slate-500 hover:text-slate-900'}">${e.name.split(' ')[0]}</button>`

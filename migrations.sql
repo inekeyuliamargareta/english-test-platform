@@ -138,3 +138,17 @@ CREATE TABLE IF NOT EXISTS attempts (
   INDEX (user_id, created_at),
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
+
+-- Ebook per program. File PDF disimpan di folder storage/ebooks (tidak bisa dibuka langsung lewat URL),
+-- dikirim lewat API setelah dicek: ebook berbayar hanya untuk siswa Akses Penuh.
+CREATE TABLE IF NOT EXISTS ebooks (
+  id         VARCHAR(40) PRIMARY KEY,
+  exam       VARCHAR(20) NOT NULL,
+  title      VARCHAR(160) NOT NULL,
+  descr      TEXT,
+  access     ENUM('free','paid') NOT NULL DEFAULT 'free',
+  file       VARCHAR(255),
+  size       INT,
+  sort       INT NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
