@@ -9,8 +9,9 @@ CREATE TABLE IF NOT EXISTS users (
   password_hash VARCHAR(100) NOT NULL,
   role          ENUM('student','admin') NOT NULL DEFAULT 'student',
   exam          VARCHAR(20),
-  target_toefl  INT DEFAULT 550,
-  target_ielts  DECIMAL(2,1) DEFAULT 6.5,
+  target_toefl  INT DEFAULT 550,         -- lama, tidak dipakai (diganti targets)
+  target_ielts  DECIMAL(2,1) DEFAULT 6.5, -- lama, tidak dipakai
+  targets       JSON,                    -- target skor yang diisi siswa per program, mis. {"toefl":550}
   full_access   TINYINT(1) NOT NULL DEFAULT 0,   -- 0 = akun gratis (1x simulasi), 1 = dibuka admin
   created_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );

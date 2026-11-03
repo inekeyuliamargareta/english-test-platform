@@ -40,6 +40,7 @@ const parseJoined = s => { const [d, m, y] = s.split(' '); return new Date(+y, M
     S.students.map(s => [s.name, s.email, hash, 'student', s.exam, s.full, parseJoined(s.joined)]));
   const [users] = await pool.query("SELECT id, email, exam FROM users WHERE role = 'student'");
   const idOf = email => users.find(u => u.email === email).id;
+  await pool.query('UPDATE users SET targets = ? WHERE id = ?', [J(S.user.target), idOf(S.user.email)]); // target siswa demo utama
 
   // Progres materi siswa demo utama
   await insert('chapter_progress', ['user_id', 'chapter_id', 'progress'],

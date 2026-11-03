@@ -9,6 +9,7 @@ const COLUMNS = [
   ['exams', 'about', 'TEXT'],
   ['exams', 'recommend', 'JSON'],
   ['questions', 'pool', "ENUM('bank','placement') NOT NULL DEFAULT 'bank'"],
+  ['users', 'targets', 'JSON'],
 ];
 
 (async () => {

@@ -77,7 +77,7 @@ app.use('/api', wrap(async (req, res, next) => {
   if (h.startsWith('Bearer ')) {
     try {
       const { sub } = jwt.verify(h.slice(7), SECRET);
-      [req.user] = await q('SELECT id, name, email, role, exam, target_toefl, target_ielts, full_access FROM users WHERE id = ?', [sub]);
+      [req.user] = await q('SELECT id, name, email, role, exam, targets, full_access FROM users WHERE id = ?', [sub]);
     } catch { /* token kedaluwarsa / rusak → dianggap belum masuk */ }
   }
   next();
@@ -138,7 +138,7 @@ app.get('/api/bootstrap', wrap(async (req, res) => {
   const prog = Object.fromEntries(progress.map(p => [p.chapter_id, p.progress]));
   out.user = {
     id: u.id, name: u.name, email: u.email, role: u.role, exam: u.exam, initials: initials(u.name),
-    target: { toefl: u.target_toefl, ielts: +u.target_ielts },
+    target: u.targets || {},
     access: { full: admin || !!u.full_access, used: attempts.some(a => !isPlacement(a.package_id)) },
   };
   out.chapters = chapters.map(c => { const p = prog[c.id] || 0; return { ...mapChapter(c), progress: p, status: p >= 100 ? 'done' : p ? 'progress' : 'new' }; });
@@ -162,6 +162,22 @@ app.get('/api/bootstrap', wrap(async (req, res) => {
 }));
 
 // ---------- Siswa ----------
+// Target skor diisi siswa sendiri, per program, dalam skala program itu
+app.put('/api/me/target', need(), wrap(async (req, res) => {
+  const exam = String(req.body?.exam || ''), raw = req.body?.target, v = raw === null || raw === '' ? null : Number(raw);
+  if (!(await loadExams())[exam]) fail(400, 'Unknown program');
+  if (v !== null) {
+    const ok = exam === 'toefl' ? Number.isInteger(v) && v >= 310 && v <= 677
+      : exam === 'ielts' ? v >= 1 && v <= 9 && Number.isInteger(v * 2)
+      : v >= 0 && v <= 1000;
+    if (!ok) fail(400, exam === 'toefl' ? 'TOEFL ITP target must be a whole number between 310 and 677' : exam === 'ielts' ? 'IELTS target must be a band from 1 to 9 (e.g. 6.5)' : 'Please enter a valid target score');
+  }
+  const [{ targets }] = await q('SELECT targets FROM users WHERE id = ?', [req.user.id]);
+  const next = { ...(targets || {}) };
+  if (v === null) delete next[exam]; else next[exam] = v;
+  await q('UPDATE users SET targets = ? WHERE id = ?', [J(next), req.user.id]);
+  res.json({ target: next });
+}));
 app.put('/api/progress/:chapterId', need(), wrap(async (req, res) => {
   const p = Math.max(0, Math.min(100, Math.round(+req.body?.progress || 0)));
   const [c] = await q('SELECT id FROM chapters WHERE id = ?', [req.params.chapterId]);

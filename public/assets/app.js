@@ -245,6 +245,35 @@ function adminPrograms(link) {
     </div>`).join('');
 }
 
+// ---------- Target skor siswa ----------
+// Dibuka dari kartu target di sidebar atau dashboard (event "open-target")
+function targetForm() {
+  return {
+    tgt: false, tv: '', terr: '', tsaving: false,
+    openTarget() { this.tv = DB.user.target[getExam()] ?? ''; this.terr = ''; this.tgt = true; },
+    async saveTarget() {
+      this.tsaving = true; this.terr = '';
+      try { await api('PUT', '/me/target', { exam: getExam(), target: this.tv === '' ? null : this.tv }); location.reload(); }
+      catch (e) { this.terr = e.message; this.tsaving = false; }
+    },
+  };
+}
+function targetModal(exam) {
+  const E = DB.exams[exam], hint = exam === 'toefl' ? 'Score from 310 to 677, e.g. 550' : exam === 'ielts' ? 'Band from 1 to 9, e.g. 6.5' : 'Your target score';
+  return `<div x-show="tgt" x-cloak @open-target.window="openTarget()" @keydown.escape.window="tgt = false" class="fixed inset-0 z-50 grid place-items-center p-4">
+    <div class="absolute inset-0 bg-slate-900/40" @click="tgt = false"></div>
+    <form @submit.prevent="saveTarget()" class="relative w-full max-w-sm rounded-3xl bg-white p-6 shadow-2xl">
+      <span class="grid h-12 w-12 place-items-center rounded-2xl bg-amber-50 text-amber-600"><i data-lucide="target" class="h-6 w-6"></i></span>
+      <h3 class="mt-4 text-lg font-bold">Your ${esc(E.name)} target</h3>
+      <p class="mt-1 text-sm text-slate-500">What score do you need, for example for graduation, a scholarship, or a job?</p>
+      <input x-model="tv" type="number" inputmode="decimal" step="${exam === 'ielts' ? '0.5' : '1'}" min="${exam === 'toefl' ? 310 : 0}" max="${exam === 'toefl' ? 677 : exam === 'ielts' ? 9 : 1000}" placeholder="${hint}" class="mt-4 w-full rounded-xl border-2 border-slate-200 px-4 py-3 text-lg font-semibold outline-none focus:border-accent">
+      <p class="mt-1 text-xs text-slate-400">${hint}. Leave empty to remove your target.</p>
+      <p x-show="terr" class="mt-2 rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700" x-text="terr"></p>
+      <div class="mt-5 grid grid-cols-2 gap-2"><button type="button" @click="tgt = false" class="rounded-xl border border-slate-200 py-2.5 text-sm font-semibold hover:bg-slate-50">Cancel</button><button :disabled="tsaving" class="rounded-xl bg-accent py-2.5 text-sm font-semibold text-white hover:bg-accent-dark disabled:opacity-60" x-text="tsaving ? 'Saving…' : 'Save Target'"></button></div>
+    </form>
+  </div>`;
+}
+
 function mountShell() {
   const kind = document.body.dataset.shell; if (!kind) return;
   const main = document.querySelector('main'), active = document.body.dataset.active, title = document.body.dataset.title || '';
@@ -257,7 +286,7 @@ function mountShell() {
 
   const wrap = document.createElement('div');
   // grp = program yang sedang terbuka di sidebar admin
-  wrap.setAttribute('x-data', `{ nav: false, menu: false, grp: '${(location.hash.match(/^#p\/([\w-]+)/) || [])[1] || ''}' }`);
+  wrap.setAttribute('x-data', `{ nav: false, menu: false, ...targetForm(), grp: '${(location.hash.match(/^#p\/([\w-]+)/) || [])[1] || ''}' }`);
   wrap.innerHTML = `
   <aside class="fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-slate-200 bg-white -translate-x-full transition-transform duration-200 lg:translate-x-0" :class="nav && '!translate-x-0 shadow-2xl'">
     <div class="flex h-16 items-center justify-between px-5">${logo(admin ? ' <span class="ml-1 rounded-md bg-slate-900 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white">Admin</span>' : '')}
@@ -267,10 +296,10 @@ function mountShell() {
       ${NAV[kind].map(link).join('')}${admin ? adminPrograms(link) : ''}
     </nav>
     <div class="space-y-3 border-t border-slate-100 p-4">
-      ${admin ? '' : `<div class="rounded-xl bg-gradient-to-br from-accent to-accent-dark p-4 text-white">
-        <p class="text-xs text-white/70">${DB.exams[exam].name} target</p>
-        <p class="mt-1 text-2xl font-bold">${DB.user.target[exam] ?? '-'}</p>
-        <p class="mt-1 flex items-center gap-1 text-xs text-white/80"><i data-lucide="${access.locked ? 'lock' : 'timer'}" class="h-3.5 w-3.5"></i> ${access.full ? 'Full access active' : access.used ? 'Free mock test used' : '1 free mock test available'}</p></div>`}
+      ${admin ? '' : `<button @click="openTarget()" title="Set your target score" class="group block w-full rounded-xl bg-gradient-to-br from-accent to-accent-dark p-4 text-left text-white">
+        <p class="flex items-center justify-between text-xs text-white/70">${DB.exams[exam].name} target<span class="flex items-center gap-1 opacity-70 group-hover:opacity-100"><i data-lucide="pencil" class="h-3 w-3"></i>${DB.user.target[exam] == null ? 'Set' : 'Edit'}</span></p>
+        <p class="mt-1 ${DB.user.target[exam] == null ? 'text-base' : 'text-2xl'} font-bold">${DB.user.target[exam] ?? 'Set your target'}</p>
+        <p class="mt-1 flex items-center gap-1 text-xs text-white/80"><i data-lucide="${access.locked ? 'lock' : 'timer'}" class="h-3.5 w-3.5"></i> ${access.full ? 'Full access active' : access.used ? 'Free mock test used' : '1 free mock test available'}</p></button>`}
       ${DB.user.role === 'admin' ? `<a href="${admin ? 'dashboard.html' : 'admin.html'}" class="flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-slate-600 hover:bg-slate-100"><i data-lucide="${admin ? 'graduation-cap' : 'shield'}" class="h-[18px] w-[18px]"></i>${admin ? 'Ke Mode Siswa' : 'Admin Panel'}</a>` : ''}
       <button onclick="logout()" class="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm text-slate-600 hover:bg-slate-100"><i data-lucide="log-out" class="h-[18px] w-[18px]"></i>${admin ? 'Keluar' : 'Log out'}</button>
     </div>
@@ -297,6 +326,7 @@ function mountShell() {
       </div>
     </header>
     <div id="slot"></div>
+    ${admin ? '' : targetModal(exam)}
   </div>`;
   main.replaceWith(wrap);
   wrap.querySelector('#slot').replaceWith(main);
