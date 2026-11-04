@@ -48,6 +48,8 @@ Jalankan `npm run migrate` sekali setelah menarik versi baru. Kolom baru ditamba
 
 Tampilan siswa berbahasa Inggris (panel admin tetap bahasa Indonesia). Setelah login siswa masuk ke **About the Program**, sesuai program yang dipilih di kanan atas. Dashboard meminta placement test lebih dulu jika siswa belum punya hasilnya. Isi yang diketik admin (deskripsi program, materi, pembahasan) tampil apa adanya.
 
+**Satu siswa = satu program** (dipilih saat daftar). Siswa tidak bisa berpindah program sendiri; admin dapat mengubahnya di detail siswa. Server menolak tes dari program lain.
+
 Target skor diisi siswa sendiri per program (klik kartu target di sidebar atau di dashboard). Latihan soal di halaman pertemuan baru muncul setelah siswa membaca sub-bab terakhir dan menekan **Start Practice**.
 
 ## Aturan penting

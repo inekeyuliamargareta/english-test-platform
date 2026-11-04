@@ -34,6 +34,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 const activeExams = () => Object.values(DB.exams).filter(e => e.active);
 const isActiveExam = k => !!DB.exams[k]?.active;
 function getExam() {
+  if (DB.user && DB.user.role !== 'admin' && DB.exams[DB.user.exam]) return DB.user.exam;
   const p = new URLSearchParams(location.search).get('exam');
   if (isActiveExam(p)) { try { localStorage.setItem('exam', p); } catch {} return p; }
   let k; try { k = localStorage.getItem('exam'); } catch {}
@@ -310,8 +311,9 @@ function mountShell() {
       <button class="rounded-lg p-2 text-slate-600 hover:bg-slate-100 lg:hidden" @click="nav=true" aria-label="Open menu"><i data-lucide="menu" class="h-5 w-5"></i></button>
       <h1 class="truncate text-base font-semibold text-slate-900 sm:text-lg">${title}</h1>
       <div class="ml-auto flex items-center gap-2 sm:gap-3">
-        ${admin ? '' : `<div class="flex rounded-xl bg-slate-100 p-1">${Object.values(DB.exams).map(examBtn).join('')}</div>`}
-        <button class="relative hidden rounded-lg p-2 text-slate-500 hover:bg-slate-100 sm:block" aria-label="Notifications"><i data-lucide="bell" class="h-5 w-5"></i><span class="absolute right-2 top-2 h-2 w-2 rounded-full bg-rose-500 ring-2 ring-white"></span></button>
+        ${admin ? '' : DB.user.role === 'admin'
+          ? `<div class="flex rounded-xl bg-slate-100 p-1">${Object.values(DB.exams).map(examBtn).join('')}</div>`
+          : `<span class="whitespace-nowrap rounded-xl bg-accent px-3 py-1.5 text-xs font-semibold text-white">${esc(DB.exams[exam].name)}</span>`}
         <div class="relative">
           <button @click="menu=!menu" @click.outside="menu=false" class="flex items-center gap-2 rounded-xl p-1 hover:bg-slate-100">
             <span class="grid h-9 w-9 place-items-center rounded-full bg-gradient-to-br from-brand-500 to-indigo-500 text-sm font-semibold text-white">${esc(DB.user.initials)}</span>

@@ -200,6 +200,8 @@ app.post('/api/attempts', need(), wrap(async (req, res) => {
   const u = req.user, b = req.body || {};
   const { pkg, E, meta, items } = await packageContext(b.pkg);
   const placement = pkg.type === 'placement'; // placement test bebas dicoba, termasuk program yang belum aktif
+  // Satu siswa = satu program
+  if (u.role !== 'admin' && u.exam && pkg.exam !== u.exam) fail(403, 'This test is not part of your program.');
   if (!E || (!E.active && !placement)) fail(400, 'This program is not available yet');
   // Simpan hanya jawaban untuk soal di paket ini, dengan tipe yang benar
   const all = pkg.sections.flatMap(([id]) => items(id)), answers = {}, src = b.answers || {};
@@ -313,8 +315,13 @@ app.get('/api/admin/chapters/:id', admin, wrap(async (req, res) => {
   res.json(mapChapter(c));
 }));
 
+// Ubah akses penuh dan/atau program siswa
 app.patch('/api/admin/students/:id', admin, wrap(async (req, res) => {
-  const r = await q("UPDATE users SET full_access = ? WHERE id = ? AND role = 'student'", [req.body?.full ? 1 : 0, +req.params.id || 0]);
+  const b = req.body || {}, sets = [], args = [];
+  if ('full' in b) { sets.push('full_access = ?'); args.push(b.full ? 1 : 0); }
+  if ('exam' in b) { if (!(await loadExams())[b.exam]) fail(400, 'Program tidak valid'); sets.push('exam = ?'); args.push(b.exam); }
+  if (!sets.length) fail(400, 'Tidak ada perubahan');
+  const r = await q(`UPDATE users SET ${sets.join(', ')} WHERE id = ? AND role = 'student'`, [...args, +req.params.id || 0]);
   if (!r.affectedRows) fail(404, 'Siswa tidak ditemukan');
   res.json({ ok: true });
 }));

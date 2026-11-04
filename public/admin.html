@@ -477,6 +477,8 @@
         <div class="rounded-xl bg-slate-50 p-3"><p class="text-lg font-bold" x-text="student?.tests"></p><p class="text-xs text-slate-500">Simulasi</p></div>
         <div class="rounded-xl bg-slate-50 p-3"><p class="text-lg font-bold" x-text="student?.progress + '%'"></p><p class="text-xs text-slate-500">Materi</p></div>
       </div>
+      <label class="mt-5 flex items-center gap-3 rounded-xl border border-slate-200 p-3 text-sm"><span class="flex-1"><b>Program siswa</b><span class="block text-xs text-slate-500">Siswa hanya melihat program ini</span></span>
+        <select :value="student?.exam" @change="changeProgram(student, $event.target.value)" class="rounded-lg border border-slate-200 px-2 py-1.5"><template x-for="e in exams" :key="e.key"><option :value="e.key" x-text="e.name" :selected="e.key === student?.exam"></option></template></select></label>
       <h4 class="mt-5 text-sm font-semibold">Riwayat tes</h4>
       <div class="mt-2 space-y-1.5 text-sm">
         <template x-for="h in (student?.history || [])" :key="h.id"><div class="flex justify-between gap-3 rounded-lg px-3 py-2 odd:bg-slate-50"><span class="text-slate-500" x-text="fmtDate(h.date) + ' · ' + (DB.packages.find(p => p.id === h.pkg)?.name || h.pkg)"></span><b class="whitespace-nowrap" x-text="h.placement ? 'Level ' + levelOf(h.score).code + ' · ' + h.score + '%' : fmtScore(h.score, h.exam)"></b></div></template>
@@ -673,6 +675,10 @@ function admin() {
         this.students = d.rows; this.sP = { page: d.page, total: d.total, limit: d.limit };
       } catch (e) { this.flash('Gagal memuat siswa: ' + e.message); }
       this.sLoading = false;
+    },
+    changeProgram(s, exam) {
+      const name = DB.exams[exam]?.name;
+      this.run(async () => { await api('PATCH', '/admin/students/' + s.id, { exam }); s.exam = exam; }, s.name + ' dipindah ke program ' + name);
     },
     toggleAccess(s) {
       const full = !s.full;
