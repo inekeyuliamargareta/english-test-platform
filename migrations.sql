@@ -40,6 +40,8 @@ CREATE TABLE IF NOT EXISTS exam_sections (
   icon     VARCHAR(40) NOT NULL DEFAULT 'book-open',
   official VARCHAR(60),
   tutor    TINYINT(1) NOT NULL DEFAULT 0,  -- 1 = dinilai tutor (Writing)
+  office   TINYINT(1) NOT NULL DEFAULT 0,  -- 1 = dilakukan di kantor (mis. Speaking): tanpa soal, siswa diarahkan ke WhatsApp
+  note     TEXT,                           -- instruksi untuk siswa (section di kantor)
   sort     INT NOT NULL DEFAULT 0,
   PRIMARY KEY (exam_key, id),
   FOREIGN KEY (exam_key) REFERENCES exams(code) ON DELETE CASCADE

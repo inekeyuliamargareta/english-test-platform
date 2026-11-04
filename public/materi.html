@@ -49,8 +49,8 @@
 
   <!-- Section scores -->
   <div>
-    <div class="grid grid-cols-2 gap-3" :class="E.sections.length >= 3 ? 'md:grid-cols-4' : 'md:grid-cols-3'">
-      <template x-for="(s, i) in E.sections" :key="s.id">
+    <div class="grid grid-cols-2 gap-3" :class="scored.length >= 3 ? 'md:grid-cols-4' : 'md:grid-cols-3'">
+      <template x-for="(s, i) in scored" :key="s.id">
         <div class="rounded-2xl border p-4 text-center" :class="COLORS[i % COLORS.length]">
           <p class="text-sm font-semibold" x-text="s.short"></p>
           <p class="mt-1 text-2xl font-extrabold" x-text="fmt1(diag?.sections[s.id])"></p>
@@ -100,7 +100,7 @@ function curriculum() {
   const done = all.filter(c => c.status === 'done').length;
   const lockedC = all.find(c => c.id === qs('locked'));
   return {
-    E, all, done, pct: all.length ? Math.round(done / all.length * 100) : 0,
+    E, all, done, scored: E.sections.filter(s => !s.office), pct: all.length ? Math.round(done / all.length * 100) : 0,
     track: trackOf(exam), diag: diagnostic(exam),
     plPkg: DB.packages.find(p => p.exam === exam && p.type === 'placement'),
     lockedMsg: lockedC ? `Meeting ${lockedC.no} is locked. Complete Meeting ${lockedC.no - 1} first (read all parts and answer all practice questions).` : '',

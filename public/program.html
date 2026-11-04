@@ -39,11 +39,8 @@
             <template x-for="s in E.sections" :key="s.id">
               <tr><td class="px-5 py-3 font-medium"><span class="flex items-center gap-2"><span class="text-accent" x-html="ico(s.icon)"></span><span x-text="s.name"></span></span></td>
                 <td class="whitespace-nowrap px-5 py-3 text-slate-600" x-text="s.official || '—'"></td>
-                <td class="px-5 py-3"><span class="rounded-md px-2 py-0.5 text-xs font-semibold" :class="s.tutor ? 'bg-violet-100 text-violet-700' : 'bg-emerald-50 text-emerald-700'" x-text="s.tutor ? 'Graded by tutor' : 'Automatic'"></span></td></tr>
+                <td class="px-5 py-3"><a x-show="s.office" :href="officeLink(E, s)" target="_blank" class="text-xs font-semibold text-emerald-700 hover:underline">At our office, via WhatsApp</a><span x-show="!s.office" class="rounded-md px-2 py-0.5 text-xs font-semibold" :class="s.tutor ? 'bg-violet-100 text-violet-700' : 'bg-emerald-50 text-emerald-700'" x-text="s.tutor ? 'Graded by tutor' : 'Automatic'"></span></td></tr>
             </template>
-            <tr x-show="E.key === 'ielts'"><td class="px-5 py-3 font-medium"><span class="flex items-center gap-2"><span class="text-accent" x-html="ico('mic')"></span>Speaking</span></td>
-              <td class="whitespace-nowrap px-5 py-3 text-slate-600">Interview, 11–14 min</td>
-              <td class="px-5 py-3"><a :href="joinLink('I would like to practise ' + E.name + ' Speaking with a tutor at the Ponorogo office.')" target="_blank" class="text-xs font-semibold text-emerald-700 hover:underline">At our office, via WhatsApp</a></td></tr>
           </tbody>
         </table></div>
       </div>

@@ -51,7 +51,7 @@ async function loadExams() {
   const [exams, secs] = await Promise.all([q('SELECT * FROM exams ORDER BY sort, code'), q('SELECT * FROM exam_sections ORDER BY sort, id')]);
   return Object.fromEntries(exams.map(e => [e.code, {
     key: e.code, name: e.name, full: e.full_name, active: !!e.active, rgb: e.rgb, rgbDark: e.rgb_dark, rgbSoft: e.rgb_soft, scale: e.scale, rules: e.rules || [], about: e.about || '', recommend: e.recommend || {},
-    sections: secs.filter(s => s.exam_key === e.code).map(s => ({ id: s.id, name: s.name, short: s.short, icon: s.icon, official: s.official, tutor: !!s.tutor })),
+    sections: secs.filter(s => s.exam_key === e.code).map(s => ({ id: s.id, name: s.name, short: s.short, icon: s.icon, official: s.official, tutor: !!s.tutor, office: !!s.office, note: s.note || '' })),
   }]));
 }
 
@@ -440,7 +440,8 @@ app.put('/api/admin/exams/:code', admin, wrap(async (req, res) => {
   const rgb = String(b.rgb || ''), parts = rgb.split(' ').map(Number);
   if (parts.length !== 3 || parts.some(n => !(n >= 0 && n <= 255))) fail(400, 'Warna tidak valid');
   const mix = t => parts.map(n => Math.round(t > 0 ? n + (255 - n) * t : n * (1 + t))).join(' ');
-  const secs = (Array.isArray(b.sections) ? b.sections : []).map(s => ({ ...s, name: text(s.name, 80, 'Nama section'), official: String(s.official || '').slice(0, 60) || null }));
+  const secs = (Array.isArray(b.sections) ? b.sections : []).map(s => ({ ...s, name: text(s.name, 80, 'Nama section'), official: String(s.official || '').slice(0, 60) || null,
+    office: !!s.office, tutor: !s.office && !!s.tutor, note: String(s.note || '').slice(0, 2000) || null }));
   const recommend = Object.fromEntries(['A2', 'B1', 'B2', 'C1'].map(k => { const t = b.recommend?.[k] || {}; return [k, { name: String(t.name || '').slice(0, 80), target: String(t.target || '').slice(0, 40), desc: String(t.desc || '').slice(0, 1000) }]; }));
   if (!secs.length) fail(400, 'Minimal satu section');
   const used = new Set();
@@ -460,9 +461,9 @@ app.put('/api/admin/exams/:code', admin, wrap(async (req, res) => {
       [code, name, String(b.full || '').trim().slice(0, 120) || name, b.active ? 1 : 0, rgb, mix(-0.2), mix(0.93), String(b.scale || '').slice(0, 30), String(b.about || ''), J(recommend), sort]);
     const [old] = await conn.query('SELECT * FROM exam_sections WHERE exam_key = ?', [code]);
     await conn.query('DELETE FROM exam_sections WHERE exam_key = ?', [code]);
-    await conn.query('INSERT INTO exam_sections (exam_key, id, name, short, icon, official, tutor, sort) VALUES ?', [secs.map((s, i) => {
+    await conn.query('INSERT INTO exam_sections (exam_key, id, name, short, icon, official, tutor, office, note, sort) VALUES ?', [secs.map((s, i) => {
       const prev = old.find(o => o.id === s.id);
-      return [code, s.id, s.name, prev?.short || s.name.split(' ')[0], prev?.icon || (s.tutor ? 'pen-line' : 'book-open'), s.official, s.tutor ? 1 : 0, i];
+      return [code, s.id, s.name, prev?.short || s.name.split(' ')[0], prev?.icon || (s.office ? 'mic' : s.tutor ? 'pen-line' : 'book-open'), s.official, s.tutor ? 1 : 0, s.office ? 1 : 0, s.note, i];
     })]);
     await conn.commit();
   } catch (e) { await conn.rollback(); throw e; } finally { conn.release(); }

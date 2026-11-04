@@ -134,7 +134,7 @@ function dash() {
     plMinutes: plPkg ? plPkg.sections.reduce((n, s) => n + s[1], 0) : 0,
     activity: DB.activity.filter(a => a.exam === exam).slice(0, 5),
     cont: chapters.find(c => c.status !== 'done') || chapters.at(-1),
-    sections: E.sections.map(s => {
+    sections: E.sections.filter(s => !s.office).map(s => {
       const cs = chapters.filter(c => c.section === s.id);
       return { ...s, total: cs.length, done: cs.filter(c => c.status === 'done').length, progress: Math.round(cs.reduce((a, c) => a + c.progress, 0) / (cs.length || 1)) };
     }),

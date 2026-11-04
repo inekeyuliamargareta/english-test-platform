@@ -214,6 +214,9 @@ function diagnostic(exam) {
   if (pl) return { source: 'Placement test (estimate)', date: pl.date, total: null, range: LEVEL_RANGE[exam]?.[levelOf(pl.total).code], sections: Object.fromEntries(pl.sections.map(s => [s.id, s.score])) };
   return null;
 }
+// Section yang dilakukan di kantor (mis. IELTS Speaking): instruksi dari admin + kontak
+const officeNote = s => s.note || 'This part is done face-to-face with an EnglishOn tutor. Contact us on WhatsApp to book your schedule, then come to our office.';
+const officeLink = (E, s) => joinLink(`I would like to book the ${E.name} ${s.name} session at the office.`);
 const joinLink = extra => waLink(`Hello EnglishOn, I am ${DB.user?.name || ''}${DB.user?.email ? ' (' + DB.user.email + ')' : ''}. ${extra}`);
 const attemptScore = a => a.total ?? a.sections.find(s => s.score != null)?.score ?? null;
 function scoreAttempt(att) {
