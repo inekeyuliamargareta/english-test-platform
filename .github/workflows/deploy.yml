@@ -1,0 +1,34 @@
+# Autodeploy: setiap push ke main → jalankan tes → masuk ke server lewat SSH → bash deploy.sh
+# Butuh 3 secret di GitHub (Settings → Secrets and variables → Actions):
+#   SSH_HOST  = IP server (mis. 43.156.200.140)
+#   SSH_USER  = user SSH (mis. root)
+#   SSH_KEY   = isi private key khusus deploy (lihat DEPLOY.md)
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:   # tombol "Run workflow" untuk deploy manual
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Tes aturan skor (deploy dibatalkan jika gagal)
+        run: npm ci && npm test
+      - name: Deploy ke server
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          script: bash /www/wwwroot/englishtest/deploy.sh
