@@ -238,7 +238,7 @@ const NAV = {
   admin: [['master', 'Master Program', 'layers', 'admin.html#master']],
 };
 const logo = (sub = '') => `<a href="${sub ? 'admin.html' : 'program.html'}" class="flex items-center">
-  <img src="logo.png" alt="EnglishOn" class="-ml-4 h-16 w-auto">${sub}</a>`;
+  <img src="logo.png" alt="EnglishOn" class="-ml-8 h-32 w-auto">${sub}</a>`;
 
 const ADMIN_SUB = [['siswa', 'Siswa', 'users'], ['materi', 'Curriculum', 'book-open'], ['soal', 'Soal', 'file-question'], ['mock', 'Mock Test', 'timer'], ['ebook', 'Ebook', 'book-marked'], ['pengaturan', 'Pengaturan', 'settings']];
 function adminPrograms(link) {
