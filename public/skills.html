@@ -17,7 +17,7 @@
   <div class="mx-auto max-w-3xl space-y-4">
     <div>
       <h2 class="text-2xl font-bold tracking-tight" x-text="E.name + ' Skills'"></h2>
-      <p class="mt-1 text-slate-500">Practise each skill separately. Open a chapter to see its practice questions with explanations.</p>
+      <p class="mt-1 text-slate-500">Practise each skill separately. Pick a topic to practise its questions, with explanations.</p>
     </div>
     <div x-show="cards.length" class="flex flex-wrap gap-1 rounded-xl bg-white p-1 shadow-sm ring-1 ring-slate-200">
       <template x-for="s in cards" :key="s.id">
@@ -50,16 +50,16 @@
     <div class="mx-auto max-w-3xl space-y-5">
       <div class="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-soft sm:flex-row sm:items-center">
         <span class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-accent-soft text-accent" x-html="ico(skill.icon, 'h-6 w-6')"></span>
-        <div class="flex-1"><h2 class="text-xl font-bold" x-text="skill.name + ' Practice'"></h2><p class="text-sm text-slate-500" x-text="items.length + ' questions in ' + groups.length + (groups.length === 1 ? ' chapter' : ' chapters') + ' · answers are checked right away'"></p></div>
+        <div class="flex-1"><h2 class="text-xl font-bold" x-text="skill.name + ' Practice'"></h2><p class="text-sm text-slate-500" x-text="items.length + ' questions in ' + groups.length + (groups.length === 1 ? ' topic' : ' topics') + ' · answers are checked right away'"></p></div>
         <div class="rounded-xl bg-slate-50 px-4 py-2 text-center text-sm"><p class="text-xs text-slate-500">Correct</p><p class="font-bold"><span class="text-emerald-600" x-text="score"></span> / <span x-text="Object.keys(res).length"></span></p></div>
       </div>
 
       <template x-for="g in groups" :key="g.id">
         <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-soft">
           <button @click="openG = openG === g.id ? '' : g.id" class="flex w-full items-center gap-4 p-4 text-left hover:bg-slate-50">
-            <span class="grid h-11 w-11 shrink-0 place-items-center rounded-xl text-sm font-bold" :class="g.no ? 'bg-accent-soft text-accent' : 'bg-slate-100 text-slate-500'" x-html="g.no || ico('list', 'h-5 w-5')"></span>
-            <span class="min-w-0 flex-1"><span class="block text-xs font-semibold uppercase tracking-wider text-slate-400" x-text="g.no ? 'Meeting ' + g.no : 'More practice'"></span><span class="block truncate font-semibold" x-text="g.title"></span></span>
-            <span class="shrink-0 text-right text-xs text-slate-500"><span class="block" x-text="g.items.length + ' questions'"></span><span x-show="answered(g)" class="block font-semibold text-emerald-600" x-text="correct(g) + ' / ' + answered(g) + ' correct'"></span></span>
+            <span class="grid h-11 w-11 shrink-0 place-items-center rounded-xl text-sm font-bold" class="bg-accent-soft text-accent" x-html="ico('book-open-check', 'h-5 w-5')"></span>
+            <span class="min-w-0 flex-1"><span class="block truncate font-semibold" x-text="g.title"></span></span>
+            <span class="shrink-0 text-right text-xs text-slate-500"><span class="block" x-text="g.items.length + (g.items.length === 1 ? ' question' : ' questions')"></span><span x-show="answered(g)" class="block font-semibold text-emerald-600" x-text="correct(g) + ' / ' + answered(g) + ' correct'"></span></span>
             <span class="shrink-0 text-slate-400 transition" :class="openG === g.id && 'rotate-180'"><i data-lucide="chevron-down" class="h-5 w-5"></i></span>
           </button>
           <div x-show="openG === g.id" class="space-y-4 border-t border-slate-100 bg-slate-50/60 p-4">
@@ -114,10 +114,9 @@ function skills() {
   const cards = E.sections.map(s => ({ ...s, count: bank(s.id).length })).filter(s => s.count || s.office);
   const skill = cards.find(s => s.id === qs('skill')) || cards[0] || null; // tab pertama terbuka bila belum memilih
   const items = skill ? bank(skill.id) : [];
-  // Kelompok = pertemuan (urutan kurikulum); soal tanpa pertemuan masuk "More practice"
-  const groups = meetings(exam).map((c, i) => ({ id: c.id, no: i + 1, title: c.title, items: items.filter(q => q.chapter === c.id) })).filter(g => g.items.length);
-  const rest = items.filter(q => !groups.some(g => g.items.includes(q)));
-  if (rest.length) groups.push({ id: 'more', no: 0, title: (skill?.name || '') + ' practice', items: rest });
+  // Kelompok = topik/materi soal (diisi admin); tanpa topik → nama bab, lalu "Other questions". Urutan = urutan soal.
+  const titleOf = q => (q.topic || '').trim() || DB.chapters.find(c => c.id === q.chapter)?.title || 'Other questions', groups = [];
+  for (const q of items) { const t = titleOf(q), g = groups.find(g => g.title === t); g ? g.items.push(q) : groups.push({ id: 'g' + groups.length, title: t, items: [q] }); }
   return {
     E, skill, items, groups, cards, openG: '', ans: {}, fill: {}, res: {},
     answered(g) { return g.items.filter(q => this.res[q.id]).length; },
