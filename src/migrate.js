@@ -8,7 +8,7 @@ const { applyDefaults } = require('./defaults');
 const COLUMNS = [
   ['exams', 'about', 'TEXT'],
   ['exams', 'recommend', 'JSON'],
-  ['questions', 'pool', "ENUM('bank','placement') NOT NULL DEFAULT 'bank'"],
+  ['questions', 'pool', "VARCHAR(40) NOT NULL DEFAULT 'bank'"],
   ['users', 'targets', 'JSON'],
   ['exam_sections', 'office', 'TINYINT(1) NOT NULL DEFAULT 0'],
   ['exam_sections', 'note', 'TEXT'],
@@ -27,6 +27,8 @@ const COLUMNS = [
     if (!n) await conn.query(`ALTER TABLE ${table} ADD COLUMN ${column} ${def}`);
   }
   await conn.query("ALTER TABLE packages MODIFY type ENUM('full','section','placement') NOT NULL");
+  // pool juga bisa berisi id paket mock test (soal khusus mock test itu)
+  await conn.query("ALTER TABLE questions MODIFY pool VARCHAR(40) NOT NULL DEFAULT 'bank'");
   await applyDefaults(conn);
 
   await conn.end();

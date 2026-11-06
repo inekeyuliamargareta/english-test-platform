@@ -39,7 +39,7 @@
   <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
     <div class="min-w-0">
       <p x-show="view !== 'master'" class="flex items-center gap-2 text-sm font-medium text-slate-500"><span class="h-2.5 w-2.5 rounded-full" :style="'background-color: rgb(' + (E?.rgb || '100 116 139') + ')'"></span><span x-text="E?.name"></span></p>
-      <h2 class="text-2xl font-bold tracking-tight" x-text="{ master: 'Master Program', siswa: 'Siswa', materi: 'Curriculum', soal: 'Soal', ebook: 'Ebook' }[view]"></h2>
+      <h2 class="text-2xl font-bold tracking-tight" x-text="{ master: 'Master Program', siswa: 'Siswa', materi: 'Curriculum', soal: 'Soal', mock: 'Mock Test', ebook: 'Ebook' }[view]"></h2>
       <p class="text-sm text-slate-500" x-text="subtitle"></p>
     </div>
     <div class="flex flex-wrap gap-2">
@@ -48,13 +48,14 @@
       <button x-show="view==='materi'" @click="openChapter()" class="btn-primary"><i data-lucide="plus" class="h-4 w-4"></i>Tambah Pertemuan</button>
       <button x-show="view==='soal'" @click="openImport()" class="btn-light"><i data-lucide="file-up" class="h-4 w-4"></i>Import Soal</button>
       <button x-show="view==='soal'" @click="openQuestion()" class="btn-primary"><i data-lucide="plus" class="h-4 w-4"></i>Tambah Soal</button>
+      <button x-show="view==='mock'" @click="openPkg()" class="btn-primary"><i data-lucide="plus" class="h-4 w-4"></i>Tambah Mock Test</button>
       <button x-show="view==='ebook'" @click="openEbook()" class="btn-primary"><i data-lucide="plus" class="h-4 w-4"></i>Tambah Ebook</button>
     </div>
   </div>
 
   <!-- Pindah cepat antar menu program -->
   <div x-show="view !== 'master'" class="flex gap-1 overflow-x-auto rounded-xl bg-white p-1 shadow-sm ring-1 ring-slate-200 sm:w-fit">
-    <template x-for="t in [['siswa', 'Siswa', 'users'], ['materi', 'Curriculum', 'book-open'], ['soal', 'Soal', 'file-question'], ['ebook', 'Ebook', 'book-marked']]" :key="t[0]">
+    <template x-for="t in [['siswa', 'Siswa', 'users'], ['materi', 'Curriculum', 'book-open'], ['soal', 'Soal', 'file-question'], ['mock', 'Mock Test', 'timer'], ['ebook', 'Ebook', 'book-marked']]" :key="t[0]">
       <a :href="'#p/' + exam + '/' + t[0]" class="flex items-center gap-2 whitespace-nowrap rounded-lg px-4 py-2 text-sm font-semibold transition" :class="view===t[0] ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-50'"><span x-html="ico(t[2])"></span><span x-text="t[1]"></span></a>
     </template>
     <button @click="openExam(E)" class="flex items-center gap-2 whitespace-nowrap rounded-lg px-4 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"><span x-html="ico('settings')"></span>Pengaturan</button>
@@ -170,7 +171,7 @@
         <template x-for="x in (E?.sections || []).filter(x => !x.office)" :key="x.id"><button @click="qSec=x.id; loadQuestions(1)" class="chip" :class="qSec===x.id && 'chip-on'" x-text="x.name + ' (' + qCount({ exam, section: x.id }) + ')'"></button></template>
       </div>
       <div class="flex flex-col gap-2 sm:flex-row">
-        <select x-model="qPool" @change="loadQuestions(1)" class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm"><option value="all">Semua penggunaan</option><option value="bank">Simulasi & latihan</option><option value="placement">Placement test</option></select>
+        <select x-model="qPool" @change="loadQuestions(1)" class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm"><option value="all">Semua penggunaan</option><option value="bank">Latihan (Skills & pertemuan)</option><option value="placement">Placement test</option><template x-for="p in mockList" :key="p.id"><option :value="p.id" x-text="'Mock: ' + p.name" :selected="qPool === p.id"></option></template></select>
         <div class="relative flex-1 sm:max-w-sm"><i data-lucide="search" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"></i><input x-model="qQ" @input.debounce.400ms="loadQuestions(1)" placeholder="Cari soal atau topik…" class="w-full rounded-xl border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm outline-none focus:border-brand-500"></div>
       </div>
     </div>
@@ -181,7 +182,7 @@
           <template x-for="q in questions" :key="q.id">
             <tr class="hover:bg-slate-50">
               <td class="px-5 py-3"><button @click="openQuestion(q)" class="block max-w-md truncate text-left hover:text-brand-600" x-text="q.q.replace(/[{}]/g, '')"></button></td>
-              <td class="whitespace-nowrap px-5 py-3 text-slate-600"><span x-text="sectionName(q.section)"></span><span x-show="q.pool==='placement'" class="ml-1 rounded-md bg-amber-100 px-1.5 py-0.5 text-[11px] font-semibold text-amber-700">Placement</span></td>
+              <td class="whitespace-nowrap px-5 py-3 text-slate-600"><span x-text="sectionName(q.section)"></span><span x-show="q.pool==='placement'" class="ml-1 rounded-md bg-amber-100 px-1.5 py-0.5 text-[11px] font-semibold text-amber-700">Placement</span><span x-show="q.pool && q.pool !== 'bank' && q.pool !== 'placement'" class="ml-1 rounded-md bg-brand-50 px-1.5 py-0.5 text-[11px] font-semibold text-brand-700" x-text="'Mock: ' + (packages.find(p => p.id === q.pool)?.name || q.pool)"></span></td>
               <td class="whitespace-nowrap px-5 py-3 text-slate-600" x-text="q.topic || '—'"></td>
               <td class="whitespace-nowrap px-5 py-3 text-slate-600" x-text="typeLabel[q.type]"></td>
               <td class="px-5 py-3"><span class="rounded-md px-2 py-0.5 text-xs capitalize" :class="diffClass[q.difficulty]" x-text="q.difficulty"></span></td>
@@ -197,6 +198,60 @@
       <div x-show="qP.total > qP.limit" class="pager"><span x-text="rangeText(qP)"></span><div class="flex gap-1"><template x-for="n in pageList(qP)"><button @click="n !== '…' && loadQuestions(n)" class="pg" :class="n === qP.page && 'pg-on'" x-text="n"></button></template></div></div>
     </div>
   </section>
+
+  <!-- ================= MOCK TEST ================= -->
+  <section x-show="view==='mock'" x-cloak class="space-y-4">
+    <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-soft">
+      <div class="overflow-x-auto"><table class="w-full text-sm">
+        <thead class="bg-slate-50 text-left text-xs uppercase tracking-wider text-slate-500"><tr><th class="px-5 py-3">Mock test</th><th class="px-5 py-3">Section & waktu</th><th class="px-5 py-3">Soal</th><th class="px-5 py-3 text-right">Aksi</th></tr></thead>
+        <tbody class="divide-y divide-slate-100">
+          <template x-for="p in mockList" :key="p.id">
+            <tr class="hover:bg-slate-50">
+              <td class="px-5 py-3"><div class="flex flex-wrap items-center gap-2"><button @click="openPkg(p)" class="text-left font-medium hover:text-brand-600" x-text="p.name"></button>
+                <span class="rounded-md px-1.5 py-0.5 text-[11px] font-semibold" :class="p.type === 'full' ? 'bg-brand-50 text-brand-700' : 'bg-slate-100 text-slate-600'" x-text="p.type === 'full' ? 'Full test' : 'Per section'"></span></div>
+                <p class="max-w-md truncate text-xs text-slate-500" x-text="p.desc"></p></td>
+              <td class="min-w-[12rem] px-5 py-3 text-slate-600" x-text="p.sections.map(([s, m]) => (E.sections.find(x => x.id === s)?.short || s) + ' ' + m + ' mnt').join(' · ')"></td>
+              <td class="whitespace-nowrap px-5 py-3"><span class="font-medium" x-text="qCount({ exam, pool: p.id }) + ' soal'"></span>
+                <p x-show="!qCount({ exam, pool: p.id })" class="text-xs text-amber-600">Belum ada soal sendiri · sementara memakai soal latihan</p></td>
+              <td class="whitespace-nowrap px-5 py-3 text-right">
+                <button @click="showMockQuestions(p)" class="icon-btn" title="Lihat soal"><i data-lucide="file-question" class="h-4 w-4"></i></button>
+                <button @click="openPkg(p)" class="icon-btn" title="Edit"><i data-lucide="pencil" class="h-4 w-4"></i></button>
+                <button @click="askDelete('packages', p, p.name)" class="icon-btn text-rose-500 hover:bg-rose-50" title="Hapus"><i data-lucide="trash-2" class="h-4 w-4"></i></button>
+              </td>
+            </tr>
+          </template>
+        </tbody>
+      </table></div>
+      <p x-show="!mockList.length" class="p-10 text-center text-sm text-slate-500">Belum ada mock test. Klik <b>Tambah Mock Test</b>.</p>
+    </div>
+    <p class="text-xs text-slate-500">Isi soal tiap mock test lewat menu <b>Soal</b> → "Dipakai untuk" (atau kolom <b>untuk</b> saat import). Soal mock test tidak muncul di latihan Skills. Mock test yang sudah dikerjakan siswa tidak bisa dihapus.</p>
+  </section>
+
+  <!-- ================= Form mock test ================= -->
+  <div x-show="open==='p'" x-cloak class="fixed inset-0 z-50 grid place-items-center p-4">
+    <div class="absolute inset-0 bg-slate-900/40" @click="open=''"></div>
+    <template x-if="open==='p'">
+      <form @submit.prevent="savePkg()" class="relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl">
+        <h3 class="text-lg font-bold" x-text="pForm.isNew ? 'Tambah Mock Test' : 'Edit Mock Test'"></h3>
+        <div class="mt-5 space-y-4 text-sm">
+          <label class="block"><span class="lbl">Nama mock test</span><input x-model="pForm.name" required maxlength="120" placeholder="mis. Full Mock Test 2 / Listening 2" class="inp"></label>
+          <label class="block"><span class="lbl">Deskripsi singkat</span><textarea x-model="pForm.desc" rows="2" placeholder="mis. Simulasi lengkap 3 section dengan timer" class="inp"></textarea></label>
+          <label class="block"><span class="lbl">Label <span class="font-normal text-slate-500">· opsional, mis. Paling populer</span></span><input x-model="pForm.badge" maxlength="40" class="inp"></label>
+          <div><span class="lbl">Section & waktu</span>
+            <div class="space-y-2">
+              <template x-for="s in pForm.secs" :key="s.id">
+                <div class="flex items-center gap-3 rounded-xl border p-3" :class="s.on ? 'border-brand-500 bg-brand-50' : 'border-slate-200'">
+                  <label class="flex flex-1 cursor-pointer items-center gap-3"><input type="checkbox" x-model="s.on" class="h-4 w-4 accent-brand-600"><span class="font-medium" x-text="s.name"></span></label>
+                  <input type="number" min="1" max="300" x-model.number="s.min" :disabled="!s.on" class="w-20 rounded-lg border border-slate-200 px-2 py-1.5 outline-none focus:border-brand-500 disabled:bg-slate-50"><span class="text-xs text-slate-500">menit</span>
+                </div>
+              </template>
+            </div>
+            <p class="mt-1 text-xs text-slate-500">Semua section dicentang = <b>Full test</b>. Satu section = mock test per section (mis. Listening 2).</p></div>
+        </div>
+        <div class="mt-6 flex justify-end gap-3"><button type="button" @click="open=''" class="btn-light">Batal</button><button :disabled="saving" class="btn-primary" x-text="saving ? 'Menyimpan…' : 'Simpan'"></button></div>
+      </form>
+    </template>
+  </div>
 
   <!-- ================= EBOOK ================= -->
   <section x-show="view==='ebook'" x-cloak class="space-y-4">
@@ -366,11 +421,11 @@
             <div class="grid gap-4 sm:grid-cols-2">
               <label class="block"><span class="lbl">Section</span><select x-model="qForm.section" class="inp"><template x-for="x in (E?.sections || []).filter(x => !x.office)" :key="x.id"><option :value="x.id" x-text="x.name" :selected="x.id===qForm.section"></option></template></select></label>
               <label class="block"><span class="lbl">Tipe soal</span><select x-model="qForm.type" class="inp"><template x-for="(v, k) in typeLabel"><option :value="k" x-text="v" :selected="k===qForm.type"></option></template></select></label>
-              <label class="block"><span class="lbl">Dipakai untuk</span><select x-model="qForm.pool" class="inp"><option value="bank">Simulasi & latihan bab</option><option value="placement">Placement test</option></select></label>
+              <label class="block"><span class="lbl">Dipakai untuk</span><select x-model="qForm.pool" class="inp"><option value="bank">Latihan (Skills & pertemuan)</option><option value="placement">Placement test</option><template x-for="p in mockList" :key="p.id"><option :value="p.id" x-text="'Mock test: ' + p.name" :selected="qForm.pool === p.id"></option></template></select></label>
               <label class="block"><span class="lbl">Tingkat kesulitan</span><select x-model="qForm.difficulty" class="inp"><option value="mudah">Mudah</option><option value="sedang">Sedang</option><option value="sulit">Sulit</option></select></label>
               <label class="block"><span class="lbl">Topik</span><input x-model="qForm.topic" list="topics" placeholder="mis. Subject-Verb Agreement" class="inp"><datalist id="topics"><template x-for="t in topics"><option :value="t"></option></template></datalist></label>
               <label class="block"><span class="lbl">Pertemuan <span class="font-normal text-slate-500">· soal tampil di latihan pertemuan ini</span></span>
-                <select x-model="qForm.chapter" :disabled="qForm.pool==='placement'" class="inp disabled:bg-slate-50"><option value="">— Tidak dipakai di latihan pertemuan —</option><template x-for="c in chapters.filter(c => c.exam === exam && c.section === qForm.section)" :key="c.id"><option :value="c.id" x-text="(meetingNo(c) ? meetingNo(c) + '. ' : '') + c.title" :selected="c.id === qForm.chapter"></option></template></select></label>
+                <select x-model="qForm.chapter" :disabled="qForm.pool!=='bank'" class="inp disabled:bg-slate-50"><option value="">— Tidak dipakai di latihan pertemuan —</option><template x-for="c in chapters.filter(c => c.exam === exam && c.section === qForm.section)" :key="c.id"><option :value="c.id" x-text="(meetingNo(c) ? meetingNo(c) + '. ' : '') + c.title" :selected="c.id === qForm.chapter"></option></template></select></label>
             </div>
 
             <div x-show="qForm.section==='reading'">
@@ -553,7 +608,7 @@ const IMPORT_HELP = [
   ['instruksi', 'Instruksi di atas soal, mis. Write ONE WORD ONLY (opsional)'],
   ['passage', 'ID passage Reading yang sudah ada (opsional)'],
   ['audio', 'ID audio Listening yang sudah ada (opsional)'],
-  ['untuk', '<b>simulasi</b> (simulasi & latihan) atau <b>placement</b>. Kosong = simulasi'],
+  ['untuk', '<b>latihan</b> (Skills & pertemuan), <b>placement</b>, atau <b>nama mock test</b> persis seperti di menu Mock Test (mis. Full Mock Test 2). Kosong = latihan'],
 ];
 
 // CSV → array baris (pemisah ; atau , dan teks berkutip yang memuat enter)
@@ -595,7 +650,8 @@ function csvToQuestions(text, defaultExam) {
       row: i + 2, exam: ex?.key || prog, section: sec?.id || r.section, type, q: r.pertanyaan, options,
       answer: type === 'fill' ? (r.kunci || '').split('|').map(a => a.trim()).filter(Boolean) : (k.length === 1 && letter >= 0 ? letter : null),
       explain: r.pembahasan, topic: r.topik, difficulty: (r.kesulitan || 'sedang').toLowerCase(), chapter: r.bab, instr: r.instruksi,
-      passage: r.passage, clip: r.audio, pool: /placement/i.test(r.untuk || '') ? 'placement' : 'bank',
+      passage: r.passage, clip: r.audio, pool: (() => { const u = (r.untuk || '').trim().toLowerCase(), m = DB.packages.find(p => p.exam === (ex?.key || prog) && p.type !== 'placement' && (p.id.toLowerCase() === u || p.name.toLowerCase() === u));
+        return m ? m.id : /placement/.test(u) ? 'placement' : !u || /latihan|simulasi|bank/.test(u) ? 'bank' : r.untuk; })(),
     };
   }).filter(Boolean);
 }
@@ -611,7 +667,7 @@ function admin() {
     students: [], sQ: '', sP: { page: 1, total: 0, limit: PAGE }, sLoading: false,
     questions: [], topics: [], qQ: '', qSec: 'all', qPool: 'all', qP: { page: 1, total: 0, limit: PAGE }, qLoading: false,
     mQ: '', mSec: 'all', mPage: 1,
-    ebooks: DB.ebooks, bForm: {},
+    ebooks: DB.ebooks, bForm: {}, packages: DB.packages, pForm: {},
     typeLabel: { mc: 'Pilihan ganda', error: 'Written expression', fill: 'Isian singkat' },
 
     get E() { return DB.exams[this.exam]; },
@@ -619,6 +675,7 @@ function admin() {
       if (this.view === 'master') return 'Pilih program di sidebar kiri untuk mengelola siswa, materi, dan soalnya.';
       if (this.view === 'siswa') return this.sP.total + ' siswa di program ini';
       if (this.view === 'materi') return this.published.length + ' pertemuan terbit · urutan di sini = urutan Meeting 1, 2, 3… di halaman siswa';
+      if (this.view === 'mock') return this.mockList.length + ' mock test · dikelompokkan di halaman siswa: Full test, lalu per section';
       if (this.view === 'ebook') return this.ebooks.filter(e => e.exam === this.exam).length + ' ebook · Berbayar = hanya untuk siswa dengan Akses Penuh';
       return this.qCount({ exam: this.exam }) + ' soal';
     },
@@ -739,7 +796,7 @@ function admin() {
       const { list, obj, label } = this.del;
       this.del = null;
       if (!(await this.run(() => api('DELETE', `/admin/${list}/${encodeURIComponent(obj.id)}`), label + ' dihapus'))) return;
-      if (list === 'chapters' || list === 'ebooks') this[list].splice(this[list].indexOf(obj), 1);
+      if (['chapters', 'ebooks', 'packages'].includes(list)) this[list].splice(this[list].indexOf(obj), 1);
       else { await this.refreshCounts(); this.loadQuestions(Math.min(this.qP.page, Math.ceil((this.qP.total - 1) / PAGE) || 1)); }
     },
 
@@ -758,7 +815,7 @@ function admin() {
       this.qForm = q ? { ...q, options: [...(q.options || ['', '', '', ''])], answer: q.type === 'fill' ? 0 : q.answer, fillAnswer: q.type === 'fill' ? q.answer.join(', ') : '',
           passage: q.passage || '', chapter: q.chapter || '', clip: q.clip || '', pool: q.pool || 'bank', instr: q.instr || '', explain: q.explain || '', isNew: false,
           transcript: clip ? clip.lines.map(l => (l[0] ? l[0] + ': ' : '') + l[1]).join('\n') : '' }
-        : { id: newId('q'), isNew: true, type: 'mc', exam: this.exam, section: this.qSec !== 'all' ? this.qSec : this.E.sections.find(x => !x.office).id, chapter: '', pool: this.qPool === 'placement' ? 'placement' : 'bank',
+        : { id: newId('q'), isNew: true, type: 'mc', exam: this.exam, section: this.qSec !== 'all' ? this.qSec : this.E.sections.find(x => !x.office).id, chapter: '', pool: this.qPool !== 'all' ? this.qPool : 'bank',
           difficulty: 'sedang', topic: '', q: '', instr: '', options: ['', '', '', ''], answer: 0, fillAnswer: '', explain: '', passage: '', clip: '', transcript: '' };
       this.open = 'q';
     },
@@ -784,7 +841,7 @@ function admin() {
           DB.passages[passage] = { title };
         }
         await api('PUT', '/admin/questions/' + encodeURIComponent(f.id), {
-          ...f, exam: this.exam, audioFile: undefined, chapter: f.pool === 'placement' ? '' : f.chapter,
+          ...f, exam: this.exam, audioFile: undefined, chapter: f.pool !== 'bank' ? '' : f.chapter,
           clip: f.section === 'listening' ? clip : '', passage: f.section === 'reading' ? passage : '',
           answer: f.type === 'fill' ? f.fillAnswer.split(',').map(norm).filter(Boolean) : f.answer,
         });
@@ -826,6 +883,25 @@ function admin() {
     },
 
     // ---------- Ebook ----------
+    // ---------- Mock test ----------
+    get mockList() { return this.packages.filter(p => p.exam === this.exam && p.type !== 'placement'); },
+    openPkg(p) {
+      const has = id => p?.sections.find(s => s[0] === id);
+      const official = s => +(String(s.official || '').match(/(\d+)\s*(menit|min)/i)?.[1] || 30);
+      this.pForm = { id: p?.id || newId('mock'), isNew: !p, name: p?.name || '', desc: p?.desc || '', badge: p?.badge || '',
+        secs: this.E.sections.filter(s => !s.office).map(s => ({ id: s.id, name: s.name, on: p ? !!has(s.id) : true, min: has(s.id)?.[1] || official(s) })) };
+      this.open = 'p';
+    },
+    async savePkg() {
+      const f = this.pForm, sections = f.secs.filter(s => s.on).map(s => [s.id, s.min]);
+      if (!sections.length) return this.flash('Pilih minimal satu section');
+      let saved;
+      if (!(await this.run(async () => { saved = await api('PUT', '/admin/packages/' + encodeURIComponent(f.id), { exam: this.exam, name: f.name, desc: f.desc, badge: f.badge, sections }); }, 'Mock test disimpan'))) return;
+      const i = this.packages.findIndex(p => p.id === saved.id);
+      i < 0 ? this.packages.push(saved) : this.packages.splice(i, 1, saved);
+      this.open = '';
+    },
+    showMockQuestions(p) { this.qPool = p.id; this.qSec = 'all'; location.hash = '#p/' + this.exam + '/soal'; },
     get ebookList() { return this.ebooks.filter(e => e.exam === this.exam); },
     fmtSize,
     openEbook(e) { this.bForm = e ? { ...e, file: null } : { id: newId('ebook'), isNew: true, exam: this.exam, title: '', desc: '', access: 'free', file: null }; this.open = 'b'; },

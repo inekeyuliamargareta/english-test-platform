@@ -88,7 +88,7 @@ CREATE TABLE IF NOT EXISTS questions (
   explanation TEXT,
   clip       VARCHAR(40),
   passage    VARCHAR(40),
-  pool       ENUM('bank','placement') NOT NULL DEFAULT 'bank',  -- bank = simulasi & latihan
+  pool       VARCHAR(40) NOT NULL DEFAULT 'bank',  -- bank = latihan Skills, placement, atau id paket mock test
   sort       INT NOT NULL DEFAULT 0,
   INDEX (exam, section)
 );

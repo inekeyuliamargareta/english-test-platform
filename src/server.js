@@ -60,7 +60,9 @@ async function packageContext(pkgId) {
   const [row] = await q('SELECT * FROM packages WHERE id = ?', [pkgId]);
   if (!row) fail(404, 'Test package not found');
   const pkg = mapPackage(row), E = (await loadExams())[pkg.exam], ids = pkg.sections.map(s => s[0]);
-  const pool = pkg.type === 'placement' ? 'placement' : 'bank';
+  // Mock test dengan soal sendiri memakai pool = id paket; paket lama tanpa soal sendiri memakai bank latihan
+  const own = pkg.type !== 'placement' && (await q('SELECT 1 FROM questions WHERE pool = ? LIMIT 1', [pkg.id])).length;
+  const pool = pkg.type === 'placement' ? 'placement' : own ? pkg.id : 'bank';
   const [qs, ts] = await Promise.all([
     q('SELECT * FROM questions WHERE exam = ? AND section IN (?) AND pool = ? ORDER BY sort, id', [pkg.exam, ids, pool]),
     q('SELECT * FROM writing_tasks WHERE exam = ? AND section IN (?) ORDER BY task, id', [pkg.exam, ids]),
@@ -342,9 +344,10 @@ app.put('/api/admin/chapters/:id', admin, wrap(async (req, res) => {
 function questionRow(b, refs) {
   if (!['mc', 'error', 'fill'].includes(b.type)) fail(400, 'Tipe soal tidak valid (mc / error / fill)');
   if (!['mudah', 'sedang', 'sulit'].includes(b.difficulty)) fail(400, 'Tingkat kesulitan harus mudah / sedang / sulit');
-  if (!['bank', 'placement'].includes(b.pool || 'bank')) fail(400, 'Kolom "untuk" harus simulasi atau placement');
   const E = refs.exams[b.exam];
   if (!E) fail(400, `Program "${b.exam ?? ''}" tidak ada`);
+  const pool = b.pool || 'bank';
+  if (!['bank', 'placement'].includes(pool) && refs.mocks.get(pool) !== b.exam) fail(400, `Kolom "untuk" harus latihan, placement, atau mock test program ${E.name}`);
   if (!E.sections.some(s => s.id === b.section)) fail(400, `Section "${b.section ?? ''}" tidak ada di program ${E.name}`);
   const ref = (v, list, label) => { v = v ? String(v).trim() : null; if (v && !list.has(v)) fail(400, `${label} "${v}" tidak ditemukan`); return v; };
   let options = null, answer;
@@ -357,13 +360,13 @@ function questionRow(b, refs) {
     answer = b.answer;
     if (!Number.isInteger(answer) || answer < 0 || answer >= options.length) fail(400, 'Kunci jawaban harus salah satu opsi yang terisi');
   }
-  return [b.exam, b.section, ref(b.chapter, refs.chapters, 'Bab'), String(b.topic || '').slice(0, 80), b.difficulty, b.type, text(b.q, 5000, 'Pertanyaan'),
-    b.instr ? String(b.instr).slice(0, 255) : null, J(options), J(answer), String(b.explain || ''), ref(b.clip, refs.clips, 'Audio'), ref(b.passage, refs.passages, 'Passage'), b.pool || 'bank'];
+  return [b.exam, b.section, pool === 'bank' ? ref(b.chapter, refs.chapters, 'Bab') : null, String(b.topic || '').slice(0, 80), b.difficulty, b.type, text(b.q, 5000, 'Pertanyaan'),
+    b.instr ? String(b.instr).slice(0, 255) : null, J(options), J(answer), String(b.explain || ''), ref(b.clip, refs.clips, 'Audio'), ref(b.passage, refs.passages, 'Passage'), pool];
 }
 async function questionRefs() {
-  const [exams, ch, ps, cl] = await Promise.all([loadExams(), q('SELECT id FROM chapters'), q('SELECT id FROM passages'), q('SELECT id FROM clips')]);
+  const [exams, ch, ps, cl, pk] = await Promise.all([loadExams(), q('SELECT id FROM chapters'), q('SELECT id FROM passages'), q('SELECT id FROM clips'), q("SELECT id, exam FROM packages WHERE type <> 'placement'")]);
   const ids = rows => new Set(rows.map(r => r.id));
-  return { exams, chapters: ids(ch), passages: ids(ps), clips: ids(cl) };
+  return { exams, chapters: ids(ch), passages: ids(ps), clips: ids(cl), mocks: new Map(pk.map(p => [p.id, p.exam])) };
 }
 const Q_COLS = 'exam, section, chapter, topic, difficulty, type, q, instr, options, answer, explanation, clip, passage, pool';
 
@@ -399,6 +402,37 @@ for (const table of ['chapters', 'questions']) {
     res.json({ ok: true });
   }));
 }
+
+// Mock test: semua section online = full test, sebagian = per section (mis. Listening 2)
+app.put('/api/admin/packages/:id', admin, wrap(async (req, res) => {
+  const id = req.params.id, b = req.body || {}; validId(id);
+  const E = (await loadExams())[b.exam];
+  if (!E) fail(400, 'Program tidak valid');
+  const [old] = await q('SELECT exam, type FROM packages WHERE id = ?', [id]);
+  if (old && (old.type === 'placement' || old.exam !== b.exam)) fail(400, 'Paket ini tidak bisa diubah di sini');
+  const online = E.sections.filter(s => !s.office).map(s => s.id), picked = Array.isArray(b.sections) ? b.sections : [];
+  const sections = online.map(s => picked.find(p => Array.isArray(p) && p[0] === s)).filter(Boolean).map(([s, m]) => [s, Math.round(Number(m))]);
+  if (!sections.length) fail(400, 'Pilih minimal satu section');
+  if (sections.some(([, m]) => !(m >= 1 && m <= 300))) fail(400, 'Waktu tiap section 1–300 menit');
+  const type = sections.length === online.length ? 'full' : 'section';
+  const [{ sort }] = await q('SELECT COALESCE(MAX(sort), 0) + 1 sort FROM packages');
+  await q(`INSERT INTO packages (id, exam, name, type, badge, descr, sections, sort) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    ON DUPLICATE KEY UPDATE name = VALUES(name), type = VALUES(type), badge = VALUES(badge), descr = VALUES(descr), sections = VALUES(sections)`,
+    [id, b.exam, text(b.name, 120, 'Nama mock test'), type, String(b.badge || '').trim().slice(0, 40) || null, String(b.desc || '').slice(0, 1000), J(sections), sort]);
+  const [p] = await q('SELECT * FROM packages WHERE id = ?', [id]);
+  res.json(mapPackage(p));
+}));
+
+app.delete('/api/admin/packages/:id', admin, wrap(async (req, res) => {
+  const id = req.params.id, [p] = await q('SELECT type FROM packages WHERE id = ?', [id]);
+  if (!p) fail(404, 'Mock test tidak ditemukan');
+  if (p.type === 'placement') fail(400, 'Placement test tidak bisa dihapus di sini');
+  const [[{ a }], [{ n }]] = await Promise.all([q('SELECT COUNT(*) a FROM attempts WHERE package_id = ?', [id]), q('SELECT COUNT(*) n FROM questions WHERE pool = ?', [id])]);
+  if (a) fail(400, `Sudah dikerjakan ${a}× oleh siswa, jadi tidak bisa dihapus (riwayat nilainya tetap dibutuhkan)`);
+  if (n) fail(400, `Masih ada ${n} soal di mock test ini. Hapus atau pindahkan soalnya dulu`);
+  await q('DELETE FROM packages WHERE id = ?', [id]);
+  res.json({ ok: true });
+}));
 
 app.put('/api/admin/passages/:id', admin, wrap(async (req, res) => {
   validId(req.params.id);

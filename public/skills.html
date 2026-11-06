@@ -13,34 +13,24 @@
 <body data-shell="app" data-active="skills" data-title="Skills">
 <main x-data="skills()" class="space-y-6">
 
-  <!-- ===== Skill cards ===== -->
-  <template x-if="!skill">
-    <div class="space-y-6">
-      <div>
-        <h2 class="text-2xl font-bold tracking-tight" x-text="E.name + ' Skills'"></h2>
-        <p class="mt-1 text-slate-500">Practise each skill separately. Pick a skill to see its practice questions with explanations.</p>
-      </div>
-      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <template x-for="(s, i) in cards" :key="s.id">
-          <a :href="'skills.html?skill=' + s.id" class="group flex flex-col rounded-2xl border border-slate-200 bg-white p-6 shadow-soft transition hover:-translate-y-0.5 hover:border-accent/40 hover:shadow-lg">
-            <span class="grid h-14 w-14 place-items-center rounded-2xl bg-accent-soft text-accent" x-html="ico(s.icon, 'h-7 w-7')"></span>
-            <h3 class="mt-4 text-lg font-bold group-hover:text-accent" x-text="s.name"></h3>
-            <p class="mt-1 text-sm text-slate-500" x-text="s.official ? 'Official test: ' + s.official : ''"></p>
-            <div class="mt-auto flex items-center justify-between pt-5 text-sm">
-              <span class="font-semibold text-slate-700" x-text="s.office ? 'At our office' : s.count + ' practice questions'"></span>
-              <span class="flex items-center gap-1 font-semibold text-accent"><span x-text="s.office ? 'How it works' : 'Practise'"></span> <i data-lucide="arrow-right" class="h-4 w-4"></i></span>
-            </div>
-          </a>
-        </template>
-      </div>
-      <p x-show="!cards.length" class="rounded-2xl border-2 border-dashed border-slate-200 bg-white p-10 text-center text-sm text-slate-500">No practice questions for this program yet.</p>
+  <!-- ===== Judul + tab per skill ===== -->
+  <div class="mx-auto max-w-3xl space-y-4">
+    <div>
+      <h2 class="text-2xl font-bold tracking-tight" x-text="E.name + ' Skills'"></h2>
+      <p class="mt-1 text-slate-500">Practise each skill separately. Open a chapter to see its practice questions with explanations.</p>
     </div>
-  </template>
+    <div x-show="cards.length" class="flex flex-wrap gap-1 rounded-xl bg-white p-1 shadow-sm ring-1 ring-slate-200">
+      <template x-for="s in cards" :key="s.id">
+        <a :href="'skills.html?skill=' + s.id" class="flex items-center gap-2 whitespace-nowrap rounded-lg px-4 py-2 text-sm font-semibold transition" :class="skill?.id === s.id ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-50'">
+          <span x-html="ico(s.icon || 'file-question')"></span><span x-text="s.short || s.name"></span></a>
+      </template>
+    </div>
+    <p x-show="!cards.length" class="rounded-2xl border-2 border-dashed border-slate-200 bg-white p-10 text-center text-sm text-slate-500">No practice questions for this program yet.</p>
+  </div>
 
   <!-- ===== Section di kantor (mis. Speaking) ===== -->
   <template x-if="skill && skill.office">
     <div class="mx-auto max-w-2xl space-y-5">
-      <a href="skills.html" class="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-900"><i data-lucide="arrow-left" class="h-4 w-4"></i>All skills</a>
       <div class="rounded-3xl border border-slate-200 bg-white p-6 text-center shadow-soft sm:p-10">
         <span class="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-emerald-50 text-emerald-600" x-html="ico(skill.icon || 'mic', 'h-8 w-8')"></span>
         <h2 class="mt-5 text-2xl font-bold" x-text="skill.name"></h2>
@@ -58,10 +48,9 @@
   <!-- ===== Practice list ===== -->
   <template x-if="skill && !skill.office">
     <div class="mx-auto max-w-3xl space-y-5">
-      <a href="skills.html" class="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-900"><i data-lucide="arrow-left" class="h-4 w-4"></i>All skills</a>
       <div class="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-soft sm:flex-row sm:items-center">
         <span class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-accent-soft text-accent" x-html="ico(skill.icon, 'h-6 w-6')"></span>
-        <div class="flex-1"><h2 class="text-xl font-bold" x-text="skill.name + ' Practice'"></h2><p class="text-sm text-slate-500" x-text="items.length + ' questions in ' + groups.length + (groups.length === 1 ? ' group' : ' groups') + ' · answers are checked right away'"></p></div>
+        <div class="flex-1"><h2 class="text-xl font-bold" x-text="skill.name + ' Practice'"></h2><p class="text-sm text-slate-500" x-text="items.length + ' questions in ' + groups.length + (groups.length === 1 ? ' chapter' : ' chapters') + ' · answers are checked right away'"></p></div>
         <div class="rounded-xl bg-slate-50 px-4 py-2 text-center text-sm"><p class="text-xs text-slate-500">Correct</p><p class="font-bold"><span class="text-emerald-600" x-text="score"></span> / <span x-text="Object.keys(res).length"></span></p></div>
       </div>
 
@@ -122,15 +111,15 @@
 function skills() {
   const exam = getExam(), E = DB.exams[exam];
   const bank = s => DB.questions.filter(q => q.exam === exam && q.section === s && (q.pool || 'bank') === 'bank');
-  const skill = E.sections.find(s => s.id === qs('skill')) || null;
+  const cards = E.sections.map(s => ({ ...s, count: bank(s.id).length })).filter(s => s.count || s.office);
+  const skill = cards.find(s => s.id === qs('skill')) || cards[0] || null; // tab pertama terbuka bila belum memilih
   const items = skill ? bank(skill.id) : [];
   // Kelompok = pertemuan (urutan kurikulum); soal tanpa pertemuan masuk "More practice"
   const groups = meetings(exam).map((c, i) => ({ id: c.id, no: i + 1, title: c.title, items: items.filter(q => q.chapter === c.id) })).filter(g => g.items.length);
   const rest = items.filter(q => !groups.some(g => g.items.includes(q)));
   if (rest.length) groups.push({ id: 'more', no: 0, title: (skill?.name || '') + ' practice', items: rest });
   return {
-    E, skill, items, groups, openG: groups[0]?.id || '', ans: {}, fill: {}, res: {},
-    cards: E.sections.map(s => ({ ...s, count: bank(s.id).length })).filter(s => s.count || s.office),
+    E, skill, items, groups, cards, openG: '', ans: {}, fill: {}, res: {},
     answered(g) { return g.items.filter(q => this.res[q.id]).length; },
     correct(g) { return g.items.filter(q => this.res[q.id]?.correct).length; },
     get score() { return Object.values(this.res).filter(r => r.correct).length; },

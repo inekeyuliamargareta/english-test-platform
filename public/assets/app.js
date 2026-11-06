@@ -147,7 +147,9 @@ const isCorrect = (q, a) => q.type === 'fill' ? q.answer.includes(norm(a)) : a =
 const correctText = q => q.type === 'fill' ? q.answer[0] : `${L(q.answer)}. ${q.options[q.answer]}`;
 
 // Item per section untuk halaman test: soal pilihan ganda/isian atau task writing (section dinilai tutor)
-// pool: 'bank' = soal simulasi & latihan, 'placement' = soal placement test
+// pool: 'bank' = soal latihan Skills, 'placement' = soal placement test, id paket = soal khusus mock test itu
+// Soal yang dipakai sebuah paket: soalnya sendiri, atau bank latihan untuk paket lama yang belum punya soal sendiri
+const pkgPool = p => p.type === 'placement' ? 'placement' : DB.questions?.some(q => q.pool === p.id) ? p.id : 'bank';
 function sectionItems(exam, sec, pool = 'bank') {
   if (sectionMeta(exam, sec)?.tutor) return DB.writingTasks.filter(t => t.exam === exam && t.section === sec).map(t => ({ ...t, kind: 'writing' }));
   return DB.questions.filter(q => q.exam === exam && q.section === sec && (q.pool || 'bank') === pool).map(q => ({ ...q, kind: 'q' }));
@@ -247,7 +249,7 @@ const logo = (sub = '') => `<a href="${sub ? 'admin.html' : 'program.html'}" cla
   <span class="grid h-9 w-9 place-items-center rounded-xl bg-brand-600 text-white shadow-sm"><i data-lucide="graduation-cap" class="h-5 w-5"></i></span>
   <span class="text-[17px] tracking-tight">English<span class="text-brand-600">On</span>${sub}</span></a>`;
 
-const ADMIN_SUB = [['siswa', 'Siswa', 'users'], ['materi', 'Curriculum', 'book-open'], ['soal', 'Soal', 'file-question'], ['ebook', 'Ebook', 'book-marked'], ['pengaturan', 'Pengaturan', 'settings']];
+const ADMIN_SUB = [['siswa', 'Siswa', 'users'], ['materi', 'Curriculum', 'book-open'], ['soal', 'Soal', 'file-question'], ['mock', 'Mock Test', 'timer'], ['ebook', 'Ebook', 'book-marked'], ['pengaturan', 'Pengaturan', 'settings']];
 function adminPrograms(link) {
   return `<p class="px-3 pb-2 pt-5 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Program</p>` + Object.values(DB.exams).map(e => `
     <div>
