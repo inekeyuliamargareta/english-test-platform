@@ -9,15 +9,16 @@
 <script src="https://cdn.jsdelivr.net/npm/lucide@0.460.0/dist/umd/lucide.min.js"></script>
 <script src="assets/app.js"></script>
 </head>
-<!-- Latihan soal per skill (section): ?skill=<id section> membuka daftar soalnya -->
+<!-- Skills = kumpulan soal latihan (pool 'skills', diimport admin) per skill, dikelompokkan per bab.
+     Beda dengan Curriculum (materi + latihan pertemuan). ?skill=<section> = tab, &bab=<id bab> = halaman soal bab itu. -->
 <body data-shell="app" data-active="skills" data-title="Skills">
-<main x-data="skills()" class="space-y-6">
+<main x-data="skills()" class="mx-auto max-w-6xl space-y-6">
 
   <!-- ===== Judul + tab per skill ===== -->
-  <div class="mx-auto max-w-3xl space-y-4">
+  <div class="space-y-4">
     <div>
       <h2 class="text-2xl font-bold tracking-tight" x-text="E.name + ' Skills'"></h2>
-      <p class="mt-1 text-slate-500">Practise each skill separately. Pick a topic to practise its questions, with explanations.</p>
+      <p class="mt-1 text-slate-500">Practise each skill separately. Pick a chapter to work on its questions, then check your score and explanations at the end.</p>
     </div>
     <div x-show="cards.length" class="flex flex-wrap gap-1 rounded-xl bg-white p-1 shadow-sm ring-1 ring-slate-200">
       <template x-for="s in cards" :key="s.id">
@@ -30,47 +31,50 @@
 
   <!-- ===== Section di kantor (mis. Speaking) ===== -->
   <template x-if="skill && skill.office">
-    <div class="mx-auto max-w-2xl space-y-5">
-      <div class="rounded-3xl border border-slate-200 bg-white p-6 text-center shadow-soft sm:p-10">
-        <span class="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-emerald-50 text-emerald-600" x-html="ico(skill.icon || 'mic', 'h-8 w-8')"></span>
-        <h2 class="mt-5 text-2xl font-bold" x-text="skill.name"></h2>
-        <p x-show="skill.official" class="mt-1 text-sm text-slate-500" x-text="skill.official"></p>
-        <p class="mx-auto mt-4 max-w-lg whitespace-pre-line text-left leading-relaxed text-slate-700 sm:text-center" x-text="officeNote(skill)"></p>
-        <a :href="officeLink(E, skill)" target="_blank" class="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3.5 font-semibold text-white hover:bg-emerald-700 sm:w-auto sm:px-8"><i data-lucide="message-circle" class="h-5 w-5"></i>Book via WhatsApp</a>
-        <div class="mt-6 flex items-start gap-3 rounded-xl bg-slate-50 p-4 text-left text-sm text-slate-600">
-          <i data-lucide="map-pin" class="mt-0.5 h-4 w-4 shrink-0 text-slate-400"></i>
-          <div><p class="font-semibold text-slate-800" x-text="DB.contact.name"></p><p x-text="DB.contact.address"></p><p class="text-xs text-slate-500" x-text="DB.contact.hours + ' · WA ' + DB.contact.waLabel"></p></div>
-        </div>
+    <div class="rounded-3xl border border-slate-200 bg-white p-6 text-center shadow-soft sm:p-10">
+      <span class="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-emerald-50 text-emerald-600" x-html="ico(skill.icon || 'mic', 'h-8 w-8')"></span>
+      <h2 class="mt-5 text-2xl font-bold" x-text="skill.name"></h2>
+      <p x-show="skill.official" class="mt-1 text-sm text-slate-500" x-text="skill.official"></p>
+      <p class="mx-auto mt-4 max-w-lg whitespace-pre-line text-left leading-relaxed text-slate-700 sm:text-center" x-text="officeNote(skill)"></p>
+      <a :href="officeLink(E, skill)" target="_blank" class="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3.5 font-semibold text-white hover:bg-emerald-700 sm:w-auto sm:px-8"><i data-lucide="message-circle" class="h-5 w-5"></i>Book via WhatsApp</a>
+      <div class="mx-auto mt-6 flex max-w-lg items-start gap-3 rounded-xl bg-slate-50 p-4 text-left text-sm text-slate-600">
+        <i data-lucide="map-pin" class="mt-0.5 h-4 w-4 shrink-0 text-slate-400"></i>
+        <div><p class="font-semibold text-slate-800" x-text="DB.contact.name"></p><p x-text="DB.contact.address"></p><p class="text-xs text-slate-500" x-text="DB.contact.hours + ' · WA ' + DB.contact.waLabel"></p></div>
       </div>
     </div>
   </template>
 
-  <!-- ===== Practice list ===== -->
-  <template x-if="skill && !skill.office">
-    <div class="mx-auto space-y-5" :class="items.some(q => q.passage) ? 'max-w-6xl' : 'max-w-3xl'">
-      <div class="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-soft sm:flex-row sm:items-center">
-        <span class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-accent-soft text-accent" x-html="ico(skill.icon, 'h-6 w-6')"></span>
-        <div class="flex-1"><h2 class="text-xl font-bold" x-text="skill.name + ' Practice'"></h2><p class="text-sm text-slate-500" x-text="items.length + ' questions in ' + groups.length + (groups.length === 1 ? ' topic' : ' topics') + ' · score & explanations appear after you submit a topic'"></p></div>
-        <div class="rounded-xl bg-slate-50 px-4 py-2 text-center text-sm"><p class="text-xs text-slate-500">Correct</p><p class="font-bold"><span class="text-emerald-600" x-text="score"></span> / <span x-text="Object.keys(res).length"></span></p></div>
+  <!-- ===== Daftar bab di tab ini ===== -->
+  <template x-if="skill && !skill.office && !g">
+    <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <template x-for="b in groups" :key="b.id">
+        <a :href="'skills.html?skill=' + skill.id + '&bab=' + b.id" class="flex items-center gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-soft transition hover:border-accent/50 hover:bg-accent-soft/40">
+          <span class="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-accent-soft text-sm font-bold text-accent" x-html="b.no || ico('book-open-check', 'h-5 w-5')"></span>
+          <span class="min-w-0 flex-1"><span class="block truncate font-semibold" x-text="b.title"></span><span class="block text-xs text-slate-500" x-text="b.items.length + (b.items.length === 1 ? ' question' : ' questions')"></span></span>
+          <i data-lucide="chevron-right" class="h-5 w-5 shrink-0 text-slate-400"></i>
+        </a>
+      </template>
+      <p x-show="!groups.length" class="rounded-2xl border-2 border-dashed border-slate-200 bg-white p-10 text-center text-sm text-slate-500 sm:col-span-2 lg:col-span-3">No practice questions for this skill yet.</p>
+    </div>
+  </template>
+
+  <!-- ===== Halaman soal satu bab ===== -->
+  <template x-if="g">
+    <div class="space-y-4">
+      <div class="flex flex-wrap items-center gap-3">
+        <a :href="'skills.html?skill=' + skill.id" class="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-900"><i data-lucide="arrow-left" class="h-4 w-4"></i><span x-text="'All ' + (skill.short || skill.name) + ' chapters'"></span></a>
+      </div>
+      <h3 class="text-xl font-bold"><span x-show="g.no" class="text-accent" x-text="'Chapter ' + g.no + ' · '"></span><span x-text="g.title"></span></h3>
+
+      <!-- Skor: muncul setelah submit -->
+      <div x-show="done" class="flex flex-wrap items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
+        <i data-lucide="award" class="h-5 w-5"></i><p class="flex-1"><b x-text="correct + ' of ' + g.items.length + ' correct'"></b> · explanations are shown under each question.</p>
+        <button @click="retry()" class="rounded-lg border border-emerald-300 bg-white px-3 py-1.5 text-xs font-semibold hover:bg-emerald-100">Try again</button>
       </div>
 
-      <template x-for="g in groups" :key="g.id">
-        <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-soft">
-          <button @click="openG = openG === g.id ? '' : g.id" class="flex w-full items-center gap-4 p-4 text-left hover:bg-slate-50">
-            <span class="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-accent-soft text-sm font-bold text-accent" x-html="ico('book-open-check', 'h-5 w-5')"></span>
-            <span class="min-w-0 flex-1"><span class="block truncate font-semibold" x-text="g.title"></span></span>
-            <span class="shrink-0 text-right text-xs text-slate-500"><span class="block" x-text="g.items.length + (g.items.length === 1 ? ' question' : ' questions')"></span><span x-show="done[g.id]" class="block font-semibold text-emerald-600" x-text="correct(g) + ' / ' + g.items.length + ' correct'"></span></span>
-            <span class="shrink-0 text-slate-400 transition" :class="openG === g.id && 'rotate-180'"><i data-lucide="chevron-down" class="h-5 w-5"></i></span>
-          </button>
-          <div x-show="openG === g.id" class="space-y-4 border-t border-slate-100 bg-slate-50/60 p-4">
-      <!-- Skor set: muncul setelah submit -->
-      <div x-show="done[g.id]" class="flex flex-wrap items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
-        <i data-lucide="award" class="h-5 w-5"></i><p class="flex-1"><b x-text="correct(g) + ' of ' + g.items.length + ' correct'"></b> · explanations are shown under each question.</p>
-        <button @click="retry(g)" class="rounded-lg border border-emerald-300 bg-white px-3 py-1.5 text-xs font-semibold hover:bg-emerald-100">Try again</button>
-      </div>
       <!-- Blok: satu passage untuk beberapa soal (passage kiri, soal kanan), atau soal tanpa passage -->
       <template x-for="b in g.blocks" :key="b.key">
-      <div :class="b.passage && 'grid gap-4 md:grid-cols-2 md:items-start'">
+      <div :class="b.passage ? 'grid gap-4 md:grid-cols-2 md:items-start' : 'mx-auto max-w-3xl'">
         <section x-show="b.passage" class="thin-scroll rounded-2xl border border-slate-200 bg-white p-5 shadow-soft max-md:max-h-[45vh] max-md:overflow-y-auto sm:p-6 md:sticky md:top-20 md:max-h-[calc(100vh-6rem)] md:overflow-y-auto" x-html="b.passage ? passageHTML(b.passage) : ''"></section>
         <div class="space-y-4">
       <template x-for="q in b.items" :key="q.id">
@@ -90,14 +94,14 @@
           <!-- Sebelum submit: pilihan hanya ditandai. Setelah submit: benar hijau, jawaban salah merah. -->
           <div x-show="q.type !== 'fill'" class="mt-4 grid gap-2">
             <template x-for="(o, j) in (q.options || [])" :key="j">
-              <button @click="pick(g, q, j)" :disabled="!!done[g.id]" class="flex items-center gap-3 rounded-xl border-2 px-4 py-3 text-left text-sm transition"
-                :class="!done[g.id] ? (ans[q.id] === j ? 'border-accent bg-accent-soft' : 'border-slate-200 hover:border-accent/50 hover:bg-accent-soft') : j === res[q.id]?.answer ? 'border-emerald-500 bg-emerald-50 text-emerald-900' : j === ans[q.id] ? 'border-rose-500 bg-rose-50 text-rose-900' : 'border-slate-100 text-slate-400'">
-                <span class="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-xs font-bold" :class="!done[g.id] ? (ans[q.id] === j ? 'bg-accent text-white' : 'bg-slate-100 text-slate-600') : j === res[q.id]?.answer ? 'bg-emerald-500 text-white' : j === ans[q.id] ? 'bg-rose-500 text-white' : 'bg-slate-100'" x-text="L(j)"></span>
+              <button @click="pick(q, j)" :disabled="!!done" class="flex items-center gap-3 rounded-xl border-2 px-4 py-3 text-left text-sm transition"
+                :class="!done ? (ans[q.id] === j ? 'border-accent bg-accent-soft' : 'border-slate-200 hover:border-accent/50 hover:bg-accent-soft') : j === res[q.id]?.answer ? 'border-emerald-500 bg-emerald-50 text-emerald-900' : j === ans[q.id] ? 'border-rose-500 bg-rose-50 text-rose-900' : 'border-slate-100 text-slate-400'">
+                <span class="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-xs font-bold" :class="!done ? (ans[q.id] === j ? 'bg-accent text-white' : 'bg-slate-100 text-slate-600') : j === res[q.id]?.answer ? 'bg-emerald-500 text-white' : j === ans[q.id] ? 'bg-rose-500 text-white' : 'bg-slate-100'" x-text="L(j)"></span>
                 <span x-text="o"></span>
               </button>
             </template>
           </div>
-          <input x-show="q.type === 'fill'" x-model="ans[q.id]" :disabled="!!done[g.id]" placeholder="Type your answer…" class="mt-4 w-full max-w-xs rounded-xl border-2 border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-accent disabled:bg-slate-50">
+          <input x-show="q.type === 'fill'" x-model="ans[q.id]" :disabled="!!done" placeholder="Type your answer…" class="mt-4 w-full max-w-xs rounded-xl border-2 border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-accent disabled:bg-slate-50">
           <div x-show="res[q.id]" class="mt-4 rounded-xl p-4 text-sm" :class="res[q.id]?.correct ? 'bg-emerald-50 text-emerald-900' : 'bg-rose-50 text-rose-900'">
             <p class="font-semibold"><span x-text="res[q.id]?.correct ? '✅ Correct!' : isAnswered(q, ans[q.id]) ? '❌ Not quite.' : '⚪ Not answered.'"></span>
               <span x-show="res[q.id] && !res[q.id].correct" class="font-normal" x-text="'Correct answer: ' + (res[q.id] ? correctText({ ...q, answer: res[q.id].answer }) : '')"></span></p>
@@ -108,14 +112,11 @@
         </div>
       </div>
       </template>
-      <div x-show="!done[g.id]" class="flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4">
-        <p class="flex-1 text-sm text-slate-500" x-text="answered(g) + ' of ' + g.items.length + ' answered'"></p>
-        <button @click="submit(g)" :disabled="busy" class="rounded-xl bg-accent px-5 py-2.5 text-sm font-semibold text-white hover:bg-accent-dark disabled:opacity-60" x-text="busy ? 'Checking…' : 'Submit answers'"></button>
+
+      <div x-show="!done" class="flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4">
+        <p class="flex-1 text-sm text-slate-500" x-text="answered + ' of ' + g.items.length + ' answered'"></p>
+        <button @click="submit()" :disabled="busy" class="rounded-xl bg-accent px-5 py-2.5 text-sm font-semibold text-white hover:bg-accent-dark disabled:opacity-60" x-text="busy ? 'Checking…' : 'Submit answers'"></button>
       </div>
-          </div>
-        </section>
-      </template>
-      <p x-show="!items.length" class="rounded-2xl border-2 border-dashed border-slate-200 bg-white p-10 text-center text-sm text-slate-500">No practice questions for this skill yet.</p>
     </div>
   </template>
 </main>
@@ -123,37 +124,42 @@
 <script>
 function skills() {
   const exam = getExam(), E = DB.exams[exam];
-  const bank = s => DB.questions.filter(q => q.exam === exam && q.section === s && (q.pool || 'bank') === 'bank');
-  const cards = E.sections.map(s => ({ ...s, count: bank(s.id).length })).filter(s => s.count || s.office);
+  const pool = s => DB.questions.filter(q => q.exam === exam && q.section === s && q.pool === 'skills');
+  const cards = E.sections.filter(s => pool(s.id).length || s.office);
   const skill = cards.find(s => s.id === qs('skill')) || cards[0] || null; // tab pertama terbuka bila belum memilih
-  const items = skill ? bank(skill.id) : [];
-  // Kelompok = topik/materi soal (diisi admin); tanpa topik → nama bab, lalu "Other questions". Urutan = urutan soal.
-  const titleOf = q => (q.topic || '').trim() || DB.chapters.find(c => c.id === q.chapter)?.title || 'Other questions', groups = [];
-  for (const q of items) { const t = titleOf(q), g = groups.find(g => g.title === t); g ? g.items.push(q) : groups.push({ id: 'g' + groups.length, title: t, items: [q] }); }
+  // Kelompok = bab (urutan pertemuan Curriculum); soal tanpa bab → "Other questions" di akhir
+  const groups = [];
+  for (const q of skill ? pool(skill.id) : []) {
+    const id = q.chapter && chapterById(q.chapter) ? q.chapter : 'other';
+    let gr = groups.find(x => x.id === id);
+    if (!gr) { const c = chapterById(id); groups.push(gr = { id, title: c?.title || 'Other questions', no: c ? meetingNo(c) : 0, items: [] }); }
+    gr.items.push(q);
+  }
+  groups.sort((a, b) => (a.no || 1e9) - (b.no || 1e9));
+  const g = groups.find(x => x.id === qs('bab')) || null;
   // Soal berurutan dengan passage yang sama digabung satu blok (passage kiri, soal kanan)
-  for (const g of groups) g.blocks = g.items.reduce((bs, q) => {
+  if (g) g.blocks = g.items.reduce((bs, q) => {
     const last = bs[bs.length - 1], p = q.passage || null;
-    last && last.passage === p ? last.items.push(q) : bs.push({ key: g.id + '-' + bs.length, passage: p, items: [q] });
+    last && last.passage === p ? last.items.push(q) : bs.push({ key: 'b' + bs.length, passage: p, items: [q] });
     return bs;
   }, []);
   return {
-    E, skill, items, groups, cards, openG: '', ans: {}, res: {}, done: {}, busy: false,
-    answered(g) { return g.items.filter(q => isAnswered(q, this.ans[q.id])).length; },
-    correct(g) { return g.items.filter(q => this.res[q.id]?.correct).length; },
-    get score() { return Object.values(this.res).filter(r => r.correct).length; },
-    pick(g, q, j) { if (!this.done[g.id]) this.ans[q.id] = j; },
-    // Kunci & pembahasan diambil sekali untuk satu set, setelah siswa selesai
-    async submit(g) {
-      const left = g.items.length - this.answered(g);
+    E, skill, groups, cards, g, ans: {}, res: {}, done: false, busy: false,
+    get answered() { return g ? g.items.filter(q => isAnswered(q, this.ans[q.id])).length : 0; },
+    get correct() { return g ? g.items.filter(q => this.res[q.id]?.correct).length : 0; },
+    pick(q, j) { if (!this.done) this.ans[q.id] = j; },
+    // Kunci & pembahasan diambil sekali untuk satu bab, setelah siswa selesai
+    async submit() {
+      const left = g.items.length - this.answered;
       if (left && !confirm(`${left} question${left === 1 ? ' is' : 's are'} not answered yet. Submit anyway?`)) return;
       this.busy = true;
       try {
-        const r = await api('POST', '/questions/check', { answers: Object.fromEntries(g.items.map(q => [q.id, this.ans[q.id] ?? null])) });
-        Object.assign(this.res, r); this.done[g.id] = true;
+        this.res = await api('POST', '/questions/check', { answers: Object.fromEntries(g.items.map(q => [q.id, this.ans[q.id] ?? null])) });
+        this.done = true; scrollTo({ top: 0, behavior: 'smooth' });
       } catch (e) { alert(e.message); }
       this.busy = false;
     },
-    retry(g) { for (const q of g.items) { delete this.ans[q.id]; delete this.res[q.id]; } this.done[g.id] = false; },
+    retry() { this.ans = {}; this.res = {}; this.done = false; scrollTo({ top: 0 }); },
   };
 }
 </script>

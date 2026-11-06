@@ -3,7 +3,7 @@ const express = require('express'), helmet = require('helmet'), cors = require('
 const jwt = require('jsonwebtoken'), bcrypt = require('bcryptjs');
 const { pool } = require('./db');
 const { scoreAttempt, isCorrect, isAnswered } = require('./scoring');
-const { accessOf, FREE_PANELS } = require('./access');
+const { accessOf, FREE_PANELS, freeMockIds } = require('./access');
 
 const SECRET = process.env.JWT_SECRET;
 if (!SECRET) throw new Error('JWT_SECRET belum diisi di .env');
@@ -163,10 +163,12 @@ app.get('/api/bootstrap', wrap(async (req, res) => {
   ]);
   // Konten panel yang terkunci tidak dikirim; pertemuan dibatasi sesuai program siswa
   const chapters = open('materi') || open('skills') ? (admin ? allChapters : allowedChapters(allChapters, acc.program)) : [];
-  const chIds = new Set(chapters.map(c => c.id));
+  const chIds = new Set(chapters.map(c => c.id)), freeMocks = freeMockIds(packages);
   const questions = allQuestions.filter(x => x.pool === 'placement' ? open('placement')
-    : x.pool === 'bank' ? (open('materi') || open('skills')) && (!x.chapter || chIds.has(x.chapter))
-    : open('simulasi'));
+    // bank juga dipakai mock test lama yang belum punya soal sendiri (tanpa kunci jawaban)
+    : x.pool === 'bank' ? open('simulasi') || ((open('materi') || open('skills')) && (!x.chapter || chIds.has(x.chapter)))
+    : x.pool === 'skills' ? open('skills') && (!x.chapter || chIds.has(x.chapter))
+    : open('simulasi') && (acc.paid || freeMocks.has(x.pool)));
   // Hasil placement yang masih menunggu review admin belum ditampilkan
   const attempts = allAttempts.filter(a => a.published);
   const prog = Object.fromEntries(progress.map(p => [p.chapter_id, p.progress]));
@@ -227,7 +229,7 @@ app.put('/api/progress/:chapterId', panel('materi'), wrap(async (req, res) => {
 // Latihan bab & latihan per skill: kunci & pembahasan dikirim setelah siswa menjawab.
 // ponytail: soal latihan dan simulasi memakai bank soal yang sama; pisahkan jika kunci simulasi harus benar-benar rahasia.
 app.post('/api/questions/:id/check', panel('materi', 'skills'), wrap(async (req, res) => {
-  const [r] = await q("SELECT type, answer, explanation FROM questions WHERE id = ? AND pool = 'bank'", [req.params.id]);
+  const [r] = await q("SELECT type, answer, explanation FROM questions WHERE id = ? AND pool IN ('bank', 'skills')", [req.params.id]);
   if (!r) fail(404, 'Question not found');
   res.json({ correct: isCorrect(r, req.body?.answer), answer: r.answer, explain: r.explanation });
 }));
@@ -235,7 +237,7 @@ app.post('/api/questions/:id/check', panel('materi', 'skills'), wrap(async (req,
 app.post('/api/questions/check', panel('skills'), wrap(async (req, res) => {
   const answers = req.body?.answers && typeof req.body.answers === 'object' ? req.body.answers : {}, ids = Object.keys(answers).slice(0, 500);
   if (!ids.length) fail(400, 'No answers to check');
-  const rows = await q("SELECT id, type, answer, explanation FROM questions WHERE id IN (?) AND pool = 'bank'", [ids]);
+  const rows = await q("SELECT id, type, answer, explanation FROM questions WHERE id IN (?) AND pool IN ('bank', 'skills')", [ids]);
   res.json(Object.fromEntries(rows.map(r => [r.id, { correct: isCorrect(r, answers[r.id]), answer: r.answer, explain: r.explanation }])));
 }));
 
@@ -243,7 +245,10 @@ app.post('/api/attempts', need(), wrap(async (req, res) => {
   const u = req.user, b = req.body || {};
   const { pkg, E, meta, items } = await packageContext(b.pkg);
   const placement = pkg.type === 'placement'; // placement test bebas dicoba, termasuk program yang belum aktif
-  if (!(await userAccess(u)).panels.includes(placement ? 'placement' : 'simulasi')) fail(403, LOCKED_MSG);
+  const acc = await userAccess(u);
+  if (!acc.panels.includes(placement ? 'placement' : 'simulasi')) fail(403, LOCKED_MSG);
+  // Belum berbayar: hanya mock test pertama di tiap tab (Full, Listening only, …)
+  if (!placement && !acc.paid && !freeMockIds(await q('SELECT * FROM packages ORDER BY sort, id')).has(pkg.id)) fail(403, 'Only Mock Test 1 is free. ' + LOCKED_MSG);
   // Satu siswa = satu program
   if (u.role !== 'admin' && u.exam && pkg.exam !== u.exam) fail(403, 'This test is not part of your program.');
   if (!E || (!E.active && !placement)) fail(400, 'This program is not available yet');
@@ -385,7 +390,7 @@ function questionRow(b, refs) {
   const E = refs.exams[b.exam];
   if (!E) fail(400, `Program "${b.exam ?? ''}" tidak ada`);
   const pool = b.pool || 'bank';
-  if (!['bank', 'placement'].includes(pool) && refs.mocks.get(pool) !== b.exam) fail(400, `Kolom "untuk" harus latihan, placement, atau mock test program ${E.name}`);
+  if (!['bank', 'skills', 'placement'].includes(pool) && refs.mocks.get(pool) !== b.exam) fail(400, `Kolom "untuk" harus latihan, skills, placement, atau mock test program ${E.name}`);
   if (!E.sections.some(s => s.id === b.section)) fail(400, `Section "${b.section ?? ''}" tidak ada di program ${E.name}`);
   const ref = (v, list, label) => { v = v ? String(v).trim() : null; if (v && !list.has(v)) fail(400, `${label} "${v}" tidak ditemukan`); return v; };
   let options = null, answer;
@@ -398,7 +403,7 @@ function questionRow(b, refs) {
     answer = b.answer;
     if (!Number.isInteger(answer) || answer < 0 || answer >= options.length) fail(400, 'Kunci jawaban harus salah satu opsi yang terisi');
   }
-  return [b.exam, b.section, pool === 'bank' ? ref(b.chapter, refs.chapters, 'Bab') : null, String(b.topic || '').slice(0, 80), b.difficulty, b.type, text(b.q, 5000, 'Pertanyaan'),
+  return [b.exam, b.section, ['bank', 'skills'].includes(pool) ? ref(b.chapter, refs.chapters, 'Bab') : null, String(b.topic || '').slice(0, 80), b.difficulty, b.type, text(b.q, 5000, 'Pertanyaan'),
     b.instr ? String(b.instr).slice(0, 255) : null, J(options), J(answer), String(b.explain || ''), ref(b.clip, refs.clips, 'Audio'), ref(b.passage, refs.passages, 'Passage'), pool];
 }
 async function questionRefs() {

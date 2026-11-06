@@ -27,9 +27,16 @@
   <div class="mt-6 grid gap-6 lg:grid-cols-3">
     <!-- Paket -->
     <div class="min-w-0 space-y-4 lg:col-span-2">
-      <!-- Daftar mock test per kelompok: Full Mock Test 1, 2…, lalu Listening 1, 2…, dst. -->
+      <!-- Tab: Full Mock Test, Listening Only, Reading Only, …; isi tiap tab = Mock Test 1, 2, 3 dari admin -->
       <p x-show="!pkgs.length" class="rounded-2xl border-2 border-dashed border-slate-200 bg-white p-10 text-center text-sm text-slate-500">No mock tests for this program yet.</p>
-      <template x-for="g in groups" :key="g.key">
+      <div x-show="groups.length" class="flex flex-wrap gap-1 rounded-xl bg-white p-1 shadow-sm ring-1 ring-slate-200">
+        <template x-for="t in groups" :key="t.key">
+          <button @click="tab = t.key; choose(t.items[0], true)" class="flex items-center gap-2 whitespace-nowrap rounded-lg px-4 py-2 text-sm font-semibold transition" :class="tab === t.key ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-50'">
+            <span x-html="ico(t.icon)"></span><span x-text="t.title"></span></button>
+        </template>
+      </div>
+      <p x-show="!access.full && pkgs.length" class="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800"><i data-lucide="gift" class="mt-0.5 h-4 w-4 shrink-0"></i><span><b>Mock Test 1</b> in each tab is free. Join an EnglishOn program to unlock the other mock tests.</span></p>
+      <template x-for="g in groups.filter(x => x.key === tab)" :key="g.key">
         <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-soft">
           <div class="flex items-center gap-2 border-b border-slate-100 bg-slate-50 px-5 py-3">
             <span class="text-accent" x-html="ico(g.icon)"></span><h3 class="font-semibold" x-text="g.title"></h3>
@@ -38,19 +45,19 @@
           <ul class="divide-y divide-slate-100">
             <template x-for="(p, i) in g.items" :key="p.id">
               <li @click="choose(p)" class="flex cursor-pointer items-center gap-4 px-5 py-4 transition" :class="sel.id === p.id ? 'bg-accent-soft/60' : 'hover:bg-slate-50'">
-                <span class="grid h-10 w-10 shrink-0 place-items-center rounded-xl text-sm font-bold" :class="last(p) ? 'bg-emerald-50 text-emerald-600' : locked ? 'bg-slate-100 text-slate-400' : 'bg-accent-soft text-accent'" x-html="last(p) ? ico('check') : locked ? ico('lock') : i + 1"></span>
+                <span class="grid h-10 w-10 shrink-0 place-items-center rounded-xl text-sm font-bold" :class="last(p) ? 'bg-emerald-50 text-emerald-600' : isLocked(p) ? 'bg-slate-100 text-slate-400' : 'bg-accent-soft text-accent'" x-html="last(p) ? ico('check') : isLocked(p) ? ico('lock') : i + 1"></span>
                 <div class="min-w-0 flex-1">
-                  <p class="flex flex-wrap items-center gap-2 font-semibold" :class="locked && !last(p) && 'text-slate-500'"><span x-text="p.name"></span>
-                    <span x-show="p.badge && !locked" class="rounded-full px-2 py-0.5 text-[11px] font-semibold" :class="p.badge === 'Demo' ? 'bg-amber-100 text-amber-700' : 'bg-accent text-white'" x-text="p.badge"></span></p>
-                  <p class="text-xs text-slate-500" x-text="minutes(p) + ' min · ' + count(p) + ' questions' + (p.sections.length > 1 ? ' · ' + p.sections.length + ' sections' : '')"></p>
+                  <p class="flex flex-wrap items-center gap-2 font-semibold" :class="isLocked(p) && 'text-slate-500'"><span x-text="p.name"></span>
+                    <span x-show="p.badge && !isLocked(p)" class="rounded-full px-2 py-0.5 text-[11px] font-semibold" :class="p.badge === 'Demo' ? 'bg-amber-100 text-amber-700' : 'bg-accent text-white'" x-text="p.badge"></span></p>
+                  <p class="text-xs text-slate-500" x-text="minutes(p) + ' min' + (isLocked(p) ? '' : ' · ' + count(p) + ' questions') + (p.sections.length > 1 ? ' · ' + p.sections.length + ' sections' : '')"></p>
                 </div>
                 <div class="shrink-0 text-right text-xs">
                   <template x-if="last(p)">
                     <div><p class="font-semibold text-slate-700" x-text="'Score ' + scoreText(last(p))"></p>
                       <a :href="'hasil.html?id=' + last(p).id" @click.stop class="font-semibold text-accent hover:underline">Result</a> · <a :href="'review.html?id=' + last(p).id" @click.stop class="font-semibold text-accent hover:underline">Review</a></div>
                   </template>
-                  <span x-show="!last(p) && locked" class="flex items-center gap-1 font-semibold text-slate-400"><i data-lucide="lock" class="h-3.5 w-3.5"></i>Locked</span>
-                  <span x-show="!last(p) && !locked" class="flex items-center gap-1 font-semibold text-accent">Start<i data-lucide="chevron-right" class="h-4 w-4"></i></span>
+                  <span x-show="!last(p) && isLocked(p)" class="flex items-center gap-1 font-semibold text-slate-400"><i data-lucide="lock" class="h-3.5 w-3.5"></i>Locked</span>
+                  <span x-show="!last(p) && !isLocked(p)" class="flex items-center gap-1 font-semibold text-accent">Start<i data-lucide="chevron-right" class="h-4 w-4"></i></span>
                 </div>
               </li>
             </template>
@@ -81,8 +88,8 @@
           <template x-for="r in E.rules"><li class="flex gap-2"><i data-lucide="check-circle" class="mt-0.5 h-4 w-4 shrink-0 text-emerald-500"></i><span x-html="r"></span></li></template>
         </ul>
 
-        <a x-show="locked" :href="joinLink('I would like to unlock the ' + sel.name + ' mock test.')" target="_blank" class="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3.5 text-sm font-semibold text-white hover:bg-emerald-700"><i data-lucide="lock-open" class="h-4 w-4"></i>Request Access</a>
-        <div x-show="!locked">
+        <a x-show="isLocked(sel)" :href="joinLink('I would like to unlock the ' + sel.name + ' mock test.')" target="_blank" class="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3.5 text-sm font-semibold text-white hover:bg-emerald-700"><i data-lucide="lock-open" class="h-4 w-4"></i>Request Access</a>
+        <div x-show="!isLocked(sel)">
         <label class="mt-6 flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 p-3 text-sm transition has-[:checked]:border-accent has-[:checked]:bg-accent-soft">
           <input type="checkbox" x-model="ready" class="mt-0.5 h-4 w-4 accent-[rgb(var(--accent))]">
           <span>I have my <b>headphones</b>, a stable connection, and a quiet place ready.</span>
@@ -104,17 +111,18 @@ function lobby() {
   const exam = getExam(), E = DB.exams[exam], pkgs = DB.packages.filter(p => p.exam === exam && p.type !== 'placement');
   const hist = DB.attempts.filter(a => a.exam === exam && !isPlacement(a));
   // Kelompok: Full test, lalu tiap section (paket satu section), lalu paket campuran
-  const keyOf = p => p.type === 'full' ? 'full' : p.sections.length === 1 ? p.sections[0][0] : 'mixed';
-  const groups = [{ key: 'full', title: 'Full Mock Tests', icon: 'layers' }, ...E.sections.filter(s => !s.office).map(s => ({ key: s.id, title: s.name, icon: s.icon || 'file-question' })), { key: 'mixed', title: 'Other tests', icon: 'shuffle' }]
-    .map(g => ({ ...g, items: pkgs.filter(p => keyOf(p) === g.key) })).filter(g => g.items.length);
+  const groups = [{ key: 'full', title: 'Full Mock Test', icon: 'layers' }, ...E.sections.filter(s => !s.office).map(s => ({ key: s.id, title: (s.short || s.name) + ' Only', icon: s.icon || 'file-question' })), { key: 'mixed', title: 'Other tests', icon: 'shuffle' }]
+    .map(g => ({ ...g, items: pkgs.filter(p => mockTab(p) === g.key) })).filter(g => g.items.length);
+  const sel = pkgs.find(p => p.id === qs('pkg')) || pkgs[0] || { sections: [] };
   return {
-    exam, E, pkgs, groups, sel: pkgs.find(p => p.id === qs('pkg')) || pkgs[0] || { sections: [] }, ready: false, shake: false, locked: access.locked,
+    exam, E, pkgs, groups, sel, tab: pkgs.length ? mockTab(sel) : '', ready: false, shake: false, locked: access.locked,
+    isLocked: p => !!p.id && mockLocked(p),
     last: p => hist.find(h => h.pkg === p.id),
     scoreText: h => { const v = attemptScore(h); return v == null ? 'by tutor' : exam === 'ielts' ? v.toFixed(1) : v; },
     minutes: p => p.sections.reduce((a, s) => a + s[1], 0),
     count: p => p.sections.reduce((a, [id]) => a + sectionItems(p.exam, id, pkgPool(p)).length, 0),
     // Paket terpilih diingat di alamat (?pkg=) agar tetap sama saat halaman dibuka ulang
-    choose(p) { this.sel = p; this.ready = false; history.replaceState(null, '', '?pkg=' + p.id); if (innerWidth < 1024) document.getElementById('detail').scrollIntoView({ behavior: 'smooth' }); },
+    choose(p, quiet) { this.sel = p; this.ready = false; history.replaceState(null, '', '?pkg=' + p.id); if (!quiet && innerWidth < 1024) document.getElementById('detail').scrollIntoView({ behavior: 'smooth' }); },
   };
 }
 </script>

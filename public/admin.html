@@ -154,7 +154,7 @@
         <template x-for="x in (E?.sections || []).filter(x => !x.office)" :key="x.id"><button @click="qSec=x.id; loadQuestions(1)" class="chip" :class="qSec===x.id && 'chip-on'" x-text="x.name + ' (' + qCount({ exam, section: x.id }) + ')'"></button></template>
       </div>
       <div class="flex flex-col gap-2 sm:flex-row">
-        <select x-model="qPool" @change="loadQuestions(1)" class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm"><option value="all">Semua penggunaan</option><option value="bank">Latihan (Skills & pertemuan)</option><option value="placement">Placement test</option><template x-for="p in mockList" :key="p.id"><option :value="p.id" x-text="'Mock: ' + p.name" :selected="qPool === p.id"></option></template></select>
+        <select x-model="qPool" @change="loadQuestions(1)" class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm"><option value="all">Semua penggunaan</option><option value="bank">Latihan pertemuan (Curriculum)</option><option value="skills">Latihan Skills (per bab)</option><option value="placement">Placement test</option><template x-for="p in mockList" :key="p.id"><option :value="p.id" x-text="'Mock: ' + p.name" :selected="qPool === p.id"></option></template></select>
         <div class="relative flex-1 sm:max-w-sm"><i data-lucide="search" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"></i><input x-model="qQ" @input.debounce.400ms="loadQuestions(1)" placeholder="Cari soal atau topik…" class="w-full rounded-xl border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm outline-none focus:border-brand-500"></div>
       </div>
     </div>
@@ -404,11 +404,11 @@
             <div class="grid gap-4 sm:grid-cols-2">
               <label class="block"><span class="lbl">Section</span><select x-model="qForm.section" class="inp"><template x-for="x in (E?.sections || []).filter(x => !x.office)" :key="x.id"><option :value="x.id" x-text="x.name" :selected="x.id===qForm.section"></option></template></select></label>
               <label class="block"><span class="lbl">Tipe soal</span><select x-model="qForm.type" class="inp"><template x-for="(v, k) in typeLabel"><option :value="k" x-text="v" :selected="k===qForm.type"></option></template></select></label>
-              <label class="block"><span class="lbl">Dipakai untuk</span><select x-model="qForm.pool" class="inp"><option value="bank">Latihan (Skills & pertemuan)</option><option value="placement">Placement test</option><template x-for="p in mockList" :key="p.id"><option :value="p.id" x-text="'Mock test: ' + p.name" :selected="qForm.pool === p.id"></option></template></select></label>
+              <label class="block"><span class="lbl">Dipakai untuk</span><select x-model="qForm.pool" class="inp"><option value="bank">Latihan pertemuan (Curriculum)</option><option value="skills">Latihan Skills (per bab)</option><option value="placement">Placement test</option><template x-for="p in mockList" :key="p.id"><option :value="p.id" x-text="'Mock test: ' + p.name" :selected="qForm.pool === p.id"></option></template></select></label>
               <label class="block"><span class="lbl">Tingkat kesulitan</span><select x-model="qForm.difficulty" class="inp"><option value="mudah">Mudah</option><option value="sedang">Sedang</option><option value="sulit">Sulit</option></select></label>
               <label class="block"><span class="lbl">Topik</span><input x-model="qForm.topic" list="topics" placeholder="mis. Subject-Verb Agreement" class="inp"><datalist id="topics"><template x-for="t in topics"><option :value="t"></option></template></datalist></label>
               <label class="block"><span class="lbl">Pertemuan <span class="font-normal text-slate-500">· soal tampil di latihan pertemuan ini</span></span>
-                <select x-model="qForm.chapter" :disabled="qForm.pool!=='bank'" class="inp disabled:bg-slate-50"><option value="">— Tidak dipakai di latihan pertemuan —</option><template x-for="c in chapters.filter(c => c.exam === exam && c.section === qForm.section)" :key="c.id"><option :value="c.id" x-text="(meetingNo(c) ? meetingNo(c) + '. ' : '') + c.title" :selected="c.id === qForm.chapter"></option></template></select></label>
+                <select x-model="qForm.chapter" :disabled="!['bank', 'skills'].includes(qForm.pool)" class="inp disabled:bg-slate-50"><option value="">— Tidak dipakai di latihan pertemuan —</option><template x-for="c in chapters.filter(c => c.exam === exam && c.section === qForm.section)" :key="c.id"><option :value="c.id" x-text="(meetingNo(c) ? meetingNo(c) + '. ' : '') + c.title" :selected="c.id === qForm.chapter"></option></template></select></label>
             </div>
 
             <div x-show="qForm.section==='reading'">
@@ -591,7 +591,7 @@ const IMPORT_HELP = [
   ['instruksi', 'Instruksi di atas soal, mis. Write ONE WORD ONLY (opsional)'],
   ['passage', 'ID passage Reading yang sudah ada (opsional)'],
   ['audio', 'ID audio Listening yang sudah ada (opsional)'],
-  ['untuk', '<b>latihan</b> (Skills & pertemuan), <b>placement</b>, atau <b>nama mock test</b> persis seperti di menu Mock Test (mis. Full Mock Test 2). Kosong = latihan'],
+  ['untuk', '<b>latihan</b> (latihan pertemuan Curriculum), <b>skills</b> (latihan Skills, dikelompokkan per kolom bab), <b>placement</b>, atau <b>nama mock test</b> persis seperti di menu Mock Test (mis. Full Mock Test 2). Kosong = latihan'],
 ];
 
 // CSV → array baris (pemisah ; atau , dan teks berkutip yang memuat enter)
@@ -634,7 +634,7 @@ function csvToQuestions(text, defaultExam) {
       answer: type === 'fill' ? (r.kunci || '').split('|').map(a => a.trim()).filter(Boolean) : (k.length === 1 && letter >= 0 ? letter : null),
       explain: r.pembahasan, topic: r.topik, difficulty: (r.kesulitan || 'sedang').toLowerCase(), chapter: r.bab, instr: r.instruksi,
       passage: r.passage, clip: r.audio, pool: (() => { const u = (r.untuk || '').trim().toLowerCase(), m = DB.packages.find(p => p.exam === (ex?.key || prog) && p.type !== 'placement' && (p.id.toLowerCase() === u || p.name.toLowerCase() === u));
-        return m ? m.id : /placement/.test(u) ? 'placement' : !u || /latihan|simulasi|bank/.test(u) ? 'bank' : r.untuk; })(),
+        return m ? m.id : /placement/.test(u) ? 'placement' : /skill/.test(u) ? 'skills' : !u || /latihan|simulasi|bank/.test(u) ? 'bank' : r.untuk; })(),
     };
   }).filter(Boolean);
 }
@@ -824,7 +824,7 @@ function admin() {
           DB.passages[passage] = { title };
         }
         await api('PUT', '/admin/questions/' + encodeURIComponent(f.id), {
-          ...f, exam: this.exam, audioFile: undefined, chapter: f.pool !== 'bank' ? '' : f.chapter,
+          ...f, exam: this.exam, audioFile: undefined, chapter: !['bank', 'skills'].includes(f.pool) ? '' : f.chapter,
           clip: f.section === 'listening' ? clip : '', passage: f.section === 'reading' ? passage : '',
           answer: f.type === 'fill' ? f.fillAnswer.split(',').map(norm).filter(Boolean) : f.answer,
         });

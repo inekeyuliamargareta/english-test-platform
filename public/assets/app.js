@@ -155,6 +155,11 @@ const correctText = q => q.type === 'fill' ? q.answer[0] : `${L(q.answer)}. ${q.
 // Item per section untuk halaman test: soal pilihan ganda/isian atau task writing (section dinilai tutor)
 // pool: 'bank' = soal latihan Skills, 'placement' = soal placement test, id paket = soal khusus mock test itu
 // Soal yang dipakai sebuah paket: soalnya sendiri, atau bank latihan untuk paket lama yang belum punya soal sendiri
+// Tab mock test & mock test gratis (sama dengan src/access.js): yang pertama di tiap tab gratis, sisanya untuk siswa berbayar
+const mockTab = p => p.type === 'full' ? 'full' : p.sections.length === 1 ? p.sections[0][0] : 'mixed';
+// Bandingkan per id: objek dari Alpine berupa proxy, jadi indexOf(objek) tidak bisa dipakai
+const isFreeMock = p => DB.packages.find(x => x.exam === p.exam && x.type !== 'placement' && mockTab(x) === mockTab(p))?.id === p.id;
+const mockLocked = p => !access.can('simulasi') || (!access.full && !isFreeMock(p));
 const pkgPool = p => p.type === 'placement' ? 'placement' : DB.questions?.some(q => q.pool === p.id) ? p.id : 'bank';
 function sectionItems(exam, sec, pool = 'bank') {
   if (sectionMeta(exam, sec)?.tutor) return DB.writingTasks.filter(t => t.exam === exam && t.section === sec).map(t => ({ ...t, kind: 'writing' }));

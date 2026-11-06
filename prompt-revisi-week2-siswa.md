@@ -4,7 +4,7 @@ Revisi web EnglishON! TOEFL/IELTS (Node/Express + MySQL: `src/server.js`, `src/d
 
 **Arah project:** web ini ke depan **hanya untuk panel siswa**. Semua fitur admin/teacher/role lain dibangun di repo `englishone-backend` (prompt terpisah: `prompt-revisi-week2-admin-backend.md`). Jadi:
 - **Jangan menambah fitur baru di `public/admin.html`.** Admin lama dibiarkan jalan apa adanya sampai versi backend siap, lalu dihapus.
-- Data baru yang diatur admin (program, status, lock, FAQ, cover, review placement) **disimpan di database toefl-ielts** — backend akan baca/tulis langsung ke DB ini. Repo ini yang memegang skema: buat tabel/kolomnya lewat migrasi (`migrations.sql` / `src/migrate.js`) dan pakai di sisi siswa.
+- Data baru yang diatur admin (program, status, lock, FAQ, cover, review placement) **disimpan di database toefl-ielts**. Backend mengaksesnya lewat API admin repo ini (server ke server), bukan koneksi DB langsung. Repo ini yang memegang skema: buat tabel/kolomnya lewat migrasi (`migrations.sql` / `src/migrate.js`) dan pakai di sisi siswa.
 - Selama admin backend belum jadi, nilai bisa diisi manual via SQL/seed untuk tes.
 
 Cek dulu yang sudah ada — sebagian sudah dikerjakan di commit `d314c8e` (skills per pertemuan, mock test bertab, level placement A1–C1 + batas %). Lengkapi kekurangannya, jangan bangun ulang.

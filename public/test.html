@@ -259,7 +259,7 @@ function test() {
   const exam = pkg.exam, placement = pkg.type === 'placement';
   document.documentElement.dataset.exam = exam;
   return {
-    pkg, exam, placement, si: 0, cur: 0, phase: 'intro', left: 0, answers: {}, flags: [], clips: {}, locked: !access.can(placement ? 'placement' : 'simulasi'),
+    pkg, exam, placement, si: 0, cur: 0, phase: 'intro', left: 0, answers: {}, flags: [], clips: {}, locked: placement ? !access.can('placement') : mockLocked(pkg),
     secs: pkg.sections.map(([id, min]) => ({ id, min, meta: sectionMeta(exam, id), items: sectionItems(exam, id, pkgPool(pkg)) })),
     navOpen: false, modal: false, exitOpen: false, toast: '', finishing: false, submitError: '', leaving: false, timeUpNote: false, started: Date.now(),
 

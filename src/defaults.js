@@ -116,7 +116,10 @@ async function applyDefaults(db) {
     }
     if (changed) await db.query('UPDATE exams SET recommend = ? WHERE code = ?', [J(r), code]);
   }
-  await db.query('INSERT IGNORE INTO app_settings (k, v) VALUES (?, ?), (?, ?)', ['free_panels', J(['program', 'placement', 'consult']), 'placement_review', 'false']);
+  const FREE = ['program', 'placement', 'consult', 'simulasi', 'hasil'];
+  await db.query('INSERT IGNORE INTO app_settings (k, v) VALUES (?, ?), (?, ?)', ['free_panels', J(FREE), 'placement_review', 'false']);
+  // Default lama (tanpa Mock Test 1 gratis) diganti; pengaturan yang sudah diubah admin tidak tersentuh
+  await db.query("UPDATE app_settings SET v = ? WHERE k = 'free_panels' AND v = CAST(? AS JSON)", [J(FREE), J(['program', 'placement', 'consult'])]);
 
   const [[{ n }]] = await db.query("SELECT COUNT(*) n FROM packages WHERE type = 'placement'");
   const [exams] = await db.query('SELECT code FROM exams');

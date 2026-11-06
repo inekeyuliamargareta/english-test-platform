@@ -58,9 +58,9 @@ Target skor diisi siswa sendiri per program (klik kartu target di sidebar atau d
 - **Kunci jawaban tidak dikirim ke browser siswa.** Skor dihitung di server saat submit. Kunci dan pembahasan baru dikirim di halaman Review, atau setelah siswa menjawab latihan bab.
 - **Akses panel** (`src/access.js`, cek: `npm test`). Siswa berbayar = punya `program` (20/30/40) atau akses penuh, dan `status` aktif. Akun gratis / tidak aktif hanya membuka panel di `free_panels` (default About, Placement, Consultation). Panel terkunci tampil abu-abu, datanya tidak dikirim di `/api/bootstrap`, dan endpoint-nya menolak (403).
 
-## Tabel yang ditulis englishone-backend
+## Data yang diatur dari englishone-backend
 
-Ke depan web ini hanya untuk panel siswa. Admin (Director dulu) ada di `englishone-backend` dan menulis langsung ke database ini. Skema tetap dipegang repo ini (`migrations.sql` + `src/migrate.js`).
+Ke depan web ini hanya untuk panel siswa. Admin (Director dulu) ada di `englishone-backend`, di server Lighthouse terpisah. Backend **tidak konek ke database ini**: backend memanggil `/api/admin/*` di sini dari server ke server, dengan token service. Database, file upload, dan skema tetap di repo dan server ini (`migrations.sql` + `src/migrate.js`). Tabel dan kolom yang diatur lewat API:
 
 | Tabel / kolom | Isi |
 |---|---|
