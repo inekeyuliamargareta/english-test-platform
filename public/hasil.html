@@ -15,11 +15,11 @@
   <!-- Placement test -->
   <template x-if="pl">
     <div class="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-soft sm:flex-row sm:items-center">
-      <span class="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-accent text-xl font-extrabold text-white" x-text="levelOf(pl.total).code"></span>
+      <span class="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-accent text-xl font-extrabold text-white" x-text="levelOf(pl.total, exam).code"></span>
       <div class="flex-1 text-sm">
         <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Placement Test</p>
-        <p class="font-semibold" x-text="'Level ' + levelOf(pl.total).code + ' (' + levelOf(pl.total).name + ') · ' + pl.total + '% correct'"></p>
-        <p class="text-slate-500" x-text="fmtDate(pl.date) + (LEVEL_RANGE[exam] ? ' · estimated score ' + LEVEL_RANGE[exam][levelOf(pl.total).code] : '')"></p>
+        <p class="font-semibold" x-text="'Level ' + levelOf(pl.total, exam).code + ' (' + levelOf(pl.total, exam).name + ') · ' + pl.total + '% correct'"></p>
+        <p class="text-slate-500" x-text="fmtDate(pl.date) + (rangeOf(exam, levelOf(pl.total, exam).code) ? ' · estimated score ' + rangeOf(exam, levelOf(pl.total, exam).code) : '')"></p>
       </div>
       <div class="flex gap-2">
         <a :href="'placement.html?id=' + pl.id" class="rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold hover:bg-slate-50">View Result</a>
@@ -103,7 +103,7 @@
           <tr class="hover:bg-slate-50" :class="att && h.id === att.id && 'bg-accent-soft/40'">
             <td class="whitespace-nowrap px-5 py-3 text-slate-600" x-text="fmtDate(h.date)"></td>
             <td class="whitespace-nowrap px-5 py-3" x-text="DB.packages.find(p => p.id === h.pkg)?.name || h.pkg"></td>
-            <td class="whitespace-nowrap px-5 py-3 font-semibold" x-text="isPlacement(h) ? 'Level ' + levelOf(h.total).code + ' · ' + h.total + '%' : attemptScore(h) == null ? 'Graded by tutor' : fmtScore(attemptScore(h))"></td>
+            <td class="whitespace-nowrap px-5 py-3 font-semibold" x-text="isPlacement(h) ? 'Level ' + levelOf(h.total, h.exam).code + ' · ' + h.total + '%' : attemptScore(h) == null ? 'Graded by tutor' : fmtScore(attemptScore(h))"></td>
             <td class="whitespace-nowrap px-5 py-3 text-right"><a :href="(isPlacement(h) ? 'placement.html?id=' : 'hasil.html?id=') + h.id" class="mr-3 text-xs font-semibold text-slate-500 hover:underline">Result</a><a :href="'review.html?id=' + h.id" class="text-xs font-semibold text-accent hover:underline">Review</a></td>
           </tr>
         </template>
@@ -126,8 +126,8 @@ function hasil() {
   const att = byId || findAttempt(a => a.exam === exam);
   if (!att) return { ...base, att: null };
   const res = scoreAttempt(att), main = res.total ?? res.sections[0].score; // null = Writing only (waiting for tutor)
-  const cefr = main == null ? '—' : ielts ? (main >= 7 ? 'C1' : main >= 5.5 ? 'B2' : main >= 4 ? 'B1' : 'A2')
-    : res.total === null ? '—' : (main >= 627 ? 'C1' : main >= 543 ? 'B2' : main >= 460 ? 'B1' : 'A2');
+  const cefr = main == null ? '—' : ielts ? (main >= 7 ? 'C1' : main >= 5.5 ? 'B2' : main >= 4 ? 'B1' : main >= 3 ? 'A2' : 'A1')
+    : res.total === null ? '—' : (main >= 627 ? 'C1' : main >= 543 ? 'B2' : main >= 460 ? 'B1' : main >= 337 ? 'A2' : 'A1');
   const target = DB.user.target[exam];
   return {
     ...base, att, res, cefr,

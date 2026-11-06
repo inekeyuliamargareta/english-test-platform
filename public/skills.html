@@ -61,14 +61,23 @@
       <a href="skills.html" class="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-900"><i data-lucide="arrow-left" class="h-4 w-4"></i>All skills</a>
       <div class="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-soft sm:flex-row sm:items-center">
         <span class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-accent-soft text-accent" x-html="ico(skill.icon, 'h-6 w-6')"></span>
-        <div class="flex-1"><h2 class="text-xl font-bold" x-text="skill.name + ' Practice'"></h2><p class="text-sm text-slate-500" x-text="items.length + ' questions · answers are checked right away'"></p></div>
+        <div class="flex-1"><h2 class="text-xl font-bold" x-text="skill.name + ' Practice'"></h2><p class="text-sm text-slate-500" x-text="items.length + ' questions in ' + groups.length + (groups.length === 1 ? ' group' : ' groups') + ' · answers are checked right away'"></p></div>
         <div class="rounded-xl bg-slate-50 px-4 py-2 text-center text-sm"><p class="text-xs text-slate-500">Correct</p><p class="font-bold"><span class="text-emerald-600" x-text="score"></span> / <span x-text="Object.keys(res).length"></span></p></div>
       </div>
 
-      <template x-for="(q, n) in pageItems" :key="q.id">
+      <template x-for="g in groups" :key="g.id">
+        <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-soft">
+          <button @click="openG = openG === g.id ? '' : g.id" class="flex w-full items-center gap-4 p-4 text-left hover:bg-slate-50">
+            <span class="grid h-11 w-11 shrink-0 place-items-center rounded-xl text-sm font-bold" :class="g.no ? 'bg-accent-soft text-accent' : 'bg-slate-100 text-slate-500'" x-html="g.no || ico('list', 'h-5 w-5')"></span>
+            <span class="min-w-0 flex-1"><span class="block text-xs font-semibold uppercase tracking-wider text-slate-400" x-text="g.no ? 'Meeting ' + g.no : 'More practice'"></span><span class="block truncate font-semibold" x-text="g.title"></span></span>
+            <span class="shrink-0 text-right text-xs text-slate-500"><span class="block" x-text="g.items.length + ' questions'"></span><span x-show="answered(g)" class="block font-semibold text-emerald-600" x-text="correct(g) + ' / ' + answered(g) + ' correct'"></span></span>
+            <span class="shrink-0 text-slate-400 transition" :class="openG === g.id && 'rotate-180'"><i data-lucide="chevron-down" class="h-5 w-5"></i></span>
+          </button>
+          <div x-show="openG === g.id" class="space-y-4 border-t border-slate-100 bg-slate-50/60 p-4">
+      <template x-for="(q, n) in g.items" :key="q.id">
         <div class="rounded-2xl border bg-white p-5 shadow-soft sm:p-6" :class="res[q.id] ? (res[q.id].correct ? 'border-emerald-200' : 'border-rose-200') : 'border-slate-200'">
           <div class="flex flex-wrap items-center gap-2 text-xs">
-            <span class="rounded-md bg-slate-900 px-2 py-0.5 font-semibold text-white" x-text="'Question ' + (start + n + 1)"></span>
+            <span class="rounded-md bg-slate-900 px-2 py-0.5 font-semibold text-white" x-text="'Question ' + (n + 1)"></span>
             <span x-show="q.topic" class="rounded-md bg-slate-100 px-2 py-0.5 text-slate-600" x-text="q.topic"></span>
             <span class="rounded-md px-2 py-0.5" :class="diffClass[q.difficulty]" x-text="{ mudah: 'Easy', sedang: 'Medium', sulit: 'Hard' }[q.difficulty]"></span>
           </div>
@@ -101,12 +110,9 @@
           </div>
         </div>
       </template>
-
-      <div x-show="pages > 1" class="flex items-center justify-between rounded-2xl border border-slate-200 bg-white p-3 text-sm shadow-soft">
-        <button @click="go(page - 1)" :disabled="page === 1" class="flex items-center gap-1 rounded-lg px-3 py-2 font-semibold hover:bg-slate-50 disabled:opacity-40"><i data-lucide="chevron-left" class="h-4 w-4"></i>Previous</button>
-        <span class="text-slate-500" x-text="'Page ' + page + ' of ' + pages"></span>
-        <button @click="go(page + 1)" :disabled="page === pages" class="flex items-center gap-1 rounded-lg px-3 py-2 font-semibold hover:bg-slate-50 disabled:opacity-40">Next<i data-lucide="chevron-right" class="h-4 w-4"></i></button>
-      </div>
+          </div>
+        </section>
+      </template>
       <p x-show="!items.length" class="rounded-2xl border-2 border-dashed border-slate-200 bg-white p-10 text-center text-sm text-slate-500">No practice questions for this skill yet.</p>
     </div>
   </template>
@@ -114,18 +120,20 @@
 
 <script>
 function skills() {
-  const exam = getExam(), E = DB.exams[exam], PER = 10;
+  const exam = getExam(), E = DB.exams[exam];
   const bank = s => DB.questions.filter(q => q.exam === exam && q.section === s && (q.pool || 'bank') === 'bank');
   const skill = E.sections.find(s => s.id === qs('skill')) || null;
   const items = skill ? bank(skill.id) : [];
+  // Kelompok = pertemuan (urutan kurikulum); soal tanpa pertemuan masuk "More practice"
+  const groups = meetings(exam).map((c, i) => ({ id: c.id, no: i + 1, title: c.title, items: items.filter(q => q.chapter === c.id) })).filter(g => g.items.length);
+  const rest = items.filter(q => !groups.some(g => g.items.includes(q)));
+  if (rest.length) groups.push({ id: 'more', no: 0, title: (skill?.name || '') + ' practice', items: rest });
   return {
-    E, skill, items, page: 1, ans: {}, fill: {}, res: {},
+    E, skill, items, groups, openG: groups[0]?.id || '', ans: {}, fill: {}, res: {},
     cards: E.sections.map(s => ({ ...s, count: bank(s.id).length })).filter(s => s.count || s.office),
-    get pages() { return Math.ceil(items.length / PER) || 1; },
-    get start() { return (this.page - 1) * PER; },
-    get pageItems() { return items.slice(this.start, this.start + PER); },
+    answered(g) { return g.items.filter(q => this.res[q.id]).length; },
+    correct(g) { return g.items.filter(q => this.res[q.id]?.correct).length; },
     get score() { return Object.values(this.res).filter(r => r.correct).length; },
-    go(p) { this.page = Math.min(Math.max(1, p), this.pages); scrollTo({ top: 0, behavior: 'smooth' }); },
     async check(q, a) {
       if (q.id in this.ans) return;
       this.ans[q.id] = a;

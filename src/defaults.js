@@ -12,25 +12,28 @@ const about = {
 <p><b>Skor berupa band 1–9</b> untuk tiap bagian. Overall band adalah rata-rata keempat bagian, dibulatkan ke 0,5 terdekat. Kebanyakan universitas meminta overall 6.0–7.0.</p>
 <p>Di platform ini kamu berlatih Listening, Reading, dan Writing (Writing dinilai tutor). <b>Speaking</b> dilatih langsung bersama tutor di kantor EnglishOn Ponorogo.</p>`,
   general: `<p><b>English General Test</b> mengukur kemampuan bahasa Inggris sehari-hari: grammar, kosakata, membaca, dan mendengar. Cocok untuk mengetahui level awalmu sebelum memilih kelas.</p>
-<p>Skor 0–100 dan dipetakan ke level CEFR, dari <b>A2</b> (dasar) sampai <b>C1</b> (mahir).</p>`,
+<p>Skor 0–100 dan dipetakan ke level CEFR, dari <b>A1</b> (pemula) sampai <b>C1</b> (mahir).</p>`,
 };
 
 // Track belajar per level placement (tampil di halaman Curriculum siswa). desc: satu poin per baris.
 const T = (name, target, ...points) => ({ name, target, desc: points.join('\n') });
 const recommend = {
   toefl: {
-    A2: T('Foundation Track', '500–550', 'Pemula yang baru mulai persiapan TOEFL', 'Skor diagnostic di bawah 460', 'Fokus pada fundamental grammar & struktur kalimat', 'Belajar bertahap dengan penjelasan detail'),
+    A1: T('Starter Track', '450–500', 'Baru mulai belajar bahasa Inggris', 'Skor diagnostic di bawah 337', 'Fokus kosakata dasar & kalimat sederhana', 'Bangun fondasi sebelum strategi TOEFL'),
+    A2: T('Foundation Track', '500–550', 'Pemula yang baru mulai persiapan TOEFL', 'Skor diagnostic 337–459', 'Fokus pada fundamental grammar & struktur kalimat', 'Belajar bertahap dengan penjelasan detail'),
     B1: T('Intermediate Track', '550–580', 'Sudah paham dasar grammar', 'Skor diagnostic 460–542', 'Fokus strategi Structure & Listening', 'Latihan soal bertingkat'),
     B2: T('Advanced Track', '580–620', 'Skor diagnostic 543–626', 'Fokus soal sulit & manajemen waktu', 'Simulasi rutin untuk menjaga konsistensi'),
     C1: T('Mastery Track', '620+', 'Skor diagnostic 627 ke atas', 'Memoles detail & strategi ujian', 'Simulasi penuh sebelum tes resmi'),
   },
   ielts: {
-    A2: T('Foundation Track', 'Band 5.0–5.5', 'Pemula yang baru mulai persiapan IELTS', 'Band perkiraan 4.0 ke bawah', 'Fokus grammar, kosakata, dan membaca dasar'),
+    A1: T('Starter Track', 'Band 4.5–5.0', 'Baru mulai belajar bahasa Inggris', 'Band perkiraan di bawah 3.0', 'Fokus kosakata dasar & kalimat sederhana'),
+    A2: T('Foundation Track', 'Band 5.0–5.5', 'Pemula yang baru mulai persiapan IELTS', 'Band perkiraan 3.0–3.5', 'Fokus grammar, kosakata, dan membaca dasar'),
     B1: T('Intermediate Track', 'Band 6.0', 'Band perkiraan 4.0–5.0', 'Fokus Reading, Writing, dan kosakata akademik'),
     B2: T('Advanced Track', 'Band 6.5–7.0', 'Band perkiraan 5.5–6.5', 'Fokus Writing Task 2 & strategi Listening'),
     C1: T('Mastery Track', 'Band 7.5+', 'Band perkiraan 7.0 ke atas', 'Simulasi penuh + latihan Speaking bersama tutor'),
   },
   general: {
+    A1: T('Starter Track', 'A2', 'Baru mulai belajar', 'Fokus kosakata & kalimat dasar'),
     A2: T('Foundation Track', 'B1', 'Pemula', 'Fokus grammar & kosakata sehari-hari'),
     B1: T('Intermediate Track', 'B2', 'Sudah bisa percakapan sederhana', 'Fokus kelancaran & tata bahasa menengah'),
     B2: T('Advanced Track', 'C1', 'Siap mulai persiapan TOEFL/IELTS'),
@@ -95,6 +98,12 @@ async function applyDefaults(db) {
     await db.query('UPDATE exams SET about = ? WHERE code = ? AND about IS NULL', [about[code], code]);
     // Isi track bawaan jika kosong, atau jika masih format lama (teks rekomendasi kelas)
     await db.query("UPDATE exams SET recommend = ? WHERE code = ? AND (recommend IS NULL OR JSON_TYPE(JSON_EXTRACT(recommend, '$.A2')) = 'STRING')", [J(recommend[code]), code]);
+    // Level A1 ditambahkan belakangan: isi track A1 bawaan jika belum ada
+    await db.query("UPDATE exams SET recommend = JSON_SET(recommend, '$.A1', CAST(? AS JSON)) WHERE code = ? AND JSON_EXTRACT(recommend, '$.A1') IS NULL", [J(recommend[code].A1), code]);
+  }
+  // Teks bawaan A2 lama (sebelum ada A1) disesuaikan dengan rentang barunya; teks yang sudah diubah admin tidak tersentuh
+  for (const [code, from, to] of [['toefl', 'Skor diagnostic di bawah 460', 'Skor diagnostic 337–459'], ['ielts', 'Band perkiraan 4.0 ke bawah', 'Band perkiraan 3.0–3.5']]) {
+    await db.query("UPDATE exams SET recommend = JSON_SET(recommend, '$.A2.desc', REPLACE(JSON_UNQUOTE(JSON_EXTRACT(recommend, '$.A2.desc')), ?, ?)) WHERE code = ? AND JSON_UNQUOTE(JSON_EXTRACT(recommend, '$.A2.desc')) LIKE ?", [from, to, code, '%' + from + '%']);
   }
   const [[{ n }]] = await db.query("SELECT COUNT(*) n FROM packages WHERE type = 'placement'");
   const [exams] = await db.query('SELECT code FROM exams');

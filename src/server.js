@@ -442,7 +442,14 @@ app.put('/api/admin/exams/:code', admin, wrap(async (req, res) => {
   const mix = t => parts.map(n => Math.round(t > 0 ? n + (255 - n) * t : n * (1 + t))).join(' ');
   const secs = (Array.isArray(b.sections) ? b.sections : []).map(s => ({ ...s, name: text(s.name, 80, 'Nama section'), official: String(s.official || '').slice(0, 60) || null,
     office: !!s.office, tutor: !s.office && !!s.tutor, note: String(s.note || '').slice(0, 2000) || null }));
-  const recommend = Object.fromEntries(['A2', 'B1', 'B2', 'C1'].map(k => { const t = b.recommend?.[k] || {}; return [k, { name: String(t.name || '').slice(0, 80), target: String(t.target || '').slice(0, 40), desc: String(t.desc || '').slice(0, 1000) }]; }));
+  // Track per level: nama, target, poin, batas % benar placement (min) dan perkiraan skor (range)
+  const DEF_MIN = { A1: 0, A2: 15, B1: 30, B2: 55, C1: 80 }, CODES = Object.keys(DEF_MIN);
+  const recommend = Object.fromEntries(CODES.map(k => {
+    const t = b.recommend?.[k] || {}, min = k === 'A1' ? 0 : Math.round(Number(t.min ?? DEF_MIN[k]));
+    return [k, { name: String(t.name || '').slice(0, 80), target: String(t.target || '').slice(0, 40), desc: String(t.desc || '').slice(0, 1000), min, range: String(t.range || '').slice(0, 60) }];
+  }));
+  const mins = CODES.map(k => recommend[k].min);
+  if (mins.some((m, i) => !(m >= 0 && m <= 100) || (i && m <= mins[i - 1]))) fail(400, 'Batas level harus naik: A1 < A2 < B1 < B2 < C1 (0–100%)');
   if (!secs.length) fail(400, 'Minimal satu section');
   const used = new Set();
   for (const s of secs) {

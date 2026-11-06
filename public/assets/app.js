@@ -193,17 +193,31 @@ const findAttempt = (pred = () => true) => DB.attempts.find(a => DB.packages.som
 
 // ---------- Placement test ----------
 // Level dari persen jawaban benar. Perkiraan skor: TOEFL ITP mengikuti batas CEFR resmi ETS; IELTS perkiraan umum.
-const LEVELS = [{ code: 'A2', name: 'Elementary', min: 0 }, { code: 'B1', name: 'Intermediate', min: 30 }, { code: 'B2', name: 'Upper-intermediate', min: 55 }, { code: 'C1', name: 'Advanced', min: 80 }];
+const LEVELS = [{ code: 'A1', name: 'Beginner', min: 0 }, { code: 'A2', name: 'Elementary', min: 15 }, { code: 'B1', name: 'Intermediate', min: 30 }, { code: 'B2', name: 'Upper-intermediate', min: 55 }, { code: 'C1', name: 'Advanced', min: 80 }];
+// Perkiraan skor per level CEFR: TOEFL ITP dari pemetaan resmi ETS, IELTS dari tabel IELTS–CEFR
 const LEVEL_RANGE = {
-  toefl: { A2: 'below 460', B1: '460–542', B2: '543–626', C1: '627 and above' },
-  ielts: { A2: 'band 4.0 or below', B1: 'band 4.0–5.0', B2: 'band 5.5–6.5', C1: 'band 7.0 and above' },
+  toefl: { A1: 'below 337', A2: '337–459', B1: '460–542', B2: '543–626', C1: '627 and above' },
+  ielts: { A1: 'below band 3.0', A2: 'band 3.0–3.5', B1: 'band 4.0–5.0', B2: 'band 5.5–6.5', C1: 'band 7.0 and above' },
 };
-const levelOf = percent => [...LEVELS].reverse().find(l => percent >= l.min);
+const LEVEL_SOURCE = {
+  toefl: 'Estimated scores follow the official CEFR mapping for TOEFL ITP published by ETS.',
+  ielts: 'Estimated bands follow the IELTS–CEFR comparison published by the IELTS partners.',
+};
+// Batas level & perkiraan skor bisa diatur admin per program (Pengaturan → Level placement); default di atas
+function levelsOf(exam) {
+  const r = DB.exams?.[exam]?.recommend || {};
+  return LEVELS.map((l, i) => {
+    const t = typeof r[l.code] === 'object' ? r[l.code] : {}, min = i === 0 ? 0 : t.min === '' || t.min == null || isNaN(t.min) ? l.min : +t.min;
+    return { ...l, min, range: t.range || LEVEL_RANGE[exam]?.[l.code] || '' };
+  });
+}
+const levelOf = (percent, exam) => { const ls = levelsOf(exam); return [...ls].reverse().find(l => percent >= l.min) || ls[0]; };
+const rangeOf = (exam, code) => levelsOf(exam).find(l => l.code === code)?.range || '';
 // Track belajar sesuai level placement terakhir di program ini (null jika belum placement)
 const latestPlacement = exam => DB.attempts?.find(a => a.exam === exam && isPlacement(a)) || null;
 function trackOf(exam) {
   const pl = latestPlacement(exam); if (!pl) return null;
-  const lv = levelOf(pl.total), t = DB.exams[exam]?.recommend?.[lv.code];
+  const lv = levelOf(pl.total, exam), t = DB.exams[exam]?.recommend?.[lv.code];
   return { level: lv, name: t?.name || lv.name, target: t?.target || '', points: String(t?.desc || '').split('\n').map(x => x.trim()).filter(Boolean) };
 }
 // Skor diagnostic: mock test Full terakhir; jika belum ada, dari placement test terakhir
@@ -211,7 +225,7 @@ function diagnostic(exam) {
   const full = DB.attempts?.find(a => a.exam === exam && DB.packages.find(p => p.id === a.pkg)?.type === 'full');
   if (full) return { source: 'Latest full mock test', date: full.date, total: full.total, sections: Object.fromEntries(full.sections.map(s => [s.id, s.score])) };
   const pl = latestPlacement(exam);
-  if (pl) return { source: 'Placement test (estimate)', date: pl.date, total: null, range: LEVEL_RANGE[exam]?.[levelOf(pl.total).code], sections: Object.fromEntries(pl.sections.map(s => [s.id, s.score])) };
+  if (pl) return { source: 'Placement test (estimate)', date: pl.date, total: null, range: rangeOf(exam, levelOf(pl.total, exam).code), sections: Object.fromEntries(pl.sections.map(s => [s.id, s.score])) };
   return null;
 }
 // Section yang dilakukan di kantor (mis. IELTS Speaking): instruksi dari admin + kontak

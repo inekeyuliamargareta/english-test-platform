@@ -31,10 +31,10 @@
   </template>
   <template x-if="pl">
     <div class="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-soft sm:flex-row sm:items-center">
-      <span class="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-accent text-xl font-extrabold text-white" x-text="levelOf(pl.total).code"></span>
+      <span class="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-accent text-xl font-extrabold text-white" x-text="levelOf(pl.total, exam).code"></span>
       <div class="flex-1 text-sm">
-        <p class="font-semibold" x-text="'Your placement level: ' + levelOf(pl.total).code + ' (' + levelOf(pl.total).name + ')'"></p>
-        <p class="text-slate-600" x-text="fmtDate(pl.date) + ' · ' + pl.total + '% correct' + (LEVEL_RANGE[exam] ? ' · estimated score ' + LEVEL_RANGE[exam][levelOf(pl.total).code] : '')"></p>
+        <p class="font-semibold" x-text="'Your placement level: ' + levelOf(pl.total, exam).code + ' (' + levelOf(pl.total, exam).name + ')'"></p>
+        <p class="text-slate-600" x-text="fmtDate(pl.date) + ' · ' + pl.total + '% correct' + (rangeOf(exam, levelOf(pl.total, exam).code) ? ' · estimated score ' + rangeOf(exam, levelOf(pl.total, exam).code) : '')"></p>
       </div>
       <div class="flex gap-2">
         <a :href="'placement.html?id=' + pl.id" class="rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold hover:bg-slate-50">View Result</a>

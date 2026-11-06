@@ -31,34 +31,42 @@
   <div class="mt-6 grid gap-6 lg:grid-cols-3">
     <!-- Paket -->
     <div class="min-w-0 space-y-4 lg:col-span-2">
-      <h3 class="font-semibold">Choose a test package</h3>
-      <div class="grid gap-4 sm:grid-cols-2">
+      <!-- Tab paket: Full Test / Listening Only / Reading Only / … -->
+      <div class="flex flex-wrap gap-1 rounded-xl bg-white p-1 shadow-sm ring-1 ring-slate-200">
         <template x-for="p in pkgs" :key="p.id">
-          <button @click="choose(p)" class="group relative flex flex-col rounded-2xl border-2 bg-white p-5 text-left shadow-soft transition hover:-translate-y-0.5"
-            :class="[sel.id===p.id ? 'border-accent ring-4 ring-accent/10' : 'border-transparent ring-1 ring-slate-200 hover:ring-slate-300', p.type==='full' ? 'sm:col-span-2' : '']">
-            <span x-show="locked" class="absolute right-4 top-4 flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-500"><i data-lucide="lock" class="h-3 w-3"></i>Locked</span>
-            <span x-show="p.badge && !locked" class="absolute right-4 top-4 rounded-full px-2.5 py-0.5 text-xs font-semibold" :class="p.badge==='Demo' ? 'bg-amber-100 text-amber-700' : 'bg-accent text-white'" x-text="p.badge"></span>
-            <span class="grid h-11 w-11 place-items-center rounded-xl" :class="p.type==='full' ? 'bg-accent text-white' : 'bg-accent-soft text-accent'"><i :data-lucide="p.type==='full' ? 'layers' : sectionMeta(p.exam, p.sections[0][0]).icon" class="h-5 w-5"></i></span>
-            <h4 class="mt-4 pr-24 font-semibold" x-text="p.name"></h4>
-            <p class="mt-1 flex-1 text-sm text-slate-500" x-text="p.desc"></p>
-            <div class="mt-4 flex flex-wrap gap-4 text-xs font-medium text-slate-600">
-              <span class="flex items-center gap-1.5"><i data-lucide="clock" class="h-3.5 w-3.5 text-slate-400"></i><span x-text="minutes(p) + ' minutes'"></span></span>
-              <span class="flex items-center gap-1.5"><i data-lucide="file-question" class="h-3.5 w-3.5 text-slate-400"></i><span x-text="count(p) + ' questions/tasks'"></span></span>
-              <span class="flex items-center gap-1.5"><i data-lucide="layout-grid" class="h-3.5 w-3.5 text-slate-400"></i><span x-text="p.sections.length + (p.sections.length === 1 ? ' section' : ' sections')"></span></span>
-            </div>
+          <button @click="choose(p)" class="flex shrink-0 items-center gap-2 whitespace-nowrap rounded-lg px-4 py-2 text-sm font-semibold transition" :class="sel.id === p.id ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-50'">
+            <span x-html="ico(p.type === 'full' ? 'layers' : sectionMeta(p.exam, p.sections[0][0])?.icon || 'file-question')"></span><span x-text="tabName(p)"></span>
           </button>
         </template>
       </div>
 
+      <!-- Paket terpilih -->
+      <div x-show="sel.id" class="rounded-2xl border border-slate-200 bg-white p-6 shadow-soft">
+        <div class="flex items-start gap-4">
+          <span class="grid h-12 w-12 shrink-0 place-items-center rounded-xl" :class="sel.type === 'full' ? 'bg-accent text-white' : 'bg-accent-soft text-accent'" x-html="ico(sel.type === 'full' ? 'layers' : sectionMeta(exam, sel.sections[0]?.[0])?.icon || 'file-question', 'h-6 w-6')"></span>
+          <div class="min-w-0 flex-1">
+            <div class="flex flex-wrap items-center gap-2"><h3 class="text-lg font-bold" x-text="sel.name"></h3>
+              <span x-show="sel.badge && !locked" class="rounded-full px-2.5 py-0.5 text-xs font-semibold" :class="sel.badge === 'Demo' ? 'bg-amber-100 text-amber-700' : 'bg-accent text-white'" x-text="sel.badge"></span>
+              <span x-show="locked" class="flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-500"><i data-lucide="lock" class="h-3 w-3"></i>Locked</span></div>
+            <p class="mt-1 text-sm text-slate-500" x-text="sel.desc"></p>
+          </div>
+        </div>
+        <div class="mt-5 grid grid-cols-3 gap-2 text-center text-sm">
+          <div class="rounded-xl bg-slate-50 p-3"><p class="text-lg font-bold" x-text="minutes(sel)"></p><p class="text-xs text-slate-500">minutes</p></div>
+          <div class="rounded-xl bg-slate-50 p-3"><p class="text-lg font-bold" x-text="count(sel)"></p><p class="text-xs text-slate-500">questions/tasks</p></div>
+          <div class="rounded-xl bg-slate-50 p-3"><p class="text-lg font-bold" x-text="sel.sections.length"></p><p class="text-xs text-slate-500" x-text="sel.sections.length === 1 ? 'section' : 'sections'"></p></div>
+        </div>
+      </div>
+      <p x-show="!pkgs.length" class="rounded-2xl border-2 border-dashed border-slate-200 bg-white p-10 text-center text-sm text-slate-500">No mock tests for this program yet.</p>
 
       <!-- Riwayat -->
       <div class="rounded-2xl border border-slate-200 bg-white shadow-soft">
-        <div class="flex items-center justify-between p-5"><h3 class="font-semibold">Mock test history</h3><a x-show="hist.length" href="hasil.html" class="text-sm font-medium text-accent hover:underline">Latest result</a></div>
+        <div class="flex items-center justify-between p-5"><h3 class="font-semibold" x-text="'History · ' + tabName(sel)"></h3><a x-show="hist.length" href="hasil.html" class="text-sm font-medium text-accent hover:underline">Latest result</a></div>
         <div class="overflow-x-auto">
           <table class="w-full text-sm">
             <thead class="bg-slate-50 text-left text-xs uppercase tracking-wider text-slate-500"><tr><th class="px-5 py-3 font-semibold">Date</th><th class="px-5 py-3 font-semibold">Package</th><th class="px-5 py-3 font-semibold">Score</th><th class="px-5 py-3"></th></tr></thead>
             <tbody class="divide-y divide-slate-100">
-              <template x-for="h in hist" :key="h.id">
+              <template x-for="h in hist.filter(h => h.pkg === sel.id)" :key="h.id">
                 <tr class="hover:bg-slate-50">
                   <td class="whitespace-nowrap px-5 py-3 text-slate-600" x-text="fmtDate(h.date)"></td>
                   <td class="whitespace-nowrap px-5 py-3" x-text="DB.packages.find(p => p.id === h.pkg)?.name || h.pkg"></td>
@@ -68,7 +76,7 @@
               </template>
             </tbody>
           </table>
-          <p x-show="!hist.length" class="p-8 text-center text-sm text-slate-500">No mock tests yet.</p>
+          <p x-show="!hist.some(h => h.pkg === sel.id)" class="p-8 text-center text-sm text-slate-500">You have not taken this test yet.</p>
         </div>
       </div>
     </div>
@@ -120,7 +128,9 @@ function lobby() {
     hist: DB.attempts.filter(a => a.exam === exam && !isPlacement(a)),
     minutes: p => p.sections.reduce((a, s) => a + s[1], 0),
     count: p => p.sections.reduce((a, [id]) => a + sectionItems(p.exam, id).length, 0),
-    choose(p) { this.sel = p; if (innerWidth < 1024) document.getElementById('detail').scrollIntoView({ behavior: 'smooth' }); },
+    tabName: p => p.type === 'full' ? 'Full Test' : p.name,
+    // Tab terpilih diingat di alamat (?pkg=) agar tetap sama saat halaman dibuka ulang
+    choose(p) { this.sel = p; this.ready = false; history.replaceState(null, '', '?pkg=' + p.id); },
   };
 }
 </script>
