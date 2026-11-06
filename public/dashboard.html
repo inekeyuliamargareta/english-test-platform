@@ -20,21 +20,27 @@
   </div>
 
   <!-- Placement test: asked first when there is no result yet -->
-  <template x-if="plPkg && !pl">
+  <template x-if="pending && !pl">
+    <a :href="'placement.html?id=' + pending.id" class="flex items-center gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-soft hover:bg-slate-50">
+      <span class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-accent-soft text-accent"><i data-lucide="hourglass" class="h-6 w-6"></i></span>
+      <span class="text-sm"><b class="block">Your placement result is being reviewed</b><span class="text-slate-500">It will appear here once EnglishOn publishes it.</span></span>
+    </a>
+  </template>
+  <template x-if="plPkg && !pl && !pending">
     <div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-accent to-accent-dark p-6 text-white shadow-soft sm:p-8">
       <i data-lucide="gauge" class="absolute -bottom-8 -right-8 h-48 w-48 text-white/10"></i>
       <p class="text-sm font-medium text-white/70">Step 1 · Placement Test</p>
       <h3 class="mt-1 text-2xl font-bold sm:text-3xl">Find out your level first</h3>
-      <p class="mt-2 max-w-2xl text-white/85">Take a short <span x-text="E.name"></span> placement test (<span x-text="plCount"></span> questions, <span x-text="plMinutes"></span> minutes). You will get your level, an estimated score, and a class recommendation. It is free and does not use your mock test quota.</p>
+      <p class="mt-2 max-w-2xl text-white/85">Take a short <span x-text="E.name"></span> placement test (<span x-text="plCount"></span> questions, <span x-text="plMinutes"></span> minutes). You will get your level, an estimated score, and a class recommendation. It is free.</p>
       <a :href="'test.html?pkg=' + plPkg.id" class="mt-6 inline-flex items-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-semibold text-accent hover:bg-white/90"><i data-lucide="play" class="h-4 w-4"></i>Start Test</a>
     </div>
   </template>
   <template x-if="pl">
     <div class="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-soft sm:flex-row sm:items-center">
-      <span class="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-accent text-xl font-extrabold text-white" x-text="levelOf(pl.total, exam).code"></span>
+      <span class="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-accent text-xl font-extrabold text-white" x-text="plLevel(pl).code"></span>
       <div class="flex-1 text-sm">
-        <p class="font-semibold" x-text="'Your placement level: ' + levelOf(pl.total, exam).code + ' (' + levelOf(pl.total, exam).name + ')'"></p>
-        <p class="text-slate-600" x-text="fmtDate(pl.date) + ' · ' + pl.total + '% correct' + (rangeOf(exam, levelOf(pl.total, exam).code) ? ' · estimated score ' + rangeOf(exam, levelOf(pl.total, exam).code) : '')"></p>
+        <p class="font-semibold" x-text="'Your placement level: ' + plLevel(pl).code + ' (' + plLevel(pl).name + ')'"></p>
+        <p class="text-slate-600" x-text="fmtDate(pl.date) + ' · ' + pl.total + '% correct' + (rangeOf(exam, plLevel(pl).code) ? ' · estimated score ' + rangeOf(exam, plLevel(pl).code) : '')"></p>
       </div>
       <div class="flex gap-2">
         <a :href="'placement.html?id=' + pl.id" class="rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold hover:bg-slate-50">View Result</a>
@@ -130,6 +136,7 @@ function dash() {
   return {
     exam, E, att, res, chapters, answered, target, f, plPkg,
     pl: DB.attempts.find(a => a.exam === exam && isPlacement(a)),
+    pending: DB.pendingPlacements?.find(a => a.exam === exam) || null,
     plCount: plPkg ? plPkg.sections.reduce((n, [s]) => n + sectionItems(exam, s, 'placement').length, 0) : 0,
     plMinutes: plPkg ? plPkg.sections.reduce((n, s) => n + s[1], 0) : 0,
     activity: DB.activity.filter(a => a.exam === exam).slice(0, 5),

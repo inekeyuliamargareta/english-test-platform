@@ -18,7 +18,7 @@ async function api(method, url, body) {
 const needsLogin = () => !!(document.body.dataset.shell || document.body.dataset.auth);
 
 const ALPINE = 'https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js';
-document.head.insertAdjacentHTML('beforeend', `<link rel="preload" as="script" href="${ALPINE}">`); // unduh paralel dengan /api/bootstrap
+document.head.insertAdjacentHTML('beforeend', `<link rel="preload" as="script" href="${ALPINE}"><link rel="icon" type="image/png" href="logo.png">`); // unduh paralel dengan /api/bootstrap
 document.addEventListener('DOMContentLoaded', async () => {
   if (needsLogin() && !token()) return location.replace('login.html');
   try { DB = await api('GET', '/bootstrap' + (document.body.dataset.shell === 'admin' ? '?lite=1' : '')); }
@@ -45,22 +45,24 @@ function getExam() {
 function setExam(k) { if (!isActiveExam(k)) return; try { localStorage.setItem('exam', k); } catch {} location.href = location.pathname; }
 
 // ---------- Akses akun ----------
-// Akun gratis hanya dapat 1x simulasi. Setelah itu terkunci sampai admin membuka akses penuh
-// (siswa datang ke kantor / menghubungi EnglishOn). Status dari server; server juga menolak submit jika terkunci.
+// Siswa berbayar = punya program 20/30/40 dan status aktif (diatur admin). Akun gratis hanya membuka
+// panel tertentu (default: About, Placement, Consultation). Daftar panel terbuka dihitung server; server juga menolak aksesnya.
 const access = {
-  get used() { return !!DB.user?.access.used; },
   get full() { return !!DB.user?.access.full; },
-  get locked() { return this.used && !this.full; },
+  get program() { return DB.user?.access.program || null; },
+  get inactive() { return DB.user?.access.status === 'tidak_aktif'; },
+  can: k => !DB.user?.access.panels || DB.user.access.panels.includes(k),
+  get locked() { return !this.can('simulasi'); },
 };
 const waLink = msg => `https://wa.me/${DB.contact.wa}?text=${encodeURIComponent(msg)}`;
-// Kartu "fitur terkunci" yang dipakai lobby, halaman test, dan hasil (render via x-html)
-const lockedHTML = (title = 'Free mock test already used') => `
+// Kartu "fitur terkunci" untuk panel yang belum dibuka (render via x-html / innerHTML)
+const lockedHTML = (title = 'This feature is locked') => `
   <div class="mx-auto max-w-xl rounded-3xl border border-slate-200 bg-white p-6 text-center shadow-soft sm:p-10">
     <span class="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-amber-100 text-amber-600"><i data-lucide="lock" class="h-8 w-8"></i></span>
     <h2 class="mt-5 text-xl font-bold sm:text-2xl">${title}</h2>
-    <p class="mt-2 text-slate-500">Free accounts get <b>1 mock test</b>. To unlock more mock tests and features, visit our office or contact ${DB.contact.name}.</p>
+    <p class="mt-2 text-slate-500">${access.inactive ? 'Your program has ended, so this feature is no longer available.' : 'This feature is available for students enrolled in an EnglishOn program.'} Visit our office or contact ${DB.contact.name} to join a program.</p>
     <div class="mt-6">
-      <a href="${joinLink('I would like to unlock full access to the mock tests.')}" target="_blank" class="flex items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3 text-sm font-semibold text-white hover:bg-emerald-700"><i data-lucide="message-circle" class="h-4 w-4"></i>Contact us on WhatsApp</a>
+      <a href="${joinLink('I would like to join a program and unlock the learning features.')}" target="_blank" class="flex items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3 text-sm font-semibold text-white hover:bg-emerald-700"><i data-lucide="message-circle" class="h-4 w-4"></i>Contact us on WhatsApp</a>
     </div>
     <div class="mt-5 flex items-start gap-3 rounded-xl bg-slate-50 p-4 text-left text-sm text-slate-600">
       <i data-lucide="map-pin" class="mt-0.5 h-4 w-4 shrink-0 text-slate-400"></i>
@@ -99,6 +101,18 @@ document.head.insertAdjacentHTML('beforeend', `<style>
 const qs = k => new URLSearchParams(location.search).get(k);
 const fmtSize = n => !n ? '—' : n < 1048576 ? Math.max(1, Math.round(n / 1024)) + ' KB' : (n / 1048576).toFixed(1) + ' MB';
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`);
+// HTML dari editor admin (englishone-backend): buang script/iframe, atribut on*, dan link javascript:
+function cleanHTML(html) {
+  const doc = new DOMParser().parseFromString(String(html || ''), 'text/html');
+  doc.querySelectorAll('script,style,iframe,object,embed,form,link,meta').forEach(n => n.remove());
+  doc.querySelectorAll('*').forEach(n => [...n.attributes].forEach(a => {
+    if (/^on/i.test(a.name) || (/^(href|src|xlink:href)$/i.test(a.name) && /^\s*javascript:/i.test(a.value))) n.removeAttribute(a.name);
+  }));
+  return doc.body.innerHTML;
+}
+// Kolom passage Reading (kiri), dipakai bersama oleh test (placement & mock test) dan Skills
+const passageHTML = id => { const p = DB.passages[id]; return !p ? '' : `<p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Reading Passage</p>
+  <h2 class="mt-1 text-xl font-bold">${esc(p.title)}</h2><div class="passage mt-4 text-[15px] leading-8 text-slate-700">${p.html}</div>`; };
 // Halaman siswa berbahasa Inggris, panel admin berbahasa Indonesia
 const isEN = () => document.body?.dataset.shell !== 'admin';
 const fmtDate = (d, style = 'medium') => new Date(d).toLocaleDateString(isEN() ? 'en-GB' : 'id-ID', { dateStyle: style });
@@ -187,7 +201,7 @@ const findAttempt = (pred = () => true) => DB.attempts.find(a => DB.packages.som
 
 // ---------- Placement test ----------
 // Level dari persen jawaban benar. Perkiraan skor: TOEFL ITP mengikuti batas CEFR resmi ETS; IELTS perkiraan umum.
-const LEVELS = [{ code: 'A1', name: 'Beginner', min: 0 }, { code: 'A2', name: 'Elementary', min: 15 }, { code: 'B1', name: 'Intermediate', min: 30 }, { code: 'B2', name: 'Upper-intermediate', min: 55 }, { code: 'C1', name: 'Advanced', min: 80 }];
+const LEVELS = [{ code: 'A1', name: 'Beginner', min: 0 }, { code: 'A2', name: 'Elementary', min: 15 }, { code: 'A2+', name: 'Elementary Plus', min: 22 }, { code: 'B1', name: 'Intermediate', min: 30 }, { code: 'B1+', name: 'Intermediate Plus', min: 42 }, { code: 'B2', name: 'Upper-intermediate', min: 55 }, { code: 'C1', name: 'Advanced', min: 80 }];
 // Perkiraan skor per level CEFR: TOEFL ITP dari pemetaan resmi ETS, IELTS dari tabel IELTS–CEFR
 const LEVEL_RANGE = {
   toefl: { A1: 'below 337', A2: '337–459', B1: '460–542', B2: '543–626', C1: '627 and above' },
@@ -202,16 +216,19 @@ function levelsOf(exam) {
   const r = DB.exams?.[exam]?.recommend || {};
   return LEVELS.map((l, i) => {
     const t = typeof r[l.code] === 'object' ? r[l.code] : {}, min = i === 0 ? 0 : t.min === '' || t.min == null || isNaN(t.min) ? l.min : +t.min;
-    return { ...l, min, range: t.range || LEVEL_RANGE[exam]?.[l.code] || '' };
+    // A2+ / B1+ tanpa perkiraan sendiri memakai perkiraan level dasarnya
+    return { ...l, min, range: t.range || LEVEL_RANGE[exam]?.[l.code.replace('+', '')] || '' };
   });
 }
 const levelOf = (percent, exam) => { const ls = levelsOf(exam); return [...ls].reverse().find(l => percent >= l.min) || ls[0]; };
+// Level placement yang tampil ke siswa: level dari admin (level_final) jika ada, selain itu hitungan % benar
+const plLevel = a => (a.level && levelsOf(a.exam).find(l => l.code === a.level)) || levelOf(a.total, a.exam);
 const rangeOf = (exam, code) => levelsOf(exam).find(l => l.code === code)?.range || '';
 // Track belajar sesuai level placement terakhir di program ini (null jika belum placement)
 const latestPlacement = exam => DB.attempts?.find(a => a.exam === exam && isPlacement(a)) || null;
 function trackOf(exam) {
   const pl = latestPlacement(exam); if (!pl) return null;
-  const lv = levelOf(pl.total, exam), t = DB.exams[exam]?.recommend?.[lv.code];
+  const lv = plLevel(pl), t = DB.exams[exam]?.recommend?.[lv.code];
   return { level: lv, name: t?.name || lv.name, target: t?.target || '', points: String(t?.desc || '').split('\n').map(x => x.trim()).filter(Boolean) };
 }
 // Skor diagnostic: mock test Full terakhir; jika belum ada, dari placement test terakhir
@@ -219,7 +236,7 @@ function diagnostic(exam) {
   const full = DB.attempts?.find(a => a.exam === exam && DB.packages.find(p => p.id === a.pkg)?.type === 'full');
   if (full) return { source: 'Latest full mock test', date: full.date, total: full.total, sections: Object.fromEntries(full.sections.map(s => [s.id, s.score])) };
   const pl = latestPlacement(exam);
-  if (pl) return { source: 'Placement test (estimate)', date: pl.date, total: null, range: rangeOf(exam, levelOf(pl.total, exam).code), sections: Object.fromEntries(pl.sections.map(s => [s.id, s.score])) };
+  if (pl) return { source: 'Placement test (estimate)', date: pl.date, total: null, range: rangeOf(exam, plLevel(pl).code), sections: Object.fromEntries(pl.sections.map(s => [s.id, s.score])) };
   return null;
 }
 // Section yang dilakukan di kantor (mis. IELTS Speaking): instruksi dari admin + kontak
@@ -234,7 +251,7 @@ function scoreAttempt(att) {
 
 // ---------- Layout ----------
 const NAV = {
-  app: [['program', 'About the Program', 'info', 'program.html'], ['dashboard', 'Dashboard', 'layout-dashboard', 'dashboard.html'], ['materi', 'Curriculum', 'book-open', 'materi.html'], ['skills', 'Skills', 'target', 'skills.html'], ['simulasi', 'Mock Test', 'timer', 'simulasi.html'], ['hasil', 'Results & Review', 'bar-chart-3', 'hasil.html'], ['ebook', 'Ebooks', 'book-marked', 'ebook.html'], ['consult', 'Consultation', 'message-circle', '#wa']],
+  app: [['program', 'About the Program', 'info', 'program.html'], ['dashboard', 'Dashboard', 'layout-dashboard', 'dashboard.html'], ['materi', 'Curriculum', 'book-open', 'materi.html'], ['skills', 'Skills', 'target', 'skills.html'], ['simulasi', 'Mock Test', 'timer', 'simulasi.html'], ['hasil', 'Results & Review', 'bar-chart-3', 'hasil.html'], ['ebook', 'Ebooks', 'book-marked', 'ebook.html'], ['consult', 'Consultation', 'message-circle', 'consultation.html']],
   admin: [['master', 'Master Program', 'layers', 'admin.html#master']],
 };
 const logo = (sub = '') => `<a href="${sub ? 'admin.html' : 'program.html'}" class="flex items-center">
@@ -285,11 +302,17 @@ function targetModal(exam) {
   </div>`;
 }
 
+const accountLabel = () => access.inactive ? 'Program ended' : access.program ? `Program ${access.program} meetings` : access.full ? 'Full access' : 'Free account';
+
 function mountShell() {
   const kind = document.body.dataset.shell; if (!kind) return;
   const main = document.querySelector('main'), active = document.body.dataset.active, title = document.body.dataset.title || '';
   const exam = getExam(), admin = kind === 'admin';
-  const link = ([k, label, icon, href]) => `<a href="${href === '#wa' ? esc(joinLink('I would like to consult about my class or access.')) + '" target="_blank" rel="noopener' : href}" data-nav="${k}" @click="nav=false" class="nav-link group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${k === active ? 'bg-brand-50 text-brand-700' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'}">
+  // Panel terkunci: abu-abu + gembok, tidak bisa diklik
+  const link = ([k, label, icon, href]) => !admin && !access.can(k)
+    ? `<span data-nav="${k}" title="Locked. Contact EnglishOn to unlock" aria-disabled="true" class="flex cursor-not-allowed select-none items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-300">
+      <i data-lucide="${icon}" class="h-[18px] w-[18px]"></i>${label}<i data-lucide="lock" class="ml-auto h-3.5 w-3.5"></i></span>`
+    : `<a href="${href}" data-nav="${k}" @click="nav=false" class="nav-link group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${k === active ? 'bg-brand-50 text-brand-700' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'}">
       <i data-lucide="${icon}" class="h-[18px] w-[18px]"></i>${label}</a>`;
   const examBtn = e => e.active
     ? `<button onclick="setExam('${e.key}')" class="whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-semibold transition ${exam === e.key ? 'bg-accent text-white shadow-sm' : 'text-slate-500 hover:text-slate-900'}">${e.name.split(' ')[0]}</button>`
@@ -310,7 +333,7 @@ function mountShell() {
       ${admin ? '' : `<button @click="openTarget()" title="Set your target score" class="group block w-full rounded-xl bg-gradient-to-br from-accent to-accent-dark p-4 text-left text-white">
         <p class="flex items-center justify-between text-xs text-white/70">${DB.exams[exam].name} target<span class="flex items-center gap-1 opacity-70 group-hover:opacity-100"><i data-lucide="pencil" class="h-3 w-3"></i>${DB.user.target[exam] == null ? 'Set' : 'Edit'}</span></p>
         <p class="mt-1 ${DB.user.target[exam] == null ? 'text-base' : 'text-2xl'} font-bold">${DB.user.target[exam] ?? 'Set your target'}</p>
-        <p class="mt-1 flex items-center gap-1 text-xs text-white/80"><i data-lucide="${access.locked ? 'lock' : 'timer'}" class="h-3.5 w-3.5"></i> ${access.full ? 'Full access active' : access.used ? 'Free mock test used' : '1 free mock test available'}</p></button>`}
+        <p class="mt-1 flex items-center gap-1 text-xs text-white/80"><i data-lucide="${access.full ? 'calendar-check' : 'lock'}" class="h-3.5 w-3.5"></i> ${accountLabel()}</p></button>`}
       ${DB.user.role === 'admin' ? `<a href="${admin ? 'dashboard.html' : 'admin.html'}" class="flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-slate-600 hover:bg-slate-100"><i data-lucide="${admin ? 'graduation-cap' : 'shield'}" class="h-[18px] w-[18px]"></i>${admin ? 'Ke Mode Siswa' : 'Admin Panel'}</a>` : ''}
       <button onclick="logout()" class="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm text-slate-600 hover:bg-slate-100"><i data-lucide="log-out" class="h-[18px] w-[18px]"></i>${admin ? 'Keluar' : 'Log out'}</button>
     </div>
@@ -327,7 +350,7 @@ function mountShell() {
         <div class="relative">
           <button @click="menu=!menu" @click.outside="menu=false" class="flex items-center gap-2 rounded-xl p-1 hover:bg-slate-100">
             <span class="grid h-9 w-9 place-items-center rounded-full bg-gradient-to-br from-brand-500 to-indigo-500 text-sm font-semibold text-white">${esc(DB.user.initials)}</span>
-            <span class="hidden text-left text-sm md:block"><span class="block font-medium leading-tight">${esc(DB.user.name)}</span><span class="block text-xs text-slate-500">${DB.user.role === 'admin' ? 'Admin' : access.full ? 'Full access' : 'Free account'}</span></span>
+            <span class="hidden text-left text-sm md:block"><span class="block font-medium leading-tight">${esc(DB.user.name)}</span><span class="block text-xs text-slate-500">${DB.user.role === 'admin' ? 'Admin' : accountLabel()}</span></span>
             <i data-lucide="chevron-down" class="hidden h-4 w-4 text-slate-400 md:block"></i>
           </button>
           <div x-show="menu" x-transition x-cloak class="absolute right-0 mt-2 w-48 rounded-xl border border-slate-200 bg-white p-1.5 text-sm shadow-soft">
@@ -340,6 +363,10 @@ function mountShell() {
     <div id="slot"></div>
     ${admin ? '' : targetModal(exam)}
   </div>`;
+  // Halaman panel terkunci (dibuka lewat URL langsung): ganti isi dengan kartu terkunci. Datanya juga tidak dikirim server.
+  // Review placement mengikuti panel Placement, review mock test mengikuti Results
+  const att = DB.attempts?.find(a => a.id === +qs('id')), pnl = document.body.dataset.panel === 'review' ? (att && isPlacement(att) ? 'placement' : 'hasil') : document.body.dataset.panel || active;
+  if (!admin && !access.can(pnl)) { main.removeAttribute('x-data'); main.className = ''; main.innerHTML = lockedHTML(`${title || 'This page'} is locked`); }
   main.replaceWith(wrap);
   wrap.querySelector('#slot').replaceWith(main);
   main.classList.add('mx-auto', 'max-w-7xl', 'px-4', 'py-6', 'sm:px-6', 'lg:px-8', 'lg:py-8');

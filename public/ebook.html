@@ -26,8 +26,13 @@
   <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
     <template x-for="e in list" :key="e.id">
       <div class="flex flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-soft">
+        <!-- Cover dari admin; tanpa cover → sampul polos warna program -->
+        <div class="relative mb-4 aspect-[3/4] overflow-hidden rounded-xl bg-gradient-to-br from-accent to-accent-dark shadow-sm" :class="e.locked && 'grayscale'">
+          <img x-show="e.cover" :src="e.cover" :alt="'Cover of ' + e.title" loading="lazy" class="h-full w-full object-cover">
+          <div x-show="!e.cover" class="flex h-full flex-col justify-between p-5 text-white"><i data-lucide="book-open" class="h-8 w-8 opacity-80"></i><p class="text-lg font-bold leading-snug" x-text="e.title"></p></div>
+          <span x-show="e.locked" class="absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-full bg-white/90 text-slate-600"><i data-lucide="lock" class="h-4 w-4"></i></span>
+        </div>
         <div class="flex items-start gap-4">
-          <span class="grid h-16 w-12 shrink-0 place-items-center rounded-lg shadow-sm" :class="e.locked ? 'bg-slate-100 text-slate-400' : 'bg-accent text-white'"><i data-lucide="book-open" class="h-6 w-6"></i></span>
           <div class="min-w-0 flex-1">
             <span class="rounded-full px-2 py-0.5 text-[11px] font-semibold" :class="e.access === 'paid' ? 'bg-amber-50 text-amber-700' : 'bg-emerald-50 text-emerald-700'" x-text="e.access === 'paid' ? 'Premium' : 'Free'"></span>
             <h3 class="mt-1.5 font-semibold" x-text="e.title"></h3>

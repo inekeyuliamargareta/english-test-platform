@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Consultation — EnglishOn</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/app.css">
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+<script src="assets/app.js"></script>
+</head>
+<!-- FAQ (diisi admin di englishone-backend) + chat WhatsApp ke admin -->
+<body data-shell="app" data-active="consult" data-title="Consultation">
+<main x-data="{ open: null, faqs: DB.faqs || [] }" class="mx-auto max-w-3xl space-y-6">
+  <div>
+    <h2 class="text-2xl font-bold tracking-tight">Consultation</h2>
+    <p class="mt-1 text-slate-500">Find quick answers below, or chat with our admin on WhatsApp.</p>
+  </div>
+
+  <section x-show="faqs.length" class="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-soft">
+    <template x-for="f in faqs" :key="f.id">
+      <div>
+        <button @click="open = open === f.id ? null : f.id" class="flex w-full items-center gap-3 p-4 text-left font-semibold hover:bg-slate-50" :aria-expanded="open === f.id">
+          <i data-lucide="help-circle" class="h-5 w-5 shrink-0 text-accent"></i><span class="flex-1" x-text="f.question"></span>
+          <span class="shrink-0 text-slate-400 transition" :class="open === f.id && 'rotate-180'"><i data-lucide="chevron-down" class="h-5 w-5"></i></span>
+        </button>
+        <div x-show="open === f.id" x-cloak class="content px-4 pb-4 pl-12 text-sm" x-html="cleanHTML(f.answer)"></div>
+      </div>
+    </template>
+  </section>
+
+  <div class="rounded-2xl border border-emerald-200 bg-emerald-50 p-6">
+    <h3 class="font-semibold text-emerald-900">Still have a question?</h3>
+    <p class="mt-1 text-sm text-emerald-800">Our admin is happy to help with your class, schedule, or access.</p>
+    <div class="mt-4 grid gap-2 sm:grid-cols-2">
+      <a :href="joinLink('I would like to consult about my class or access.')" target="_blank" rel="noopener" class="flex items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3 text-sm font-semibold text-white hover:bg-emerald-700"><i data-lucide="message-circle" class="h-4 w-4"></i>Chat on WhatsApp</a>
+      <a x-show="DB.contact.instagram" :href="DB.contact.instagram" target="_blank" rel="noopener" class="flex items-center justify-center gap-2 rounded-xl border border-emerald-300 bg-white py-3 text-sm font-semibold text-emerald-800 hover:bg-emerald-100"><i data-lucide="instagram" class="h-4 w-4"></i>Instagram</a>
+    </div>
+    <div class="mt-5 flex items-start gap-3 text-sm text-emerald-900">
+      <i data-lucide="map-pin" class="mt-0.5 h-4 w-4 shrink-0"></i>
+      <div><p class="font-semibold" x-text="DB.contact.name"></p><p x-text="DB.contact.address"></p><p class="text-xs" x-text="DB.contact.hours + ' · WA ' + DB.contact.waLabel"></p></div>
+    </div>
+  </div>
+</main>
+</body>
+</html>

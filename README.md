@@ -56,7 +56,26 @@ Target skor diisi siswa sendiri per program (klik kartu target di sidebar atau d
 ## Aturan penting
 
 - **Kunci jawaban tidak dikirim ke browser siswa.** Skor dihitung di server saat submit. Kunci dan pembahasan baru dikirim di halaman Review, atau setelah siswa menjawab latihan bab.
-- **Akun gratis = 1x simulasi.** Dicek di server. Admin membuka akses penuh di Panel Admin → Siswa & Akses. Placement test tidak memakai jatah ini.
+- **Akses panel** (`src/access.js`, cek: `npm test`). Siswa berbayar = punya `program` (20/30/40) atau akses penuh, dan `status` aktif. Akun gratis / tidak aktif hanya membuka panel di `free_panels` (default About, Placement, Consultation). Panel terkunci tampil abu-abu, datanya tidak dikirim di `/api/bootstrap`, dan endpoint-nya menolak (403).
+
+## Tabel yang ditulis englishone-backend
+
+Ke depan web ini hanya untuk panel siswa. Admin (Director dulu) ada di `englishone-backend` dan menulis langsung ke database ini. Skema tetap dipegang repo ini (`migrations.sql` + `src/migrate.js`).
+
+| Tabel / kolom | Isi |
+|---|---|
+| `users.program` | 20 / 30 / 40 pertemuan, NULL = akun gratis. Membatasi pertemuan yang tampil (20 pertemuan pertama, dst.) |
+| `users.status` | `aktif` / `tidak_aktif` (program selesai = seperti akun gratis) |
+| `users.unlocks` | Override per siswa, mis. `{"simulasi":true,"ebook":false}`. Kunci panel: `program, dashboard, materi, skills, simulasi, hasil, ebook, consult, placement` |
+| `app_settings` `free_panels` | Array panel yang terbuka untuk akun gratis |
+| `app_settings` `placement_review` | `true` = hasil placement baru tampil setelah admin publish. Default `false` (langsung tampil) sampai menu review di backend siap |
+| `attempts.published`, `attempts.level_final` | Review placement: publish (1) dan level akhir dari admin (mis. `B1+`) |
+| `exams.recommend` | Level A1, A2, A2+, B1, B1+, B2, C1: batas `min` % benar, perkiraan skor, track |
+| `exams.program_intro` | `{"20":"<html>","30":"…","40":"…"}`: ringkasan materi di atas Curriculum (dibersihkan dari script sebelum tampil) |
+| `ebooks.cover_url` | URL gambar cover |
+| `faqs` | Pertanyaan & jawaban (HTML) di halaman Consultation |
+| `passages` + `questions.passage` | Satu passage dipakai beberapa soal (placement, Skills, mock test) |
+| `packages.sections` | Susunan section tiap paket mock test (model 1–5 cukup lewat data) |
 - **Placement test** memberi level A2–C1 dari persen jawaban benar (≥80% C1, ≥55% B2, ≥30% B1). Tombol Join membuka WhatsApp admin berisi hasil siswa.
 - **Audio Listening:** admin mengunggah MP3 per soal. Selama belum ada file, transkrip dibacakan suara bawaan browser (hanya untuk demo).
 - **Writing** disimpan dan ditandai "dinilai tutor". Belum ada halaman untuk tutor memberi nilai.

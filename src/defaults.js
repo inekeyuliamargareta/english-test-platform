@@ -105,6 +105,19 @@ async function applyDefaults(db) {
   for (const [code, from, to] of [['toefl', 'Skor diagnostic di bawah 460', 'Skor diagnostic 337–459'], ['ielts', 'Band perkiraan 4.0 ke bawah', 'Band perkiraan 3.0–3.5']]) {
     await db.query("UPDATE exams SET recommend = JSON_SET(recommend, '$.A2.desc', REPLACE(JSON_UNQUOTE(JSON_EXTRACT(recommend, '$.A2.desc')), ?, ?)) WHERE code = ? AND JSON_UNQUOTE(JSON_EXTRACT(recommend, '$.A2.desc')) LIKE ?", [from, to, code, '%' + from + '%']);
   }
+  // Level A2+ dan B1+ (level kantor) ditambahkan belakangan: batas % di tengah level sebelum & sesudahnya
+  const [rows] = await db.query('SELECT code, recommend FROM exams WHERE recommend IS NOT NULL');
+  for (const { code, recommend: r } of rows) {
+    let changed = false;
+    for (const [k, lo, hi, name] of [['A2+', 'A2', 'B1', 'Elementary Plus Track'], ['B1+', 'B1', 'B2', 'Intermediate Plus Track']]) {
+      if (r[k] || !r[lo] || !r[hi]) continue;
+      r[k] = { name, target: '', desc: '', range: '', min: Math.round(((+r[lo].min || 0) + (+r[hi].min || 0)) / 2) };
+      changed = true;
+    }
+    if (changed) await db.query('UPDATE exams SET recommend = ? WHERE code = ?', [J(r), code]);
+  }
+  await db.query('INSERT IGNORE INTO app_settings (k, v) VALUES (?, ?), (?, ?)', ['free_panels', J(['program', 'placement', 'consult']), 'placement_review', 'false']);
+
   const [[{ n }]] = await db.query("SELECT COUNT(*) n FROM packages WHERE type = 'placement'");
   const [exams] = await db.query('SELECT code FROM exams');
   const has = code => exams.some(e => e.code === code);

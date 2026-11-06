@@ -16,12 +16,12 @@
   <div class="relative hidden overflow-hidden bg-gradient-to-br from-brand-600 via-brand-700 to-indigo-900 p-12 text-white lg:flex lg:flex-col">
     <div class="absolute -right-24 -top-24 h-96 w-96 rounded-full bg-white/10"></div>
     <div class="absolute -bottom-32 -left-16 h-80 w-80 rounded-full bg-ielts-500/20"></div>
-    <a href="index.html" class="relative flex items-center gap-2.5 text-lg font-bold"><span class="grid h-9 w-9 place-items-center rounded-xl bg-white text-brand-600"><i data-lucide="graduation-cap" class="h-5 w-5"></i></span>EnglishOn</a>
+    <a href="index.html" class="relative self-start rounded-2xl bg-white px-3"><img src="logo.png" alt="EnglishOn" class="h-20 w-auto"></a>
     <div class="relative my-auto max-w-md">
       <h2 class="text-4xl font-bold leading-tight">TOEFL & IELTS preparation with EnglishOn Ponorogo.</h2>
       <p class="mt-4 text-brand-100">Lessons by chapter, practice questions with explanations, and mock tests just like the real exam.</p>
       <ul class="mt-8 space-y-3 text-sm text-brand-50">
-        <li class="flex items-center gap-3"><span class="grid h-8 w-8 place-items-center rounded-lg bg-white/15"><i data-lucide="gift" class="h-4 w-4"></i></span>1 free mock test for new accounts</li>
+        <li class="flex items-center gap-3"><span class="grid h-8 w-8 place-items-center rounded-lg bg-white/15"><i data-lucide="gauge" class="h-4 w-4"></i></span>Free placement test for new accounts</li>
         <li class="flex items-center gap-3"><span class="grid h-8 w-8 place-items-center rounded-lg bg-white/15"><i data-lucide="map-pin" class="h-4 w-4"></i></span><span x-text="DB.contact.address"></span></li>
       </ul>
     </div>
@@ -32,7 +32,7 @@
     <a href="index.html" class="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-900"><i data-lucide="arrow-left" class="h-4 w-4"></i> Back to home</a>
     <div class="mx-auto my-auto w-full max-w-sm py-10">
       <h1 class="text-2xl font-bold tracking-tight" x-text="mode === 'login' ? 'Welcome back 👋' : 'Create a free account'"></h1>
-      <p class="mt-2 text-sm text-slate-500" x-text="mode === 'login' ? 'Sign in to continue learning.' : 'Sign up and get 1 free mock test.'"></p>
+      <p class="mt-2 text-sm text-slate-500" x-text="mode === 'login' ? 'Sign in to continue learning.' : 'Sign up and take a free placement test.'"></p>
 
       <div class="mt-6 grid grid-cols-2 rounded-xl bg-slate-100 p-1 text-sm font-semibold">
         <button @click="mode='login'" class="rounded-lg py-2 transition" :class="mode==='login' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500'">Sign In</button>

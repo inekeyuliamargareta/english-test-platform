@@ -3,6 +3,7 @@ const express = require('express'), helmet = require('helmet'), cors = require('
 const jwt = require('jsonwebtoken'), bcrypt = require('bcryptjs');
 const { pool } = require('./db');
 const { scoreAttempt, isCorrect, isAnswered } = require('./scoring');
+const { accessOf, FREE_PANELS } = require('./access');
 
 const SECRET = process.env.JWT_SECRET;
 if (!SECRET) throw new Error('JWT_SECRET belum diisi di .env');
@@ -11,7 +12,7 @@ const AUDIO_DIR = path.join(PUBLIC, 'uploads', 'audio');
 const EBOOK_DIR = path.join(__dirname, '..', 'storage', 'ebooks');
 const CONTACT = {
   name: process.env.CONTACT_NAME, address: process.env.CONTACT_ADDRESS, wa: process.env.CONTACT_WA,
-  waLabel: process.env.CONTACT_WA_LABEL, hours: process.env.CONTACT_HOURS,
+  waLabel: process.env.CONTACT_WA_LABEL, hours: process.env.CONTACT_HOURS, instagram: process.env.CONTACT_INSTAGRAM || '',
 };
 
 const app = express();
@@ -44,13 +45,13 @@ function mapQuestion(r, full) {
   return o;
 }
 const mapTask = (t, full) => ({ id: t.id, exam: t.exam, section: t.section, task: t.task, minutes: t.minutes, minWords: t.min_words, title: t.title, prompt: t.prompt, chart: t.chart, ...(full && { sample: t.sample }) });
-const mapEbook = (e, full) => ({ id: e.id, exam: e.exam, title: e.title, desc: e.descr, access: e.access, size: e.size, hasFile: !!e.file, locked: e.access === 'paid' && !full });
-const mapAttempt = a => ({ id: a.id, pkg: a.package_id, exam: a.exam, date: a.created_at, duration: a.duration, total: a.total == null ? null : +a.total, sections: a.result.sections, flags: a.flags });
+const mapEbook = (e, full) => ({ id: e.id, exam: e.exam, title: e.title, desc: e.descr, access: e.access, size: e.size, cover: e.cover_url, hasFile: !!e.file, locked: e.access === 'paid' && !full });
+const mapAttempt = a => ({ id: a.id, pkg: a.package_id, exam: a.exam, date: a.created_at, duration: a.duration, total: a.total == null ? null : +a.total, sections: a.result.sections, flags: a.flags, level: a.level_final || undefined });
 
 async function loadExams() {
   const [exams, secs] = await Promise.all([q('SELECT * FROM exams ORDER BY sort, code'), q('SELECT * FROM exam_sections ORDER BY sort, id')]);
   return Object.fromEntries(exams.map(e => [e.code, {
-    key: e.code, name: e.name, full: e.full_name, active: !!e.active, rgb: e.rgb, rgbDark: e.rgb_dark, rgbSoft: e.rgb_soft, scale: e.scale, rules: e.rules || [], about: e.about || '', recommend: e.recommend || {},
+    key: e.code, name: e.name, full: e.full_name, active: !!e.active, rgb: e.rgb, rgbDark: e.rgb_dark, rgbSoft: e.rgb_soft, scale: e.scale, rules: e.rules || [], about: e.about || '', recommend: e.recommend || {}, programIntro: e.program_intro || {},
     sections: secs.filter(s => s.exam_key === e.code).map(s => ({ id: s.id, name: s.name, short: s.short, icon: s.icon, official: s.official, tutor: !!s.tutor, office: !!s.office, note: s.note || '' })),
   }]));
 }
@@ -79,13 +80,34 @@ app.use('/api', wrap(async (req, res, next) => {
   if (h.startsWith('Bearer ')) {
     try {
       const { sub } = jwt.verify(h.slice(7), SECRET);
-      [req.user] = await q('SELECT id, name, email, role, exam, targets, full_access FROM users WHERE id = ?', [sub]);
+      [req.user] = await q('SELECT id, name, email, role, exam, targets, full_access, program, status, unlocks FROM users WHERE id = ?', [sub]);
     } catch { /* token kedaluwarsa / rusak → dianggap belum masuk */ }
   }
   next();
 }));
 const need = role => (req, res, next) => !req.user ? res.status(401).json({ error: 'Please sign in first' })
   : role && req.user.role !== role ? res.status(403).json({ error: 'Access denied' }) : next();
+
+// Pengaturan umum (diubah dari englishone-backend) + akses panel siswa
+async function settings() {
+  const rows = await q('SELECT k, v FROM app_settings');
+  return { free_panels: FREE_PANELS, placement_review: false, ...Object.fromEntries(rows.map(r => [r.k, r.v])) };
+}
+const userAccess = async u => accessOf(u, (await settings()).free_panels);
+const LOCKED_MSG = 'This feature is not part of your account yet. Contact EnglishOn to unlock it.';
+// Tolak jika tidak satu pun panel yang disebut terbuka untuk siswa ini
+const panel = (...keys) => wrap(async (req, res, next) => {
+  if (!req.user) return res.status(401).json({ error: 'Please sign in first' });
+  const acc = await userAccess(req.user);
+  if (!keys.some(k => acc.panels.includes(k))) fail(403, LOCKED_MSG);
+  req.access = acc; next();
+});
+// Pertemuan yang boleh dibuka: program 20 = 20 pertemuan pertama tiap ujian (urutan admin)
+function allowedChapters(chapters, program) {
+  if (!program) return chapters;
+  const n = {};
+  return chapters.filter(c => !c.draft && (n[c.exam] = (n[c.exam] || 0) + 1) <= program);
+}
 
 app.post('/api/auth/register', wrap(async (req, res) => {
   const b = req.body || {}, email = String(b.email || '').trim().toLowerCase();
@@ -128,29 +150,41 @@ app.get('/api/bootstrap', wrap(async (req, res) => {
     out.ebooks = ebooks.map(e => mapEbook(e, true));
     return res.json(out);
   }
-  const [chapters, passages, clips, questions, tasks, packages, progress, attempts, ebooks] = await Promise.all([
+  const acc = await userAccess(u), open = k => acc.panels.includes(k);
+  const [allChapters, passages, clips, allQuestions, tasks, packages, progress, allAttempts, ebooks, faqs] = await Promise.all([
     q(`SELECT * FROM chapters ${admin ? '' : 'WHERE draft = 0'} ORDER BY sort, id`),
     q('SELECT * FROM passages'), q('SELECT * FROM clips'),
     q('SELECT * FROM questions ORDER BY sort, id'), q('SELECT * FROM writing_tasks ORDER BY task, id'),
     q('SELECT * FROM packages ORDER BY sort, id'),
     q('SELECT chapter_id, progress, updated_at FROM chapter_progress WHERE user_id = ?', [u.id]),
     q('SELECT * FROM attempts WHERE user_id = ? ORDER BY created_at DESC, id DESC', [u.id]),
-    q('SELECT * FROM ebooks WHERE file IS NOT NULL ORDER BY sort, created_at'),
+    open('ebook') ? q('SELECT * FROM ebooks WHERE file IS NOT NULL ORDER BY sort, created_at') : [],
+    q('SELECT id, question, answer FROM faqs ORDER BY sort, id'),
   ]);
+  // Konten panel yang terkunci tidak dikirim; pertemuan dibatasi sesuai program siswa
+  const chapters = open('materi') || open('skills') ? (admin ? allChapters : allowedChapters(allChapters, acc.program)) : [];
+  const chIds = new Set(chapters.map(c => c.id));
+  const questions = allQuestions.filter(x => x.pool === 'placement' ? open('placement')
+    : x.pool === 'bank' ? (open('materi') || open('skills')) && (!x.chapter || chIds.has(x.chapter))
+    : open('simulasi'));
+  // Hasil placement yang masih menunggu review admin belum ditampilkan
+  const attempts = allAttempts.filter(a => a.published);
   const prog = Object.fromEntries(progress.map(p => [p.chapter_id, p.progress]));
   out.user = {
     id: u.id, name: u.name, email: u.email, role: u.role, exam: u.exam, initials: initials(u.name),
     target: u.targets || {},
-    access: { full: admin || !!u.full_access, used: attempts.some(a => !isPlacement(a.package_id)) },
+    access: { full: acc.paid, program: u.program || null, status: u.status, panels: acc.panels },
   };
   out.chapters = chapters.map(c => { const p = prog[c.id] || 0; return { ...mapChapter(c), progress: p, status: p >= 100 ? 'done' : p ? 'progress' : 'new' }; });
   out.passages = Object.fromEntries(passages.map(p => [p.id, { title: p.title, html: p.html }]));
   out.clips = Object.fromEntries(clips.map(c => [c.id, mapClip(c)]));
   out.questions = questions.map(x => mapQuestion(x, admin));
-  out.writingTasks = tasks.map(t => mapTask(t, admin));
+  out.writingTasks = open('simulasi') ? tasks.map(t => mapTask(t, admin)) : [];
   out.packages = packages.map(mapPackage);
   out.attempts = attempts.map(mapAttempt);
-  out.ebooks = ebooks.map(e => mapEbook(e, admin || !!u.full_access));
+  out.pendingPlacements = allAttempts.filter(a => !a.published).map(a => ({ id: a.id, exam: a.exam, date: a.created_at }));
+  out.ebooks = ebooks.map(e => mapEbook(e, acc.paid));
+  out.faqs = faqs;
   // Aktivitas terbaru: gabungan simulasi & progres bab
   const pkgName = id => packages.find(p => p.id === id)?.name || id, ch = id => chapters.find(c => c.id === id);
   function isPlacement(id) { return packages.find(p => p.id === id)?.type === 'placement'; }
@@ -180,7 +214,7 @@ app.put('/api/me/target', need(), wrap(async (req, res) => {
   await q('UPDATE users SET targets = ? WHERE id = ?', [J(next), req.user.id]);
   res.json({ target: next });
 }));
-app.put('/api/progress/:chapterId', need(), wrap(async (req, res) => {
+app.put('/api/progress/:chapterId', panel('materi'), wrap(async (req, res) => {
   const p = Math.max(0, Math.min(100, Math.round(+req.body?.progress || 0)));
   const [c] = await q('SELECT id FROM chapters WHERE id = ?', [req.params.chapterId]);
   if (!c) fail(404, 'Chapter not found');
@@ -192,16 +226,24 @@ app.put('/api/progress/:chapterId', need(), wrap(async (req, res) => {
 
 // Latihan bab & latihan per skill: kunci & pembahasan dikirim setelah siswa menjawab.
 // ponytail: soal latihan dan simulasi memakai bank soal yang sama; pisahkan jika kunci simulasi harus benar-benar rahasia.
-app.post('/api/questions/:id/check', need(), wrap(async (req, res) => {
+app.post('/api/questions/:id/check', panel('materi', 'skills'), wrap(async (req, res) => {
   const [r] = await q("SELECT type, answer, explanation FROM questions WHERE id = ? AND pool = 'bank'", [req.params.id]);
   if (!r) fail(404, 'Question not found');
   res.json({ correct: isCorrect(r, req.body?.answer), answer: r.answer, explain: r.explanation });
+}));
+// Skills: satu set dikumpulkan sekaligus → kunci & pembahasan semua soal dikirim di akhir
+app.post('/api/questions/check', panel('skills'), wrap(async (req, res) => {
+  const answers = req.body?.answers && typeof req.body.answers === 'object' ? req.body.answers : {}, ids = Object.keys(answers).slice(0, 500);
+  if (!ids.length) fail(400, 'No answers to check');
+  const rows = await q("SELECT id, type, answer, explanation FROM questions WHERE id IN (?) AND pool = 'bank'", [ids]);
+  res.json(Object.fromEntries(rows.map(r => [r.id, { correct: isCorrect(r, answers[r.id]), answer: r.answer, explain: r.explanation }])));
 }));
 
 app.post('/api/attempts', need(), wrap(async (req, res) => {
   const u = req.user, b = req.body || {};
   const { pkg, E, meta, items } = await packageContext(b.pkg);
   const placement = pkg.type === 'placement'; // placement test bebas dicoba, termasuk program yang belum aktif
+  if (!(await userAccess(u)).panels.includes(placement ? 'placement' : 'simulasi')) fail(403, LOCKED_MSG);
   // Satu siswa = satu program
   if (u.role !== 'admin' && u.exam && pkg.exam !== u.exam) fail(403, 'This test is not part of your program.');
   if (!E || (!E.active && !placement)) fail(400, 'This program is not available yet');
@@ -216,20 +258,11 @@ app.post('/api/attempts', need(), wrap(async (req, res) => {
   const duration = Math.max(0, Math.min(86400, Math.round(+b.duration || 0)));
   const result = scoreAttempt(pkg, meta, items, answers);
 
-  // Kunci baris user agar dua submit bersamaan tidak sama-sama lolos kuota gratis
-  const conn = await pool.getConnection();
-  try {
-    await conn.beginTransaction();
-    await conn.query('SELECT id FROM users WHERE id = ? FOR UPDATE', [u.id]);
-    if (u.role !== 'admin' && !u.full_access && !placement) {
-      const [[{ n }]] = await conn.query("SELECT COUNT(*) n FROM attempts a JOIN packages p ON p.id = a.package_id WHERE a.user_id = ? AND p.type <> 'placement'", [u.id]);
-      if (n) fail(403, 'Your free mock test has been used. Contact EnglishOn to unlock full access.');
-    }
-    const [r] = await conn.query('INSERT INTO attempts (user_id, package_id, exam, answers, flags, duration, result, total) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      [u.id, pkg.id, pkg.exam, J(answers), J(flags), duration, J(result), result.total]);
-    await conn.commit();
-    res.json({ id: r.insertId });
-  } catch (e) { await conn.rollback(); throw e; } finally { conn.release(); }
+  // Placement menunggu review admin jika pengaturan placement_review aktif
+  const published = placement && u.role !== 'admin' && (await settings()).placement_review ? 0 : 1;
+  const r = await q('INSERT INTO attempts (user_id, package_id, exam, answers, flags, duration, result, total, published) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    [u.id, pkg.id, pkg.exam, J(answers), J(flags), duration, J(result), result.total, published]);
+  res.json({ id: r.insertId, pending: !published });
 }));
 
 // Review: soal + kunci + pembahasan + jawaban siswa
@@ -237,6 +270,11 @@ app.get('/api/attempts/:id', need(), wrap(async (req, res) => {
   const [a] = await q('SELECT * FROM attempts WHERE id = ?', [+req.params.id || 0]);
   if (!a || (a.user_id !== req.user.id && req.user.role !== 'admin')) fail(404, 'Test result not found');
   const { pkg, meta, items } = await packageContext(a.package_id);
+  if (req.user.role !== 'admin') {
+    if (!a.published) fail(403, 'Your result is being reviewed by EnglishOn. It will appear here soon.');
+    const acc = await userAccess(req.user);
+    if (!acc.panels.includes(pkg.type === 'placement' ? 'placement' : 'hasil')) fail(403, LOCKED_MSG);
+  }
   const list = pkg.sections.flatMap(([sid]) => items(sid).map(it => {
     const user = a.answers[it.id], kind = meta(sid)?.tutor ? 'writing' : 'q', blank = !isAnswered(user);
     return { ...it, kind, section: sid, user, blank, ok: kind === 'q' && !blank && isCorrect(it, user) };
@@ -477,13 +515,14 @@ app.put('/api/admin/exams/:code', admin, wrap(async (req, res) => {
   const secs = (Array.isArray(b.sections) ? b.sections : []).map(s => ({ ...s, name: text(s.name, 80, 'Nama section'), official: String(s.official || '').slice(0, 60) || null,
     office: !!s.office, tutor: !s.office && !!s.tutor, note: String(s.note || '').slice(0, 2000) || null }));
   // Track per level: nama, target, poin, batas % benar placement (min) dan perkiraan skor (range)
-  const DEF_MIN = { A1: 0, A2: 15, B1: 30, B2: 55, C1: 80 }, CODES = Object.keys(DEF_MIN);
+  const DEF_MIN = { A1: 0, A2: 15, 'A2+': 22, B1: 30, 'B1+': 42, B2: 55, C1: 80 }, CODES = Object.keys(DEF_MIN);
+  const [prev] = await q('SELECT recommend FROM exams WHERE code = ?', [code]);
   const recommend = Object.fromEntries(CODES.map(k => {
-    const t = b.recommend?.[k] || {}, min = k === 'A1' ? 0 : Math.round(Number(t.min ?? DEF_MIN[k]));
+    const t = b.recommend?.[k] || prev?.recommend?.[k] || {}, min = k === 'A1' ? 0 : Math.round(Number(t.min ?? DEF_MIN[k]));
     return [k, { name: String(t.name || '').slice(0, 80), target: String(t.target || '').slice(0, 40), desc: String(t.desc || '').slice(0, 1000), min, range: String(t.range || '').slice(0, 60) }];
   }));
   const mins = CODES.map(k => recommend[k].min);
-  if (mins.some((m, i) => !(m >= 0 && m <= 100) || (i && m <= mins[i - 1]))) fail(400, 'Batas level harus naik: A1 < A2 < B1 < B2 < C1 (0–100%)');
+  if (mins.some((m, i) => !(m >= 0 && m <= 100) || (i && m <= mins[i - 1]))) fail(400, 'Batas level harus naik: A1 < A2 < A2+ < B1 < B1+ < B2 < C1 (0–100%)');
   if (!secs.length) fail(400, 'Minimal satu section');
   const used = new Set();
   for (const s of secs) {
@@ -513,10 +552,10 @@ app.put('/api/admin/exams/:code', admin, wrap(async (req, res) => {
 
 // ---------- Ebook ----------
 // Siswa membuka file lewat API (bukan URL publik), agar ebook berbayar tidak bisa dibagikan sembarangan.
-app.get('/api/ebooks/:id/file', need(), wrap(async (req, res) => {
+app.get('/api/ebooks/:id/file', panel('ebook'), wrap(async (req, res) => {
   const [e] = await q('SELECT * FROM ebooks WHERE id = ?', [req.params.id]);
   if (!e || !e.file) fail(404, 'Ebook not found');
-  if (e.access === 'paid' && req.user.role !== 'admin' && !req.user.full_access) fail(403, 'This ebook is for students with full access. Contact EnglishOn to unlock it.');
+  if (e.access === 'paid' && !req.access.paid) fail(403, 'This ebook is for students with full access. Contact EnglishOn to unlock it.');
   res.setHeader('Content-Type', 'application/pdf');
   res.setHeader('Content-Disposition', `inline; filename="${e.title.replace(/[^\w .-]+/g, '').slice(0, 80) || 'ebook'}.pdf"`);
   res.sendFile(path.join(EBOOK_DIR, e.file));

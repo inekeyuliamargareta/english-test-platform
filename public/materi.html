@@ -23,6 +23,14 @@
     <p x-show="track" class="mt-1 text-sm text-slate-500" x-text="(track?.target ? 'Target score: ' + track.target : '') + (track?.points[0] ? ' · ' + track.points[0] : '')"></p>
   </div>
 
+  <!-- Ringkasan materi sesuai program siswa (diisi admin per program 20 / 30 / 40) -->
+  <template x-if="intro">
+    <article class="rounded-2xl border border-slate-200 bg-white p-6 shadow-soft">
+      <h3 class="flex items-center gap-2 text-lg font-bold"><i data-lucide="list-checks" class="h-5 w-5 text-accent"></i><span x-text="'What you will learn in ' + access.program + ' meetings'"></span></h3>
+      <div class="content mt-2" x-html="intro"></div>
+    </article>
+  </template>
+
   <!-- Track -->
   <template x-if="track">
     <div class="rounded-2xl border-2 border-accent/40 bg-accent-soft p-5">
@@ -101,7 +109,7 @@ function curriculum() {
   const lockedC = all.find(c => c.id === qs('locked'));
   return {
     E, all, done, scored: E.sections.filter(s => !s.office), pct: all.length ? Math.round(done / all.length * 100) : 0,
-    track: trackOf(exam), diag: diagnostic(exam),
+    track: trackOf(exam), diag: diagnostic(exam), intro: access.program && E.programIntro?.[access.program] ? cleanHTML(E.programIntro[access.program]) : '',
     plPkg: DB.packages.find(p => p.exam === exam && p.type === 'placement'),
     lockedMsg: lockedC ? `Meeting ${lockedC.no} is locked. Complete Meeting ${lockedC.no - 1} first (read all parts and answer all practice questions).` : '',
     COLORS: ['border-blue-200 bg-blue-50 text-blue-700', 'border-violet-200 bg-violet-50 text-violet-700', 'border-emerald-200 bg-emerald-50 text-emerald-700', 'border-rose-200 bg-rose-50 text-rose-700'],

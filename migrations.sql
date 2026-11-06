@@ -12,8 +12,25 @@ CREATE TABLE IF NOT EXISTS users (
   target_toefl  INT DEFAULT 550,         -- lama, tidak dipakai (diganti targets)
   target_ielts  DECIMAL(2,1) DEFAULT 6.5, -- lama, tidak dipakai
   targets       JSON,                    -- target skor yang diisi siswa per program, mis. {"toefl":550}
-  full_access   TINYINT(1) NOT NULL DEFAULT 0,   -- 0 = akun gratis (1x simulasi), 1 = dibuka admin
+  full_access   TINYINT(1) NOT NULL DEFAULT 0,   -- 1 = akses penuh tanpa batas program (lama; dipakai admin.html)
+  program       TINYINT,                         -- 20 / 30 / 40 pertemuan, diisi admin. NULL = akun gratis
+  status        ENUM('aktif','tidak_aktif') NOT NULL DEFAULT 'aktif',  -- tidak_aktif = program selesai, diperlakukan seperti akun gratis
+  unlocks       JSON,                            -- override panel per siswa, mis. {"simulasi":true,"ebook":false}
   created_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Pengaturan umum (key → JSON). Kunci: free_panels (panel yang terbuka untuk akun gratis), placement_review (true = hasil placement tunggu review admin)
+CREATE TABLE IF NOT EXISTS app_settings (
+  k VARCHAR(40) PRIMARY KEY,
+  v JSON NOT NULL
+);
+
+-- FAQ di panel Consultation
+CREATE TABLE IF NOT EXISTS faqs (
+  id       INT AUTO_INCREMENT PRIMARY KEY,
+  question VARCHAR(255) NOT NULL,
+  answer   TEXT NOT NULL,
+  sort     INT NOT NULL DEFAULT 0
 );
 
 -- Master ujian (Admin → Master Test)
@@ -28,7 +45,8 @@ CREATE TABLE IF NOT EXISTS exams (
   scale     VARCHAR(30),
   rules     JSON,                   -- aturan simulasi (array HTML)
   about     TEXT,                   -- penjelasan program untuk siswa (HTML)
-  recommend JSON,                   -- rekomendasi kelas per level placement {A2,B1,B2,C1}
+  recommend JSON,                   -- track & batas % per level placement {A1,A2,A2+,B1,B1+,B2,C1}
+  program_intro JSON,               -- ringkasan materi per program di atas Curriculum (HTML) {"20":"…","30":"…","40":"…"}
   sort      INT NOT NULL DEFAULT 0
 );
 
@@ -137,6 +155,8 @@ CREATE TABLE IF NOT EXISTS attempts (
   duration   INT NOT NULL DEFAULT 0,  -- detik
   result     JSON NOT NULL,           -- {sections:[...], total}
   total      DECIMAL(5,1),            -- skor total (Full Test), null = per section
+  published  TINYINT(1) NOT NULL DEFAULT 1,  -- placement: 0 = menunggu review admin (belum tampil ke siswa)
+  level_final VARCHAR(5),             -- placement: level dari admin (mis. setelah speaking); NULL = hitungan otomatis
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   INDEX (user_id, created_at),
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
@@ -152,6 +172,7 @@ CREATE TABLE IF NOT EXISTS ebooks (
   access     ENUM('free','paid') NOT NULL DEFAULT 'free',
   file       VARCHAR(255),
   size       INT,
-  sort       INT NOT NULL DEFAULT 0,
+  cover_url  VARCHAR(255),          -- gambar cover (URL lengkap atau path di public/)
+  sort      INT NOT NULL DEFAULT 0,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );

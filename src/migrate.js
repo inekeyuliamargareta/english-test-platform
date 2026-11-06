@@ -12,6 +12,13 @@ const COLUMNS = [
   ['users', 'targets', 'JSON'],
   ['exam_sections', 'office', 'TINYINT(1) NOT NULL DEFAULT 0'],
   ['exam_sections', 'note', 'TEXT'],
+  ['exams', 'program_intro', 'JSON'],
+  ['users', 'program', 'TINYINT'],
+  ['users', 'status', "ENUM('aktif','tidak_aktif') NOT NULL DEFAULT 'aktif'"],
+  ['users', 'unlocks', 'JSON'],
+  ['attempts', 'published', 'TINYINT(1) NOT NULL DEFAULT 1'],
+  ['attempts', 'level_final', 'VARCHAR(5)'],
+  ['ebooks', 'cover_url', 'VARCHAR(255)'],
 ];
 
 (async () => {
