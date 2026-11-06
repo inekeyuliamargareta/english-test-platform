@@ -16,6 +16,9 @@ git reset --hard origin/main
 echo "==> Pasang dependensi"
 npm ci --omit=dev
 
+echo "==> Build CSS"
+npm run css
+
 echo "==> Update database (aman diulang, tidak menghapus data)"
 npm run migrate
 

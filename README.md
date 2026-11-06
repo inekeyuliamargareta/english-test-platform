@@ -10,6 +10,7 @@ cp .env.example .env      # isi JWT_SECRET dengan teks acak, sesuaikan DB_* dan 
 npm run migrate           # buat database + tabel; aman diulang untuk update database lama
 npm run seed              # isi materi, soal, paket, akun admin & siswa demo (sekali saja)
 npm run dev               # http://localhost:3000
+npm run css               # buat ulang public/assets/app.css setelah mengubah kelas Tailwind di HTML/JS (npm start melakukannya otomatis)
 ```
 
 Akun dari seed memakai `SEED_ADMIN_EMAIL` dan `SEED_PASSWORD` di `.env`. Siswa demo memakai email di `src/seed-data.js` dengan password yang sama. Ganti password admin sebelum online.

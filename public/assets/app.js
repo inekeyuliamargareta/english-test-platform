@@ -17,16 +17,18 @@ async function api(method, url, body) {
 }
 const needsLogin = () => !!(document.body.dataset.shell || document.body.dataset.auth);
 
+const ALPINE = 'https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js';
+document.head.insertAdjacentHTML('beforeend', `<link rel="preload" as="script" href="${ALPINE}">`); // unduh paralel dengan /api/bootstrap
 document.addEventListener('DOMContentLoaded', async () => {
   if (needsLogin() && !token()) return location.replace('login.html');
   try { DB = await api('GET', '/bootstrap' + (document.body.dataset.shell === 'admin' ? '?lite=1' : '')); }
-  catch (e) { document.body.innerHTML = `<p style="padding:2rem;text-align:center;font-family:sans-serif">Cannot reach the server. Please reload the page.<br><small>${e.message}</small></p>`; return; }
+  catch (e) { showPage(); document.body.innerHTML = `<p style="padding:2rem;text-align:center;font-family:sans-serif">Cannot reach the server. Please reload the page.<br><small>${e.message}</small></p>`; return; }
   if (needsLogin() && !DB.user) return logout();
   if (document.body.dataset.shell === 'admin' && DB.user.role !== 'admin') return location.replace('dashboard.html');
   document.documentElement.dataset.exam = getExam();
   document.head.insertAdjacentHTML('beforeend', `<style>${Object.values(DB.exams).map((e, i) => `${i ? `:root[data-exam="${e.key}"]` : ':root'} { --accent: ${e.rgb}; --accent-dark: ${e.rgbDark}; --accent-soft: ${e.rgbSoft}; }`).join('\n')}</style>`);
   const s = document.createElement('script');
-  s.src = 'https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js'; // Alpine langsung start setelah dimuat
+  s.src = ALPINE; // Alpine langsung start setelah dimuat
   document.head.append(s);
 });
 
@@ -66,26 +68,16 @@ const lockedHTML = (title = 'Free mock test already used') => `
     </div>
   </div>`;
 
-// ---------- Tailwind ----------
-tailwind.config = {
-  theme: {
-    extend: {
-      fontFamily: { sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'] },
-      colors: {
-        brand: { 50: '#eff6ff', 100: '#dbeafe', 200: '#bfdbfe', 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8', 800: '#1e40af' },
-        ielts: { 50: '#fff1f2', 100: '#ffe4e6', 500: '#e11d48', 600: '#be123c', 700: '#9f1239', 800: '#881337' },
-        accent: { DEFAULT: 'rgb(var(--accent) / <alpha-value>)', dark: 'rgb(var(--accent-dark) / <alpha-value>)', soft: 'rgb(var(--accent-soft) / <alpha-value>)' },
-      },
-      boxShadow: { soft: '0 1px 2px rgb(15 23 42 / .04), 0 6px 20px -6px rgb(15 23 42 / .08)' },
-    },
-  },
-};
 
 document.head.insertAdjacentHTML('beforeend', `<style>
   :root { --accent: 37 99 235; --accent-dark: 29 78 216; --accent-soft: 239 246 255; }
   html { -webkit-font-smoothing: antialiased; }
   body { background: #f8fafc; color: #0f172a; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
   [x-cloak] { display: none !important; }
+  body:not(.ready) > :not(#ghost) { visibility: hidden; } /* tampil sekaligus setelah data, sidebar & ikon siap (tanpa kedip) */
+  body.ready main, main > section[x-show] { animation: fadein .18s ease-out; } /* konten baru & ganti tab admin muncul halus */
+  @keyframes fadein { from { opacity: 0; transform: translateY(4px); } }
+  @media (prefers-reduced-motion: reduce) { body.ready main, main > section[x-show] { animation: none; } }
   .skel { background: linear-gradient(90deg, #eef2f7 25%, #f8fafc 50%, #eef2f7 75%); background-size: 200% 100%; animation: skel 1.2s infinite; border-radius: .5rem; }
   @keyframes skel { to { background-position: -200% 0; } }
   .thin-scroll::-webkit-scrollbar { width: 8px; height: 8px; } .thin-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 99px; }
@@ -245,9 +237,8 @@ const NAV = {
   app: [['program', 'About the Program', 'info', 'program.html'], ['dashboard', 'Dashboard', 'layout-dashboard', 'dashboard.html'], ['materi', 'Curriculum', 'book-open', 'materi.html'], ['skills', 'Skills', 'target', 'skills.html'], ['simulasi', 'Mock Test', 'timer', 'simulasi.html'], ['hasil', 'Results & Review', 'bar-chart-3', 'hasil.html'], ['ebook', 'Ebooks', 'book-marked', 'ebook.html'], ['consult', 'Consultation', 'message-circle', '#wa']],
   admin: [['master', 'Master Program', 'layers', 'admin.html#master']],
 };
-const logo = (sub = '') => `<a href="${sub ? 'admin.html' : 'program.html'}" class="flex items-center gap-2.5 font-bold text-slate-900">
-  <span class="grid h-9 w-9 place-items-center rounded-xl bg-brand-600 text-white shadow-sm"><i data-lucide="graduation-cap" class="h-5 w-5"></i></span>
-  <span class="text-[17px] tracking-tight">English<span class="text-brand-600">On</span>${sub}</span></a>`;
+const logo = (sub = '') => `<a href="${sub ? 'admin.html' : 'program.html'}" class="flex items-center">
+  <img src="logo.png" alt="EnglishOn" class="-ml-4 h-16 w-auto">${sub}</a>`;
 
 const ADMIN_SUB = [['siswa', 'Siswa', 'users'], ['materi', 'Curriculum', 'book-open'], ['soal', 'Soal', 'file-question'], ['mock', 'Mock Test', 'timer'], ['ebook', 'Ebook', 'book-marked'], ['pengaturan', 'Pengaturan', 'settings']];
 function adminPrograms(link) {
@@ -308,7 +299,7 @@ function mountShell() {
   // grp = program yang sedang terbuka di sidebar admin
   wrap.setAttribute('x-data', `{ nav: false, menu: false, ...targetForm(), grp: '${(location.hash.match(/^#p\/([\w-]+)/) || [])[1] || ''}' }`);
   wrap.innerHTML = `
-  <aside class="fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-slate-200 bg-white -translate-x-full transition-transform duration-200 lg:translate-x-0" :class="nav && '!translate-x-0 shadow-2xl'">
+  <aside class="fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-slate-200 bg-white -translate-x-full max-lg:transition-transform max-lg:duration-200 lg:translate-x-0" :class="nav && '!translate-x-0 shadow-2xl'">
     <div class="flex h-16 items-center justify-between px-5">${logo(admin ? ' <span class="ml-1 rounded-md bg-slate-900 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white">Admin</span>' : '')}
       <button class="lg:hidden rounded-lg p-1.5 text-slate-500 hover:bg-slate-100" @click="nav=false" aria-label="Close menu"><i data-lucide="x" class="h-5 w-5"></i></button></div>
     <nav class="flex-1 space-y-1 overflow-y-auto px-3 py-4">
@@ -364,5 +355,27 @@ function startIcons() {
     .observe(document.body, { childList: true, subtree: true });
 }
 
+// Sidebar & header halaman sebelumnya disimpan sebagai salinan statis, lalu langsung ditampilkan di halaman
+// berikutnya selama data dimuat → saat pindah menu sidebar tidak hilang-muncul (kedip).
+const ghostKey = () => 'ghost-' + document.body.dataset.shell;
+addEventListener('pagehide', () => {
+  const a = document.querySelector('aside'), h = a?.parentElement.querySelector('header');
+  if (a && h) try { sessionStorage.setItem(ghostKey(), a.outerHTML + `<div class="lg:pl-64">${h.outerHTML}</div>`); } catch {}
+});
+document.addEventListener('DOMContentLoaded', () => {
+  let html; try { html = document.body.dataset.shell && token() && sessionStorage.getItem(ghostKey()); } catch {}
+  if (!html) return;
+  const g = document.createElement('div'), admin = document.body.dataset.shell === 'admin';
+  g.id = 'ghost'; g.setAttribute('x-ignore', ''); g.innerHTML = html; // salinan statis, jangan diproses Alpine
+  const active = admin ? location.hash.slice(1) || 'master' : document.body.dataset.active;
+  g.querySelectorAll('[data-nav]').forEach(a => { const on = a.dataset.nav === active; a.classList.toggle('bg-brand-50', on); a.classList.toggle('text-brand-700', on); a.classList.toggle('text-slate-600', !on); });
+  g.querySelector('header h1').textContent = document.body.dataset.title || '';
+  document.body.prepend(g);
+});
+
 document.addEventListener('alpine:init', () => { mountShell(); });
+// Halaman disembunyikan sampai Alpine selesai merender & ikon terpasang, lalu ditampilkan sekaligus
+function showPage() { document.getElementById('ghost')?.remove(); document.body?.classList.add('ready'); }
+document.addEventListener('alpine:initialized', () => { if (window.lucide) lucide.createIcons({ attrs: { 'stroke-width': 2 } }); showPage(); });
+setTimeout(showPage, 4000); // cadangan: jangan pernah biarkan halaman kosong
 document.addEventListener('DOMContentLoaded', startIcons);

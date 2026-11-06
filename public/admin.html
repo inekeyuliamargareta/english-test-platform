@@ -5,27 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Admin — EnglishOn</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<script src="https://cdn.tailwindcss.com/3.4.16"></script>
+<link rel="stylesheet" href="assets/app.css">
 <script src="https://cdn.jsdelivr.net/npm/lucide@0.460.0/dist/umd/lucide.min.js"></script>
 <script src="assets/app.js"></script>
 <!-- Gaya tombol & input yang dipakai berulang di halaman ini -->
-<style type="text/tailwindcss">
-  .btn-primary { @apply inline-flex items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-brand-700 disabled:opacity-60; }
-  .btn-light { @apply inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold hover:bg-slate-50; }
-  .icon-btn { @apply inline-grid h-8 w-8 place-items-center rounded-lg text-slate-500 hover:bg-slate-100; }
-  .chip { @apply whitespace-nowrap rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-50; }
-  .chip-on { @apply border-slate-900 bg-slate-900 text-white hover:bg-slate-800; }
-  .pager { @apply flex flex-col items-center justify-between gap-3 border-t border-slate-100 px-5 py-3 text-sm text-slate-500 sm:flex-row; }
-  .pg { @apply grid h-8 min-w-[32px] place-items-center rounded-lg px-2 text-sm font-semibold text-slate-600 hover:bg-slate-100; }
-  .pg-on { @apply bg-slate-900 text-white hover:bg-slate-900; }
-  .lbl { @apply mb-1.5 block font-medium; }
-  .inp { @apply w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand-500; }
-  .step { @apply grid h-6 w-6 shrink-0 place-items-center rounded-full bg-brand-50 text-xs font-bold text-brand-700; }
-  .rte-wrap { @apply overflow-hidden rounded-xl border border-slate-200 focus-within:border-brand-500; }
-  .rte-bar { @apply flex flex-wrap gap-1 border-b border-slate-200 bg-slate-50 p-1.5; }
-  .rte-btn { @apply rounded-lg px-2.5 py-1 text-xs font-semibold text-slate-600 hover:bg-white hover:text-slate-900 hover:shadow-sm; }
-  .rte { @apply max-h-[55vh] overflow-y-auto text-sm outline-none; }
-</style>
 <style>
   .rte:empty::before { content: attr(data-placeholder); color: #94a3b8; }
   .rte table { display: table; }
