@@ -9,38 +9,79 @@
 <script src="https://cdn.jsdelivr.net/npm/lucide@0.460.0/dist/umd/lucide.min.js"></script>
 <script src="assets/app.js"></script>
 </head>
-<!-- FAQ (diisi admin di englishone-backend) + chat WhatsApp ke admin -->
+<!-- Tampilan chat: FAQ (diisi admin di englishone-backend) dijawab sebagai balon chat; pesan bebas dikirim lewat WhatsApp -->
 <body data-shell="app" data-active="consult" data-title="Consultation">
-<main x-data="{ open: null, faqs: DB.faqs || [] }" class="mx-auto max-w-3xl space-y-6">
-  <div>
-    <h2 class="text-2xl font-bold tracking-tight">Consultation</h2>
-    <p class="mt-1 text-slate-500">Find quick answers below, or chat with our admin on WhatsApp.</p>
-  </div>
-
-  <section x-show="faqs.length" class="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-soft">
-    <template x-for="f in faqs" :key="f.id">
-      <div>
-        <button @click="open = open === f.id ? null : f.id" class="flex w-full items-center gap-3 p-4 text-left font-semibold hover:bg-slate-50" :aria-expanded="open === f.id">
-          <i data-lucide="help-circle" class="h-5 w-5 shrink-0 text-accent"></i><span class="flex-1" x-text="f.question"></span>
-          <span class="shrink-0 text-slate-400 transition" :class="open === f.id && 'rotate-180'"><i data-lucide="chevron-down" class="h-5 w-5"></i></span>
-        </button>
-        <div x-show="open === f.id" x-cloak class="content px-4 pb-4 pl-12 text-sm" x-html="cleanHTML(f.answer)"></div>
+<main x-data="consult()" class="mx-auto max-w-3xl">
+  <section class="flex h-[calc(100dvh-9rem)] min-h-[480px] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-soft lg:h-[calc(100dvh-11rem)]">
+    <!-- Header chat -->
+    <header class="flex items-center gap-3 border-b border-slate-100 px-4 py-3">
+      <span class="relative grid h-10 w-10 shrink-0 place-items-center rounded-full bg-emerald-600 text-white"><i data-lucide="headset" class="h-5 w-5"></i>
+        <span class="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-white bg-emerald-400"></span></span>
+      <div class="min-w-0 flex-1">
+        <p class="truncate font-semibold" x-text="DB.contact.name"></p>
+        <p class="truncate text-xs text-slate-500" x-text="DB.contact.hours"></p>
       </div>
-    </template>
-  </section>
+      <button @click="info = !info" class="rounded-lg p-2 text-slate-500 hover:bg-slate-100" :class="info && 'bg-slate-100'" aria-label="Contact info"><i data-lucide="info" class="h-5 w-5"></i></button>
+    </header>
+    <div x-show="info" x-cloak class="flex flex-wrap items-start gap-x-6 gap-y-2 border-b border-slate-100 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+      <p class="flex items-start gap-2"><i data-lucide="map-pin" class="mt-0.5 h-4 w-4 shrink-0"></i><span x-text="DB.contact.address"></span></p>
+      <p class="flex items-center gap-2"><i data-lucide="phone" class="h-4 w-4"></i><span x-text="'WA ' + DB.contact.waLabel"></span></p>
+      <a x-show="DB.contact.instagram" :href="DB.contact.instagram" target="_blank" rel="noopener" class="flex items-center gap-2 font-medium text-emerald-700 hover:underline"><i data-lucide="instagram" class="h-4 w-4"></i>Instagram</a>
+    </div>
 
-  <div class="rounded-2xl border border-emerald-200 bg-emerald-50 p-6">
-    <h3 class="font-semibold text-emerald-900">Still have a question?</h3>
-    <p class="mt-1 text-sm text-emerald-800">Our admin is happy to help with your class, schedule, or access.</p>
-    <div class="mt-4 grid gap-2 sm:grid-cols-2">
-      <a :href="joinLink('I would like to consult about my class or access.')" target="_blank" rel="noopener" class="flex items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3 text-sm font-semibold text-white hover:bg-emerald-700"><i data-lucide="message-circle" class="h-4 w-4"></i>Chat on WhatsApp</a>
-      <a x-show="DB.contact.instagram" :href="DB.contact.instagram" target="_blank" rel="noopener" class="flex items-center justify-center gap-2 rounded-xl border border-emerald-300 bg-white py-3 text-sm font-semibold text-emerald-800 hover:bg-emerald-100"><i data-lucide="instagram" class="h-4 w-4"></i>Instagram</a>
+    <!-- Percakapan -->
+    <div x-ref="log" class="thin-scroll flex-1 space-y-3 overflow-y-auto bg-slate-50/70 px-4 py-5">
+      <template x-for="(m, i) in msgs" :key="i">
+        <div class="flex" :class="m.me ? 'justify-end' : 'justify-start'">
+          <div class="max-w-[85%] rounded-2xl px-4 py-2.5 text-sm shadow-sm sm:max-w-[75%]"
+               :class="m.me ? 'rounded-br-md bg-accent text-white' : 'rounded-bl-md border border-slate-200 bg-white text-slate-700'">
+            <div :class="!m.me && 'content'" x-html="m.html"></div>
+          </div>
+        </div>
+      </template>
+      <div x-show="typing" x-cloak class="flex"><div class="flex gap-1 rounded-2xl rounded-bl-md border border-slate-200 bg-white px-4 py-3">
+        <span class="h-2 w-2 animate-bounce rounded-full bg-slate-400"></span><span class="h-2 w-2 animate-bounce rounded-full bg-slate-400 [animation-delay:.15s]"></span><span class="h-2 w-2 animate-bounce rounded-full bg-slate-400 [animation-delay:.3s]"></span></div></div>
     </div>
-    <div class="mt-5 flex items-start gap-3 text-sm text-emerald-900">
-      <i data-lucide="map-pin" class="mt-0.5 h-4 w-4 shrink-0"></i>
-      <div><p class="font-semibold" x-text="DB.contact.name"></p><p x-text="DB.contact.address"></p><p class="text-xs" x-text="DB.contact.hours + ' · WA ' + DB.contact.waLabel"></p></div>
+
+    <!-- Pertanyaan cepat (FAQ) -->
+    <div x-show="left.length" class="thin-scroll flex gap-2 overflow-x-auto border-t border-slate-100 px-4 py-2.5">
+      <template x-for="f in left" :key="f.id">
+        <button @click="ask(f)" :disabled="typing" class="shrink-0 rounded-full border border-accent/30 bg-accent-soft px-3 py-1.5 text-xs font-medium text-accent hover:bg-accent hover:text-white disabled:opacity-50" x-text="f.question"></button>
+      </template>
     </div>
-  </div>
+
+    <!-- Kirim pesan: dibuka di WhatsApp -->
+    <form @submit.prevent="send()" class="flex items-center gap-2 border-t border-slate-100 p-3">
+      <input x-model="text" placeholder="Type a message…" class="min-w-0 flex-1 rounded-full border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm outline-none focus:border-accent focus:bg-white">
+      <button :disabled="!text.trim()" class="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-40" aria-label="Send via WhatsApp"><i data-lucide="send" class="h-4 w-4"></i></button>
+    </form>
+    <p class="-mt-1 pb-2 text-center text-[11px] text-slate-400">Messages you type are sent to our admin on WhatsApp.</p>
+  </section>
 </main>
+<script>
+function consult() {
+  const name = (DB.user?.name || '').split(' ')[0];
+  return {
+    faqs: DB.faqs || [], msgs: [], typing: false, info: false, text: '', asked: [],
+    get left() { return this.faqs.filter(f => !this.asked.includes(f.id)); },
+    init() {
+      this.say(`Hi ${esc(name)}! How can we help you today?`);
+      if (this.faqs.length) this.say('Pick a question below for a quick answer, or type your message to chat with our admin on WhatsApp.');
+      else this.say('Type your message below to chat with our admin on WhatsApp.');
+    },
+    say(html, me = false) { this.msgs.push({ html, me }); this.$nextTick(() => { const l = this.$refs.log; if (l) l.scrollTop = l.scrollHeight; }); },
+    ask(f) {
+      this.asked.push(f.id); this.say(esc(f.question), true); this.typing = true;
+      setTimeout(() => { this.typing = false; this.say(cleanHTML(f.answer)); }, 600);
+    },
+    send() {
+      const t = this.text.trim(); if (!t) return;
+      this.say(esc(t), true); this.text = '';
+      window.open(joinLink(t), '_blank', 'noopener');
+      this.say('Your message is opened in WhatsApp. Our admin will reply there.');
+    },
+  };
+}
+</script>
 </body>
 </html>
