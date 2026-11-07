@@ -87,7 +87,7 @@ function login() {
   return {
     mode: qs('mode') === 'register' ? 'register' : 'login', show: false, loading: false, error: '',
     f: { name: '', phone: '', email: '', password: '', exam: activeExams()[0].key },
-    init() { if (DB.user) location.replace(DB.user.role === 'admin' ? 'admin.html' : 'program.html'); this.$watch('mode', () => this.error = ''); },
+    init() { if (DB.user) location.replace('program.html'); this.$watch('mode', () => this.error = ''); },
     async submit() {
       this.loading = true; this.error = '';
       try {
@@ -95,7 +95,7 @@ function login() {
         localStorage.setItem('token', t);
         if (this.mode === 'register') localStorage.setItem('exam', this.f.exam);
         const { user } = await api('GET', '/bootstrap');
-        location.href = user.role === 'admin' ? 'admin.html' : 'program.html';
+        location.href = 'program.html';
       } catch (e) { this.error = e.message; this.loading = false; }
     },
   };

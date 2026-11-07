@@ -425,7 +425,6 @@ module.exports = {
     { id: 'toefl-listening', exam: 'toefl', name: 'Listening Only', type: 'section', desc: 'Short conversations dan talk. Audio hanya diputar satu kali.', sections: [['listening', 35]] },
     { id: 'toefl-structure', exam: 'toefl', name: 'Structure Only', type: 'section', desc: 'Sentence completion dan error identification.', sections: [['structure', 25]] },
     { id: 'toefl-reading', exam: 'toefl', name: 'Reading Only', type: 'section', desc: 'Passage akademik dengan soal main idea, vocabulary, dan inference.', sections: [['reading', 55]] },
-    { id: 'toefl-kilat', exam: 'toefl', name: 'Tes Kilat 4 Menit', type: 'section', badge: 'Demo', desc: 'Latihan singkat Structure untuk pemanasan (timer pendek).', sections: [['structure', 4]] },
     { id: 'ielts-full', exam: 'ielts', name: 'Full Test IELTS Academic', type: 'full', badge: 'Paling populer', desc: 'Listening, Reading, dan Writing dalam satu sesi.',
       sections: [['listening', 30], ['reading', 60], ['writing', 60]] },
     { id: 'ielts-listening', exam: 'ielts', name: 'Listening Only', type: 'section', desc: 'Form completion dan multiple choice.', sections: [['listening', 30]] },

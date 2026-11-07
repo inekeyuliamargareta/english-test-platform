@@ -34,20 +34,13 @@ Akun dari seed memakai `SEED_ADMIN_EMAIL` dan `SEED_PASSWORD` di `.env`. Siswa d
 
 Jalankan `npm run migrate` sekali setelah menarik versi baru. Kolom baru ditambahkan tanpa menghapus data.
 
-## Fitur admin
+## Admin
 
-- **Sidebar per program**: setiap program punya menu sendiri (Siswa, Materi, Soal, Pengaturan). Daftar siswa dan soal diambil per halaman (20 baris) dari server.
-- **Ebook**: menu Ebook tiap program. Upload PDF (maks. 50 MB), pilih Gratis atau Berbayar (hanya siswa Akses Penuh). File disimpan di `storage/ebooks` (ikutkan dalam backup) dan hanya bisa dibuka lewat login.
-- **Track per level**: di Pengaturan program, isi nama track, target skor, dan "cocok untuk" per level placement (A2–C1). Tampil di halaman Curriculum siswa.
-- **Pertemuan (kurikulum)**: setiap bab terbit = satu pertemuan. Pertemuan berikutnya terbuka setelah pertemuan sebelumnya 100% (semua bagian dibaca + semua latihan dijawab). Urutan di menu Materi (tombol ▲▼) menjadi Meeting 1, 2, 3, … di sisi siswa, dan progres siswa tampil sebagai "Meetings completed 3 / 30". Bab draft tidak diberi nomor.
-- **Master Program**: tambah/ubah program (TOEFL, IELTS, dll.), section, penjelasan program untuk siswa, dan rekomendasi kelas per level placement.
-- **Editor teks**: penjelasan program, isi bab, dan pembahasan soal diketik seperti di Word (tebal, daftar, judul, kotak tips, tabel). Tempel dari Word/website otomatis jadi teks biasa.
-- **Import Soal**: Kelola Soal → Import Soal → unduh template CSV, isi di Excel/Google Sheets, simpan sebagai CSV, lalu unggah. Semua baris diperiksa dulu; jika ada yang salah, tidak ada yang disimpan dan nomor barisnya ditampilkan.
-- **Soal placement**: soal dengan "Dipakai untuk = Placement test" hanya muncul di placement test, tidak di simulasi.
+Panel admin lama (`admin.html`) sudah dihapus. Semua pengelolaan (program, siswa, placement, curriculum, Skills, mock test, passage & audio, ebook, configuration, FAQ, akses) ada di **englishone-backend → English Test** (khusus Director), yang memanggil `/api/admin/*` di sini lewat token service. Akun ber-role admin yang login di web ini masuk ke tampilan siswa dengan akses penuh dan bisa berganti program untuk pratinjau.
 
 ## Sisi siswa
 
-Tampilan siswa berbahasa Inggris (panel admin tetap bahasa Indonesia). Setelah login siswa masuk ke **About the Program**, sesuai program yang dipilih di kanan atas. Dashboard meminta placement test lebih dulu jika siswa belum punya hasilnya. Isi yang diketik admin (deskripsi program, materi, pembahasan) tampil apa adanya.
+Tampilan siswa dan menu English Test berbahasa Inggris. Setelah login siswa masuk ke **About the Program**, sesuai program yang dipilih di kanan atas. Dashboard meminta placement test lebih dulu jika siswa belum punya hasilnya. Isi yang diketik admin (deskripsi program, materi, pembahasan) tampil apa adanya.
 
 **Satu siswa = satu program** (dipilih saat daftar). Siswa tidak bisa berpindah program sendiri; admin dapat mengubahnya di detail siswa. Server menolak tes dari program lain.
 

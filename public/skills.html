@@ -64,7 +64,7 @@
       <div class="flex flex-wrap items-center gap-3">
         <a :href="'skills.html?skill=' + skill.id" class="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-900"><i data-lucide="arrow-left" class="h-4 w-4"></i><span x-text="'All ' + (skill.short || skill.name) + ' chapters'"></span></a>
       </div>
-      <h3 class="text-xl font-bold"><span x-show="g.no" class="text-accent" x-text="'Chapter ' + g.no + ' · '"></span><span x-text="g.title"></span></h3>
+      <h3 class="text-xl font-bold" x-text="g.title"></h3>
 
       <!-- Skor: muncul setelah submit -->
       <div x-show="done" class="flex flex-wrap items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
@@ -74,7 +74,7 @@
 
       <!-- Blok: satu passage untuk beberapa soal (passage kiri, soal kanan), atau soal tanpa passage -->
       <template x-for="b in g.blocks" :key="b.key">
-      <div :class="b.passage ? 'grid gap-4 md:grid-cols-2 md:items-start' : 'mx-auto max-w-3xl'">
+      <div :class="b.passage ? 'grid gap-4 md:grid-cols-2 md:items-start' : ''">
         <section x-show="b.passage" class="thin-scroll rounded-2xl border border-slate-200 bg-white p-5 shadow-soft max-md:max-h-[45vh] max-md:overflow-y-auto sm:p-6 md:sticky md:top-20 md:max-h-[calc(100vh-6rem)] md:overflow-y-auto" x-html="b.passage ? passageHTML(b.passage) : ''"></section>
         <div class="space-y-4">
       <template x-for="q in b.items" :key="q.id">

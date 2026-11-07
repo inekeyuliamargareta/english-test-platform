@@ -106,12 +106,18 @@ async function applyDefaults(db) {
     await db.query("UPDATE exams SET recommend = JSON_SET(recommend, '$.A2.desc', REPLACE(JSON_UNQUOTE(JSON_EXTRACT(recommend, '$.A2.desc')), ?, ?)) WHERE code = ? AND JSON_UNQUOTE(JSON_EXTRACT(recommend, '$.A2.desc')) LIKE ?", [from, to, code, '%' + from + '%']);
   }
   // Level A2+ dan B1+ (level kantor) ditambahkan belakangan: batas % di tengah level sebelum & sesudahnya
+  // Level lama tanpa angka min memakai batas bawaan (sama dengan LEVELS di app.js). Batas A2+/B1+ yang
+  // tidak berada di antara level sebelum & sesudahnya (mis. 0 dari versi sebelumnya) dihitung ulang.
+  const DEF_MIN = { A1: 0, A2: 15, B1: 30, B2: 55, C1: 80 };
+  const minOf = (r, k) => r[k]?.min === '' || r[k]?.min == null || isNaN(r[k].min) ? DEF_MIN[k] : +r[k].min;
   const [rows] = await db.query('SELECT code, recommend FROM exams WHERE recommend IS NOT NULL');
   for (const { code, recommend: r } of rows) {
     let changed = false;
     for (const [k, lo, hi, name] of [['A2+', 'A2', 'B1', 'Elementary Plus Track'], ['B1+', 'B1', 'B2', 'Intermediate Plus Track']]) {
-      if (r[k] || !r[lo] || !r[hi]) continue;
-      r[k] = { name, target: '', desc: '', range: '', min: Math.round(((+r[lo].min || 0) + (+r[hi].min || 0)) / 2) };
+      if (!r[lo] || !r[hi]) continue;
+      const a = minOf(r, lo), b = minOf(r, hi), cur = r[k]?.min;
+      if (r[k] && cur > a && cur < b) continue;
+      r[k] = { name, target: '', desc: '', range: '', ...r[k], min: Math.round((a + b) / 2) };
       changed = true;
     }
     if (changed) await db.query('UPDATE exams SET recommend = ? WHERE code = ?', [J(r), code]);

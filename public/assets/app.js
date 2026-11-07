@@ -21,10 +21,9 @@ const ALPINE = 'https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js';
 document.head.insertAdjacentHTML('beforeend', `<link rel="preload" as="script" href="${ALPINE}"><link rel="icon" type="image/png" href="logo.png">`); // unduh paralel dengan /api/bootstrap
 document.addEventListener('DOMContentLoaded', async () => {
   if (needsLogin() && !token()) return location.replace('login.html');
-  try { DB = await api('GET', '/bootstrap' + (document.body.dataset.shell === 'admin' ? '?lite=1' : '')); }
+  try { DB = await api('GET', '/bootstrap'); }
   catch (e) { showPage(); document.body.innerHTML = `<p style="padding:2rem;text-align:center;font-family:sans-serif">Cannot reach the server. Please reload the page.<br><small>${e.message}</small></p>`; return; }
   if (needsLogin() && !DB.user) return logout();
-  if (document.body.dataset.shell === 'admin' && DB.user.role !== 'admin') return location.replace('dashboard.html');
   document.documentElement.dataset.exam = getExam();
   document.head.insertAdjacentHTML('beforeend', `<style>${Object.values(DB.exams).map((e, i) => `${i ? `:root[data-exam="${e.key}"]` : ':root'} { --accent: ${e.rgb}; --accent-dark: ${e.rgbDark}; --accent-soft: ${e.rgbSoft}; }`).join('\n')}</style>`);
   const s = document.createElement('script');
@@ -77,7 +76,7 @@ document.head.insertAdjacentHTML('beforeend', `<style>
   body { background: #f8fafc; color: #0f172a; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
   [x-cloak] { display: none !important; }
   body:not(.ready) > :not(#ghost) { visibility: hidden; } /* tampil sekaligus setelah data, sidebar & ikon siap (tanpa kedip) */
-  body.ready main, main > section[x-show] { animation: fadein .18s ease-out; } /* konten baru & ganti tab admin muncul halus */
+  body.ready main, main > section[x-show] { animation: fadein .18s ease-out; } /* konten baru muncul halus */
   @keyframes fadein { from { opacity: 0; transform: translateY(4px); } }
   @media (prefers-reduced-motion: reduce) { body.ready main, main > section[x-show] { animation: none; } }
   .skel { background: linear-gradient(90deg, #eef2f7 25%, #f8fafc 50%, #eef2f7 75%); background-size: 200% 100%; animation: skel 1.2s infinite; border-radius: .5rem; }
@@ -113,17 +112,15 @@ function cleanHTML(html) {
 // Kolom passage Reading (kiri), dipakai bersama oleh test (placement & mock test) dan Skills
 const passageHTML = id => { const p = DB.passages[id]; return !p ? '' : `<p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Reading Passage</p>
   <h2 class="mt-1 text-xl font-bold">${esc(p.title)}</h2><div class="passage mt-4 text-[15px] leading-8 text-slate-700">${p.html}</div>`; };
-// Halaman siswa berbahasa Inggris, panel admin berbahasa Indonesia
-const isEN = () => document.body?.dataset.shell !== 'admin';
-const fmtDate = (d, style = 'medium') => new Date(d).toLocaleDateString(isEN() ? 'en-GB' : 'id-ID', { dateStyle: style });
-// "3 hours ago" / "3 jam lalu", lalu tanggal
+const fmtDate = (d, style = 'medium') => new Date(d).toLocaleDateString('en-GB', { dateStyle: style });
+// "3 hours ago", lalu tanggal
 function ago(d) {
-  const s = (Date.now() - new Date(d)) / 1000, en = isEN();
-  const n = (v, unit, id) => en ? `${v} ${unit}${v === 1 ? '' : 's'} ago` : `${v} ${id} lalu`;
-  if (s < 3600) return n(Math.max(1, Math.round(s / 60)), 'minute', 'menit');
-  if (s < 86400) return n(Math.round(s / 3600), 'hour', 'jam');
-  if (s < 7 * 86400) return n(Math.round(s / 86400), 'day', 'hari');
-  return new Date(d).toLocaleDateString(en ? 'en-GB' : 'id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+  const s = (Date.now() - new Date(d)) / 1000;
+  const n = (v, unit) => `${v} ${unit}${v === 1 ? '' : 's'} ago`;
+  if (s < 3600) return n(Math.max(1, Math.round(s / 60)), 'minute');
+  if (s < 86400) return n(Math.round(s / 3600), 'hour');
+  if (s < 7 * 86400) return n(Math.round(s / 86400), 'day');
+  return new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 // Keterangan section hasil tes (data lama tersimpan dalam bahasa Indonesia)
 const sectionDetail = s => s.pending ? String(s.detail || '').replace(/kata/g, 'words') : `${s.correct} of ${s.total} correct`;
@@ -257,26 +254,9 @@ function scoreAttempt(att) {
 // ---------- Layout ----------
 const NAV = {
   app: [['program', 'About the Program', 'info', 'program.html'], ['dashboard', 'Dashboard', 'layout-dashboard', 'dashboard.html'], ['materi', 'Curriculum', 'book-open', 'materi.html'], ['skills', 'Skills', 'target', 'skills.html'], ['simulasi', 'Mock Test', 'timer', 'simulasi.html'], ['hasil', 'Results & Review', 'bar-chart-3', 'hasil.html'], ['ebook', 'Ebooks', 'book-marked', 'ebook.html'], ['consult', 'Consultation', 'message-circle', 'consultation.html']],
-  admin: [['master', 'Master Program', 'layers', 'admin.html#master']],
 };
-const logo = (sub = '') => `<a href="${sub ? 'admin.html' : 'program.html'}" class="flex items-center">
-  <img src="logo.png" alt="EnglishOn" class="-ml-8 h-32 w-auto">${sub}</a>`;
-
-const ADMIN_SUB = [['siswa', 'Siswa', 'users'], ['materi', 'Curriculum', 'book-open'], ['soal', 'Soal', 'file-question'], ['mock', 'Mock Test', 'timer'], ['ebook', 'Ebook', 'book-marked'], ['pengaturan', 'Pengaturan', 'settings']];
-function adminPrograms(link) {
-  return `<p class="px-3 pb-2 pt-5 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Program</p>` + Object.values(DB.exams).map(e => `
-    <div>
-      <button @click="grp = grp === '${e.key}' ? '' : '${e.key}'" class="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-slate-700 transition hover:bg-slate-100">
-        <span class="h-2.5 w-2.5 shrink-0 rounded-full" style="background-color: rgb(${e.rgb})"></span>
-        <span class="min-w-0 flex-1 truncate">${esc(e.name)}</span>
-        ${e.active ? '' : '<span class="rounded bg-slate-100 px-1.5 text-[10px] font-medium text-slate-500">nonaktif</span>'}
-        <span class="text-slate-400 transition" :class="grp === '${e.key}' && 'rotate-90'"><i data-lucide="chevron-right" class="h-4 w-4"></i></span>
-      </button>
-      <div x-show="grp === '${e.key}'" x-cloak class="mb-1 ml-[18px] space-y-0.5 border-l border-slate-200 pl-2">
-        ${ADMIN_SUB.map(([t, label, icon]) => link([`p/${e.key}/${t}`, label, icon, `admin.html#p/${e.key}/${t}`])).join('')}
-      </div>
-    </div>`).join('');
-}
+const logo = () => `<a href="program.html" class="flex items-center">
+  <img src="logo.png" alt="EnglishOn" class="-ml-8 h-32 w-auto"></a>`;
 
 // ---------- Target skor siswa ----------
 // Dibuka dari kartu target di sidebar atau dashboard (event "open-target")
@@ -312,9 +292,9 @@ const accountLabel = () => access.inactive ? 'Program ended' : access.program ? 
 function mountShell() {
   const kind = document.body.dataset.shell; if (!kind) return;
   const main = document.querySelector('main'), active = document.body.dataset.active, title = document.body.dataset.title || '';
-  const exam = getExam(), admin = kind === 'admin';
+  const exam = getExam();
   // Panel terkunci: abu-abu + gembok, tidak bisa diklik
-  const link = ([k, label, icon, href]) => !admin && !access.can(k)
+  const link = ([k, label, icon, href]) => !access.can(k)
     ? `<span data-nav="${k}" title="Locked. Contact EnglishOn to unlock" aria-disabled="true" class="flex cursor-not-allowed select-none items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-300">
       <i data-lucide="${icon}" class="h-[18px] w-[18px]"></i>${label}<i data-lucide="lock" class="ml-auto h-3.5 w-3.5"></i></span>`
     : `<a href="${href}" data-nav="${k}" @click="nav=false" class="nav-link group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${k === active ? 'bg-brand-50 text-brand-700' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'}">
@@ -324,23 +304,21 @@ function mountShell() {
     : `<span title="${e.name} coming soon" class="hidden cursor-not-allowed whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-300 md:inline">${e.name.split(' ')[0]} <span class="text-[10px]">· soon</span></span>`;
 
   const wrap = document.createElement('div');
-  // grp = program yang sedang terbuka di sidebar admin
-  wrap.setAttribute('x-data', `{ nav: false, menu: false, ...targetForm(), grp: '${(location.hash.match(/^#p\/([\w-]+)/) || [])[1] || ''}' }`);
+  wrap.setAttribute('x-data', '{ nav: false, menu: false, ...targetForm() }');
   wrap.innerHTML = `
   <aside class="fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-slate-200 bg-white -translate-x-full max-lg:transition-transform max-lg:duration-200 lg:translate-x-0" :class="nav && '!translate-x-0 shadow-2xl'">
-    <div class="flex h-16 items-center justify-between px-5">${logo(admin ? ' <span class="ml-1 rounded-md bg-slate-900 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white">Admin</span>' : '')}
+    <div class="flex h-16 items-center justify-between px-5">${logo()}
       <button class="lg:hidden rounded-lg p-1.5 text-slate-500 hover:bg-slate-100" @click="nav=false" aria-label="Close menu"><i data-lucide="x" class="h-5 w-5"></i></button></div>
     <nav class="flex-1 space-y-1 overflow-y-auto px-3 py-4">
-      <p class="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400">${admin ? 'Manajemen' : 'Learn'}</p>
-      ${NAV[kind].map(link).join('')}${admin ? adminPrograms(link) : ''}
+      <p class="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Learn</p>
+      ${NAV.app.map(link).join('')}
     </nav>
     <div class="space-y-3 border-t border-slate-100 p-4">
-      ${admin ? '' : `<button @click="openTarget()" title="Set your target score" class="group block w-full rounded-xl bg-gradient-to-br from-accent to-accent-dark p-4 text-left text-white">
+      <button @click="openTarget()" title="Set your target score" class="group block w-full rounded-xl bg-gradient-to-br from-accent to-accent-dark p-4 text-left text-white">
         <p class="flex items-center justify-between text-xs text-white/70">${DB.exams[exam].name} target<span class="flex items-center gap-1 opacity-70 group-hover:opacity-100"><i data-lucide="pencil" class="h-3 w-3"></i>${DB.user.target[exam] == null ? 'Set' : 'Edit'}</span></p>
         <p class="mt-1 ${DB.user.target[exam] == null ? 'text-base' : 'text-2xl'} font-bold">${DB.user.target[exam] ?? 'Set your target'}</p>
-        <p class="mt-1 flex items-center gap-1 text-xs text-white/80"><i data-lucide="${access.full ? 'calendar-check' : 'lock'}" class="h-3.5 w-3.5"></i> ${accountLabel()}</p></button>`}
-      ${DB.user.role === 'admin' ? `<a href="${admin ? 'dashboard.html' : 'admin.html'}" class="flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-slate-600 hover:bg-slate-100"><i data-lucide="${admin ? 'graduation-cap' : 'shield'}" class="h-[18px] w-[18px]"></i>${admin ? 'Ke Mode Siswa' : 'Admin Panel'}</a>` : ''}
-      <button onclick="logout()" class="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm text-slate-600 hover:bg-slate-100"><i data-lucide="log-out" class="h-[18px] w-[18px]"></i>${admin ? 'Keluar' : 'Log out'}</button>
+        <p class="mt-1 flex items-center gap-1 text-xs text-white/80"><i data-lucide="${access.full ? 'calendar-check' : 'lock'}" class="h-3.5 w-3.5"></i> ${accountLabel()}</p></button>
+      <button onclick="logout()" class="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm text-slate-600 hover:bg-slate-100"><i data-lucide="log-out" class="h-[18px] w-[18px]"></i>Log out</button>
     </div>
   </aside>
   <div x-show="nav" x-transition.opacity x-cloak @click="nav=false" class="fixed inset-0 z-30 bg-slate-900/40 backdrop-blur-sm lg:hidden"></div>
@@ -349,7 +327,7 @@ function mountShell() {
       <button class="rounded-lg p-2 text-slate-600 hover:bg-slate-100 lg:hidden" @click="nav=true" aria-label="Open menu"><i data-lucide="menu" class="h-5 w-5"></i></button>
       <h1 class="truncate text-base font-semibold text-slate-900 sm:text-lg">${title}</h1>
       <div class="ml-auto flex items-center gap-2 sm:gap-3">
-        ${admin ? '' : DB.user.role === 'admin'
+        ${DB.user.role === 'admin'
           ? `<div class="flex rounded-xl bg-slate-100 p-1">${Object.values(DB.exams).map(examBtn).join('')}</div>`
           : `<span class="whitespace-nowrap rounded-xl bg-accent px-3 py-1.5 text-xs font-semibold text-white">${esc(DB.exams[exam].name)}</span>`}
         <div class="relative">
@@ -360,18 +338,18 @@ function mountShell() {
           </button>
           <div x-show="menu" x-transition x-cloak class="absolute right-0 mt-2 w-48 rounded-xl border border-slate-200 bg-white p-1.5 text-sm shadow-soft">
             <p class="truncate px-3 py-2 text-xs text-slate-500">${esc(DB.user.email)}</p>
-            <button onclick="logout()" class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-rose-600 hover:bg-rose-50"><i data-lucide="log-out" class="h-4 w-4"></i>${admin ? 'Keluar' : 'Log out'}</button>
+            <button onclick="logout()" class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-rose-600 hover:bg-rose-50"><i data-lucide="log-out" class="h-4 w-4"></i>Log out</button>
           </div>
         </div>
       </div>
     </header>
     <div id="slot"></div>
-    ${admin ? '' : targetModal(exam)}
+    ${targetModal(exam)}
   </div>`;
   // Halaman panel terkunci (dibuka lewat URL langsung): ganti isi dengan kartu terkunci. Datanya juga tidak dikirim server.
   // Review placement mengikuti panel Placement, review mock test mengikuti Results
   const att = DB.attempts?.find(a => a.id === +qs('id')), pnl = document.body.dataset.panel === 'review' ? (att && isPlacement(att) ? 'placement' : 'hasil') : document.body.dataset.panel || active;
-  if (!admin && !access.can(pnl)) { main.removeAttribute('x-data'); main.className = ''; main.innerHTML = lockedHTML(`${title || 'This page'} is locked`); }
+  if (!access.can(pnl)) { main.removeAttribute('x-data'); main.className = ''; main.innerHTML = lockedHTML(`${title || 'This page'} is locked`); }
   main.replaceWith(wrap);
   wrap.querySelector('#slot').replaceWith(main);
   main.classList.add('mx-auto', 'max-w-7xl', 'px-4', 'py-6', 'sm:px-6', 'lg:px-8', 'lg:py-8');
@@ -397,9 +375,9 @@ addEventListener('pagehide', () => {
 document.addEventListener('DOMContentLoaded', () => {
   let html; try { html = document.body.dataset.shell && token() && sessionStorage.getItem(ghostKey()); } catch {}
   if (!html) return;
-  const g = document.createElement('div'), admin = document.body.dataset.shell === 'admin';
+  const g = document.createElement('div');
   g.id = 'ghost'; g.setAttribute('x-ignore', ''); g.innerHTML = html; // salinan statis, jangan diproses Alpine
-  const active = admin ? location.hash.slice(1) || 'master' : document.body.dataset.active;
+  const active = document.body.dataset.active;
   g.querySelectorAll('[data-nav]').forEach(a => { const on = a.dataset.nav === active; a.classList.toggle('bg-brand-50', on); a.classList.toggle('text-brand-700', on); a.classList.toggle('text-slate-600', !on); });
   g.querySelector('header h1').textContent = document.body.dataset.title || '';
   document.body.prepend(g);

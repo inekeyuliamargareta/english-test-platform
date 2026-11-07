@@ -1,9 +1,9 @@
-const path = require('path'), fs = require('fs');
+const path = require('path'), fs = require('fs'), crypto = require('crypto');
 const express = require('express'), helmet = require('helmet'), cors = require('cors');
 const jwt = require('jsonwebtoken'), bcrypt = require('bcryptjs');
 const { pool } = require('./db');
 const { scoreAttempt, isCorrect, isAnswered } = require('./scoring');
-const { accessOf, FREE_PANELS, freeMockIds } = require('./access');
+const { accessOf, PANELS, FREE_PANELS, freeMockIds, isServiceToken } = require('./access');
 
 const SECRET = process.env.JWT_SECRET;
 if (!SECRET) throw new Error('JWT_SECRET belum diisi di .env');
@@ -21,7 +21,11 @@ app.use(helmet({ contentSecurityPolicy: false }));
 app.use(cors({ origin: process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : false }));
 app.use(express.json({ limit: '2mb' }));
 // HTML & JS selalu dicek ulang ke server agar perubahan langsung terpakai setelah update
-app.use(express.static(PUBLIC, { setHeaders(res, file) { if (/\.(html|js)$/.test(file)) res.setHeader('Cache-Control', 'no-cache'); } }));
+app.use(express.static(PUBLIC, { setHeaders(res, file) {
+  if (/\.(html|js)$/.test(file)) res.setHeader('Cache-Control', 'no-cache');
+  // Gambar upload (cover, gambar materi) juga ditampilkan di admin englishone-backend (domain lain)
+  if (/[\\/]uploads[\\/]/.test(file)) res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+} }));
 
 // ---------- Helper ----------
 const q = (sql, params) => pool.query(sql, params).then(([rows]) => rows);
@@ -75,9 +79,13 @@ async function packageContext(pkgId) {
 
 // ---------- Auth ----------
 const sign = id => jwt.sign({ sub: id }, SECRET, { expiresIn: '7d' });
+// Token service: englishone-backend (admin Director) memanggil /api/admin/* dari server ke server.
+// Hanya berlaku untuk /api/admin; kosong di .env = dimatikan.
+const isService = h => isServiceToken(h, process.env.TOEFL_SERVICE_TOKEN);
 app.use('/api', wrap(async (req, res, next) => {
   const h = req.get('authorization') || '';
-  if (h.startsWith('Bearer ')) {
+  if (req.path.startsWith('/admin/') && isService(h)) req.user = { id: 0, name: 'Director (englishone-backend)', email: '', role: 'admin' };
+  else if (h.startsWith('Bearer ')) {
     try {
       const { sub } = jwt.verify(h.slice(7), SECRET);
       [req.user] = await q('SELECT id, name, email, role, exam, targets, full_access, program, status, unlocks FROM users WHERE id = ?', [sub]);
@@ -91,7 +99,9 @@ const need = role => (req, res, next) => !req.user ? res.status(401).json({ erro
 // Pengaturan umum (diubah dari englishone-backend) + akses panel siswa
 async function settings() {
   const rows = await q('SELECT k, v FROM app_settings');
-  return { free_panels: FREE_PANELS, placement_review: false, ...Object.fromEntries(rows.map(r => [r.k, r.v])) };
+  const st = Object.fromEntries(rows.map(r => [r.k, r.v]));
+  // Kontak kantor: diatur dari englishone-backend (Configuration); .env hanya nilai awal
+  return { free_panels: FREE_PANELS, placement_review: false, ...st, contact: { ...CONTACT, ...st.contact } };
 }
 const userAccess = async u => accessOf(u, (await settings()).free_panels);
 const LOCKED_MSG = 'This feature is not part of your account yet. Contact EnglishOn to unlock it.';
@@ -132,7 +142,7 @@ app.post('/api/auth/login', wrap(async (req, res) => {
 // ---------- Data awal halaman ----------
 // Tanpa login: kontak & daftar ujian. Siswa: konten tanpa kunci jawaban. Admin: semua termasuk draft & kunci.
 app.get('/api/bootstrap', wrap(async (req, res) => {
-  const out = { contact: CONTACT, exams: await loadExams() }, u = req.user;
+  const out = { contact: (await settings()).contact, exams: await loadExams() }, u = req.user;
   if (!u) return res.json(out);
   const admin = u.role === 'admin';
   if (admin && req.query.lite) {
@@ -305,7 +315,7 @@ app.get('/api/admin/students', admin, wrap(async (req, res) => {
   const w = 'WHERE ' + where.join(' AND ');
   const [[{ total }], users] = await Promise.all([
     q(`SELECT COUNT(*) total FROM users u ${w}`, args),
-    q(`SELECT u.id, u.name, u.email, u.phone, u.exam, u.full_access, u.created_at FROM users u ${w} ORDER BY u.created_at DESC, u.id DESC LIMIT ? OFFSET ?`, [...args, limit, offset]),
+    q(`SELECT u.id, u.name, u.email, u.phone, u.exam, u.full_access, u.program, u.status, u.unlocks, u.created_at FROM users u ${w} ORDER BY u.created_at DESC, u.id DESC LIMIT ? OFFSET ?`, [...args, limit, offset]),
   ]);
   if (!users.length) return res.json({ total, page: p, limit, rows: [] });
   const ids = users.map(u => u.id);
@@ -322,6 +332,7 @@ app.get('/api/admin/students', admin, wrap(async (req, res) => {
     const n = counts.find(c => c.exam === ex)?.n || 0, sum = +(sums.find(x => x.user_id === u.id && x.exam === ex)?.s || 0);
     return {
       id: u.id, name: u.name, email: u.email, phone: u.phone, exam: u.exam, full: !!u.full_access, joined: u.created_at,
+      program: u.program, status: u.status, unlocks: u.unlocks || {},
       tests: mine.length, last: mine.length ? score(mine[0]) : null, lastExam: mine[0]?.exam,
       progress: n ? Math.round(sum / n) : 0,
       placement: pl ? { exam: pl.exam, percent: +pl.total, date: pl.created_at } : null,
@@ -333,7 +344,7 @@ app.get('/api/admin/students', admin, wrap(async (req, res) => {
 // Soal per program/section, per halaman (terbaru di atas)
 app.get('/api/admin/questions', admin, wrap(async (req, res) => {
   const { limit, page: p, offset } = page(req), where = [], args = [];
-  for (const k of ['exam', 'section', 'pool']) if (req.query[k]) { where.push(`${k} = ?`); args.push(String(req.query[k])); }
+  for (const k of ['exam', 'section', 'pool', 'chapter']) if (req.query[k]) { where.push(`${k} = ?`); args.push(String(req.query[k])); }
   if (req.query.q) { where.push('(q LIKE ? OR topic LIKE ? OR id LIKE ?)'); args.push(like(req.query.q), like(req.query.q), like(req.query.q)); }
   const w = where.length ? 'WHERE ' + where.join(' AND ') : '';
   const [[{ total }], rows, topics] = await Promise.all([
@@ -365,6 +376,12 @@ app.patch('/api/admin/students/:id', admin, wrap(async (req, res) => {
   const b = req.body || {}, sets = [], args = [];
   if ('full' in b) { sets.push('full_access = ?'); args.push(b.full ? 1 : 0); }
   if ('exam' in b) { if (!(await loadExams())[b.exam]) fail(400, 'Program tidak valid'); sets.push('exam = ?'); args.push(b.exam); }
+  if ('program' in b) { if (![null, 20, 30, 40].includes(b.program)) fail(400, 'Program harus kosong, 20, 30, atau 40'); sets.push('program = ?'); args.push(b.program); }
+  if ('status' in b) { if (!['aktif', 'tidak_aktif'].includes(b.status)) fail(400, 'Status harus aktif / tidak_aktif'); sets.push('status = ?'); args.push(b.status); }
+  if ('unlocks' in b) {
+    const u = b.unlocks && typeof b.unlocks === 'object' ? b.unlocks : {};
+    sets.push('unlocks = ?'); args.push(J(Object.fromEntries(Object.entries(u).filter(([k, v]) => PANELS.includes(k) && typeof v === 'boolean'))));
+  }
   if (!sets.length) fail(400, 'Tidak ada perubahan');
   const r = await q(`UPDATE users SET ${sets.join(', ')} WHERE id = ? AND role = 'student'`, [...args, +req.params.id || 0]);
   if (!r.affectedRows) fail(404, 'Siswa tidak ditemukan');
@@ -477,6 +494,11 @@ app.delete('/api/admin/packages/:id', admin, wrap(async (req, res) => {
   res.json({ ok: true });
 }));
 
+app.get('/api/admin/passages/:id', admin, wrap(async (req, res) => {
+  const [p] = await q('SELECT * FROM passages WHERE id = ?', [req.params.id]);
+  if (!p) fail(404, 'Passage tidak ditemukan');
+  res.json(p);
+}));
 app.put('/api/admin/passages/:id', admin, wrap(async (req, res) => {
   validId(req.params.id);
   const b = req.body || {};
@@ -553,6 +575,118 @@ app.put('/api/admin/exams/:code', admin, wrap(async (req, res) => {
     await conn.commit();
   } catch (e) { await conn.rollback(); throw e; } finally { conn.release(); }
   res.json((await loadExams())[code]);
+}));
+
+// ---------- Admin tambahan (dipakai englishone-backend lewat token service) ----------
+// Data awal admin: sama dengan /api/bootstrap?lite=1 milik admin.html
+app.get('/api/admin/bootstrap', admin, wrap(async (req, res) => {
+  const [exams, chapters, passages, clips, packages, counts, ebooks] = await Promise.all([
+    loadExams(), q('SELECT id, exam, section, title, descr, minutes, draft, JSON_LENGTH(subs) n FROM chapters ORDER BY sort, id'),
+    q('SELECT id, title FROM passages ORDER BY title'), q('SELECT * FROM clips ORDER BY title'),
+    q('SELECT * FROM packages ORDER BY sort, id'), questionCounts(), q('SELECT * FROM ebooks ORDER BY sort, created_at'),
+  ]);
+  res.json({ exams, settings: await settings(), panels: PANELS,
+    chapters: chapters.map(c => ({ id: c.id, exam: c.exam, section: c.section, title: c.title, desc: c.descr, minutes: c.minutes, draft: !!c.draft, subsCount: c.n })),
+    passages: Object.fromEntries(passages.map(p => [p.id, { title: p.title }])), clips: Object.fromEntries(clips.map(c => [c.id, mapClip(c)])),
+    packages: packages.map(mapPackage), counts, ebooks: ebooks.map(e => mapEbook(e, true)) });
+}));
+
+// Pengaturan: panel akun gratis, review placement & kontak kantor
+app.put('/api/admin/settings', admin, wrap(async (req, res) => {
+  const b = req.body || {};
+  if ('free_panels' in b) {
+    if (!Array.isArray(b.free_panels) || b.free_panels.some(k => !PANELS.includes(k))) fail(400, 'Panel tidak dikenal');
+    await q('REPLACE INTO app_settings (k, v) VALUES (?, ?)', ['free_panels', J([...new Set(b.free_panels)])]);
+  }
+  if ('placement_review' in b) await q('REPLACE INTO app_settings (k, v) VALUES (?, ?)', ['placement_review', J(!!b.placement_review)]);
+  if ('contact' in b) {
+    const c = b.contact || {}, str = (k, max) => String(c[k] ?? '').trim().slice(0, max);
+    let wa = str('waLabel', 30).replace(/\D/g, '');
+    if (wa.startsWith('0')) wa = '62' + wa.slice(1); else if (wa.startsWith('8')) wa = '62' + wa;
+    if (!/^62\d{8,13}$/.test(wa)) fail(400, 'Nomor WhatsApp tidak valid, mis. 0812-3456-7890');
+    const ig = str('instagram', 200);
+    if (ig && !/^https:\/\//.test(ig)) fail(400, 'Link Instagram harus diawali https://');
+    if (!str('name', 100) || !str('address', 300)) fail(400, 'Nama kantor dan alamat wajib diisi');
+    await q('REPLACE INTO app_settings (k, v) VALUES (?, ?)', ['contact', J({ name: str('name', 100), address: str('address', 300), wa, waLabel: str('waLabel', 30), hours: str('hours', 100), instagram: ig })]);
+  }
+  res.json(await settings());
+}));
+
+// Review placement: hasil terbaru (yang menunggu review di atas), lalu ubah level akhir / publish
+app.get('/api/admin/placements', admin, wrap(async (req, res) => {
+  const where = ["p.type = 'placement'"], args = [];
+  if (req.query.exam) { where.push('a.exam = ?'); args.push(String(req.query.exam)); }
+  if (req.query.pending) where.push('a.published = 0');
+  res.json(await q(`SELECT a.id, a.exam, a.total, a.published, a.level_final level, a.created_at date, u.id user_id, u.name, u.email, u.phone
+    FROM attempts a JOIN packages p ON p.id = a.package_id JOIN users u ON u.id = a.user_id
+    WHERE ${where.join(' AND ')} ORDER BY a.published, a.created_at DESC LIMIT 200`, args));
+}));
+app.patch('/api/admin/attempts/:id', admin, wrap(async (req, res) => {
+  const b = req.body || {}, sets = [], args = [];
+  if ('level' in b) { const l = b.level == null || b.level === '' ? null : String(b.level); if (l && !/^[ABC][12]\+?$/.test(l)) fail(400, 'Level tidak valid'); sets.push('level_final = ?'); args.push(l); }
+  if ('published' in b) { sets.push('published = ?'); args.push(b.published ? 1 : 0); }
+  if (!sets.length) fail(400, 'Tidak ada perubahan');
+  const r = await q(`UPDATE attempts SET ${sets.join(', ')} WHERE id = ?`, [...args, +req.params.id || 0]);
+  if (!r.affectedRows) fail(404, 'Hasil tidak ditemukan');
+  res.json({ ok: true });
+}));
+
+// FAQ Consultation
+app.get('/api/admin/faqs', admin, wrap(async (req, res) => res.json(await q('SELECT * FROM faqs ORDER BY sort, id'))));
+app.post('/api/admin/faqs', admin, wrap(async (req, res) => {
+  const b = req.body || {}, [{ sort }] = await q('SELECT COALESCE(MAX(sort), 0) + 1 sort FROM faqs');
+  const r = await q('INSERT INTO faqs (question, answer, sort) VALUES (?, ?, ?)', [text(b.question, 255, 'Pertanyaan'), text(b.answer, 20000, 'Jawaban'), sort]);
+  res.json({ id: r.insertId });
+}));
+app.put('/api/admin/faqs/:id', admin, wrap(async (req, res) => {
+  const b = req.body || {};
+  const r = await q('UPDATE faqs SET question = ?, answer = ?, sort = COALESCE(?, sort) WHERE id = ?', [text(b.question, 255, 'Pertanyaan'), text(b.answer, 20000, 'Jawaban'), Number.isInteger(b.sort) ? b.sort : null, +req.params.id || 0]);
+  if (!r.affectedRows) fail(404, 'FAQ tidak ditemukan');
+  res.json({ ok: true });
+}));
+app.delete('/api/admin/faqs/:id', admin, wrap(async (req, res) => {
+  const r = await q('DELETE FROM faqs WHERE id = ?', [+req.params.id || 0]);
+  if (!r.affectedRows) fail(404, 'FAQ tidak ditemukan');
+  res.json({ ok: true });
+}));
+
+// Ringkasan materi per program (20/30/40) di atas Curriculum siswa
+app.put('/api/admin/exams/:code/program-intro', admin, wrap(async (req, res) => {
+  const b = req.body || {}, intro = {};
+  for (const n of ['20', '30', '40']) if (b[n]) intro[n] = String(b[n]).slice(0, 100000);
+  const r = await q('UPDATE exams SET program_intro = ? WHERE code = ?', [J(intro), req.params.code]);
+  if (!r.affectedRows) fail(404, 'Program tidak ditemukan');
+  res.json(intro);
+}));
+
+// Urutan mock test → Mock Test 1, 2, 3 di tiap tab (yang pertama gratis)
+app.put('/api/admin/package-order', admin, wrap(async (req, res) => {
+  const ids = Array.isArray(req.body?.ids) ? req.body.ids.map(String) : [];
+  if (!ids.length || new Set(ids).size !== ids.length) fail(400, 'Urutan tidak valid');
+  await q(`UPDATE packages SET sort = CASE id ${ids.map(() => 'WHEN ? THEN ?').join(' ')} END WHERE id IN (?)`, [...ids.flatMap((id, i) => [id, i + 1]), ids]);
+  res.json({ ok: true });
+}));
+
+// Upload gambar (cover ebook, gambar di editor materi). Body = file mentah image/*. Disimpan di public/uploads/<folder>.
+const IMG_EXT = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp', 'image/gif': 'gif' };
+function saveImage(req, folder) {
+  const ext = IMG_EXT[req.get('content-type')];
+  if (!ext) fail(400, 'Format gambar harus PNG, JPG, WEBP, atau GIF');
+  if (!Buffer.isBuffer(req.body) || !req.body.length) fail(400, 'File gambar kosong');
+  const dir = path.join(PUBLIC, 'uploads', folder), file = `${Date.now().toString(36)}-${crypto.randomBytes(4).toString('hex')}.${ext}`;
+  fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(path.join(dir, file), req.body);
+  return `uploads/${folder}/${file}`;
+}
+const imageBody = express.raw({ type: 'image/*', limit: '5mb' });
+app.post('/api/admin/images', admin, imageBody, wrap(async (req, res) => res.json({ url: saveImage(req, 'images') })));
+app.put('/api/admin/ebooks/:id/cover', admin, imageBody, wrap(async (req, res) => {
+  const [e] = await q('SELECT cover_url FROM ebooks WHERE id = ?', [req.params.id]);
+  if (!e) fail(404, 'Ebook tidak ditemukan');
+  const url = saveImage(req, 'covers');
+  await q('UPDATE ebooks SET cover_url = ? WHERE id = ?', [url, req.params.id]);
+  if (e.cover_url?.startsWith('uploads/covers/')) fs.rm(path.join(PUBLIC, e.cover_url), { force: true }, () => {});
+  res.json({ cover: url });
 }));
 
 // ---------- Ebook ----------

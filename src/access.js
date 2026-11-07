@@ -27,4 +27,11 @@ function freeMockIds(packages) {
   return ids;
 }
 
-module.exports = { PANELS, FREE_PANELS, accessOf, mockTab, freeMockIds };
+// Header "Service <token>" dari englishone-backend. Token < 32 karakter / kosong = fitur mati.
+function isServiceToken(header, secret) {
+  if (!secret || secret.length < 32 || !String(header || '').startsWith('Service ')) return false;
+  const a = Buffer.from(header.slice(8)), b = Buffer.from(secret);
+  return a.length === b.length && require('crypto').timingSafeEqual(a, b);
+}
+
+module.exports = { PANELS, FREE_PANELS, accessOf, mockTab, freeMockIds, isServiceToken };

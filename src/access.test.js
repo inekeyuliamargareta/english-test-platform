@@ -1,6 +1,6 @@
 // Cek aturan akses panel: node src/access.test.js
 const assert = require('assert');
-const { accessOf, PANELS, freeMockIds } = require('./access');
+const { accessOf, PANELS, freeMockIds, isServiceToken } = require('./access');
 
 const free = accessOf({ role: 'student' });
 assert.deepStrictEqual(free.panels, ['program', 'simulasi', 'hasil', 'consult', 'placement']);
@@ -30,4 +30,11 @@ const override = accessOf({ role: 'student', unlocks: { simulasi: true, consult:
 assert.ok(override.panels.includes('simulasi') && !override.panels.includes('consult'));
 
 assert.deepStrictEqual(accessOf({ role: 'admin' }).panels, PANELS);
+// Token service englishone-backend
+const SECRET = 'x'.repeat(40);
+assert.ok(isServiceToken('Service ' + SECRET, SECRET));
+assert.ok(!isServiceToken('Service ' + SECRET + 'y', SECRET), 'token salah ditolak');
+assert.ok(!isServiceToken('Bearer ' + SECRET, SECRET));
+assert.ok(!isServiceToken('Service ', ''), 'env kosong = mati');
+assert.ok(!isServiceToken('Service short', 'short'), 'token pendek = mati');
 console.log('access: semua cek lulus');
