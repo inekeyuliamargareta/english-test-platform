@@ -39,7 +39,9 @@ const text = (v, max, label) => { const s = String(v ?? '').trim(); if (!s) fail
 const initials = name => name.split(/\s+/).slice(0, 2).map(w => w[0]).join('').toUpperCase();
 
 // ---------- Mapper baris DB → bentuk yang dipakai frontend ----------
-const mapChapter = c => ({ id: c.id, exam: c.exam, section: c.section, title: c.title, desc: c.descr, minutes: c.minutes, subs: c.subs, draft: !!c.draft });
+// programs: program siswa (20/30/40) yang membuka pertemuan ini, dipilih admin di Curriculum
+const PROGRAMS = [20, 30, 40];
+const mapChapter = c => ({ id: c.id, exam: c.exam, section: c.section, title: c.title, desc: c.descr, minutes: c.minutes, subs: c.subs, draft: !!c.draft, programs: c.programs || PROGRAMS });
 const mapPackage = p => ({ id: p.id, exam: p.exam, name: p.name, type: p.type, badge: p.badge, desc: p.descr, sections: p.sections });
 const mapClip = c => ({ title: c.title, lines: c.transcript, audio: c.audio_url });
 // full = sertakan kunci jawaban & pembahasan (admin, review, cek latihan)
@@ -113,11 +115,10 @@ const panel = (...keys) => wrap(async (req, res, next) => {
   if (!keys.some(k => acc.panels.includes(k))) fail(403, LOCKED_MSG);
   req.access = acc; next();
 });
-// Pertemuan yang boleh dibuka: program 20 = 20 pertemuan pertama tiap ujian (urutan admin)
+// Pertemuan yang boleh dibuka: yang dicentang admin untuk program siswa (20/30/40), urut sesuai admin
+const inProgram = (c, program) => !program || (c.programs || PROGRAMS).includes(program);
 function allowedChapters(chapters, program) {
-  if (!program) return chapters;
-  const n = {};
-  return chapters.filter(c => !c.draft && (n[c.exam] = (n[c.exam] || 0) + 1) <= program);
+  return chapters.filter(c => !c.draft && inProgram(c, program));
 }
 
 app.post('/api/auth/register', wrap(async (req, res) => {
@@ -148,12 +149,12 @@ app.get('/api/bootstrap', wrap(async (req, res) => {
   const admin = u.role === 'admin';
   if (admin && req.query.lite) {
     const [chapters, passages, clips, packages, counts, ebooks] = await Promise.all([
-      q('SELECT id, exam, section, title, descr, minutes, draft, JSON_LENGTH(subs) n FROM chapters ORDER BY sort, id'),
+      q('SELECT id, exam, section, title, descr, minutes, draft, programs, JSON_LENGTH(subs) n FROM chapters ORDER BY sort, id'),
       q('SELECT id, title FROM passages ORDER BY title'), q('SELECT * FROM clips ORDER BY title'),
       q('SELECT * FROM packages ORDER BY sort, id'), questionCounts(), q('SELECT * FROM ebooks ORDER BY sort, created_at'),
     ]);
     out.user = { id: u.id, name: u.name, email: u.email, role: u.role, initials: initials(u.name), target: {}, access: { full: true, used: false } };
-    out.chapters = chapters.map(c => ({ id: c.id, exam: c.exam, section: c.section, title: c.title, desc: c.descr, minutes: c.minutes, draft: !!c.draft, subsCount: c.n }));
+    out.chapters = chapters.map(c => ({ id: c.id, exam: c.exam, section: c.section, title: c.title, desc: c.descr, minutes: c.minutes, draft: !!c.draft, programs: c.programs || PROGRAMS, subsCount: c.n }));
     out.passages = Object.fromEntries(passages.map(p => [p.id, { title: p.title }]));
     out.clips = Object.fromEntries(clips.map(c => [c.id, mapClip(c)]));
     out.packages = packages.map(mapPackage);
@@ -323,14 +324,14 @@ app.get('/api/admin/students', admin, wrap(async (req, res) => {
   const [attempts, sums, counts] = await Promise.all([
     q("SELECT a.id, a.user_id, a.exam, a.package_id, a.total, a.result, a.created_at, p.type = 'placement' placement FROM attempts a LEFT JOIN packages p ON p.id = a.package_id WHERE a.user_id IN (?) ORDER BY a.created_at DESC, a.id DESC", [ids]),
     q('SELECT p.user_id, c.exam, SUM(p.progress) s FROM chapter_progress p JOIN chapters c ON c.id = p.chapter_id AND c.draft = 0 WHERE p.user_id IN (?) GROUP BY p.user_id, c.exam', [ids]),
-    q('SELECT exam, COUNT(*) n FROM chapters WHERE draft = 0 GROUP BY exam'),
+    q('SELECT exam, programs FROM chapters WHERE draft = 0'),
   ]);
   // Skor utama: total Full Test, atau skor section pertama untuk tes per section
   const score = a => a.total != null ? +a.total : a.result.sections.find(x => x.score != null)?.score ?? null;
   res.json({ total, page: p, limit, rows: users.map(u => {
     const ex = exam || u.exam, all = attempts.filter(a => a.user_id === u.id && (!exam || a.exam === exam));
     const mine = all.filter(a => !a.placement), pl = all.find(a => a.placement);
-    const n = counts.find(c => c.exam === ex)?.n || 0, sum = +(sums.find(x => x.user_id === u.id && x.exam === ex)?.s || 0);
+    const n = counts.filter(c => c.exam === ex && inProgram(c, u.program)).length, sum = +(sums.find(x => x.user_id === u.id && x.exam === ex)?.s || 0);
     return {
       id: u.id, name: u.name, email: u.email, phone: u.phone, exam: u.exam, full: !!u.full_access, joined: u.created_at,
       program: u.program, status: u.status, unlocks: u.unlocks || {},
@@ -389,14 +390,23 @@ app.patch('/api/admin/students/:id', admin, wrap(async (req, res) => {
   res.json({ ok: true });
 }));
 
+// Program (20/30/40) yang membuka pertemuan ini
+app.put('/api/admin/chapters/:id/programs', admin, wrap(async (req, res) => {
+  const programs = PROGRAMS.filter(n => Array.isArray(req.body?.programs) && req.body.programs.map(Number).includes(n));
+  const r = await q('UPDATE chapters SET programs = ? WHERE id = ?', [J(programs), req.params.id]);
+  if (!r.affectedRows) fail(404, 'Pertemuan tidak ditemukan');
+  res.json({ id: req.params.id, programs });
+}));
+
 app.put('/api/admin/chapters/:id', admin, wrap(async (req, res) => {
   const b = req.body || {}, id = req.params.id; validId(id);
   const subs = (Array.isArray(b.subs) ? b.subs : []).map(s => ({ title: text(s.title, 160, 'Judul sub-bab'), html: String(s.html || '') }));
   if (!subs.length) fail(400, 'Minimal satu sub-bab');
   const row = [text(b.exam, 20, 'Ujian'), text(b.section, 30, 'Section'), text(b.title, 160, 'Judul bab'), String(b.desc || ''), Math.max(1, +b.minutes || 20), J(subs), b.draft ? 1 : 0];
   const [{ sort }] = await q('SELECT COALESCE(MAX(sort), 0) + 1 sort FROM chapters');
-  await q(`INSERT INTO chapters (id, exam, section, title, descr, minutes, subs, draft, sort) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ON DUPLICATE KEY UPDATE exam = VALUES(exam), section = VALUES(section), title = VALUES(title), descr = VALUES(descr), minutes = VALUES(minutes), subs = VALUES(subs), draft = VALUES(draft)`, [id, ...row, sort]);
+  // Pertemuan baru otomatis masuk semua program (20/30/40); pilihannya diubah dari daftar Curriculum
+  await q(`INSERT INTO chapters (id, exam, section, title, descr, minutes, subs, draft, sort, programs) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON DUPLICATE KEY UPDATE exam = VALUES(exam), section = VALUES(section), title = VALUES(title), descr = VALUES(descr), minutes = VALUES(minutes), subs = VALUES(subs), draft = VALUES(draft)`, [id, ...row, sort, J(PROGRAMS)]);
   const [c] = await q('SELECT * FROM chapters WHERE id = ?', [id]);
   res.json(mapChapter(c));
 }));
@@ -585,12 +595,12 @@ app.put('/api/admin/exams/:code', admin, wrap(async (req, res) => {
 // Data awal admin: sama dengan /api/bootstrap?lite=1 milik admin.html
 app.get('/api/admin/bootstrap', admin, wrap(async (req, res) => {
   const [exams, chapters, passages, clips, packages, counts, ebooks] = await Promise.all([
-    loadExams(), q('SELECT id, exam, section, title, descr, minutes, draft, JSON_LENGTH(subs) n FROM chapters ORDER BY sort, id'),
+    loadExams(), q('SELECT id, exam, section, title, descr, minutes, draft, programs, JSON_LENGTH(subs) n FROM chapters ORDER BY sort, id'),
     q('SELECT id, title FROM passages ORDER BY title'), q('SELECT * FROM clips ORDER BY title'),
     q('SELECT * FROM packages ORDER BY sort, id'), questionCounts(), q('SELECT * FROM ebooks ORDER BY sort, created_at'),
   ]);
   res.json({ exams, settings: await settings(), panels: PANELS,
-    chapters: chapters.map(c => ({ id: c.id, exam: c.exam, section: c.section, title: c.title, desc: c.descr, minutes: c.minutes, draft: !!c.draft, subsCount: c.n })),
+    chapters: chapters.map(c => ({ id: c.id, exam: c.exam, section: c.section, title: c.title, desc: c.descr, minutes: c.minutes, draft: !!c.draft, programs: c.programs || PROGRAMS, subsCount: c.n })),
     passages: Object.fromEntries(passages.map(p => [p.id, { title: p.title }])), clips: Object.fromEntries(clips.map(c => [c.id, mapClip(c)])),
     packages: packages.map(mapPackage), counts, ebooks: ebooks.map(e => mapEbook(e, true)) });
 }));

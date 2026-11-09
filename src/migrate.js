@@ -19,6 +19,7 @@ const COLUMNS = [
   ['attempts', 'published', 'TINYINT(1) NOT NULL DEFAULT 1'],
   ['attempts', 'level_final', 'VARCHAR(5)'],
   ['ebooks', 'cover_url', 'VARCHAR(255)'],
+  ['chapters', 'programs', 'JSON'],
 ];
 
 (async () => {

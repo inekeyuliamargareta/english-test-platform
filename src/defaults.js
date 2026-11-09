@@ -127,6 +127,14 @@ async function applyDefaults(db) {
   // Default lama (tanpa Mock Test 1 gratis) diganti; pengaturan yang sudah diubah admin tidak tersentuh
   await db.query("UPDATE app_settings SET v = ? WHERE k = 'free_panels' AND v = CAST(? AS JSON)", [J(FREE), J(['program', 'placement', 'consult'])]);
 
+  // Pilihan materi per program (20/30/40) ditambahkan belakangan: isi sesuai aturan lama
+  // (program 20 = 20 pertemuan pertama, dst.). Hanya untuk pertemuan yang belum punya pilihan.
+  const [chs] = await db.query('SELECT id, exam, draft, programs FROM chapters ORDER BY sort, id'), no = {};
+  for (const c of chs) {
+    const i = c.draft ? 0 : (no[c.exam] = (no[c.exam] || 0) + 1);
+    if (c.programs == null) await db.query('UPDATE chapters SET programs = ? WHERE id = ?', [J([20, 30, 40].filter(p => i <= p)), c.id]);
+  }
+
   const [[{ n }]] = await db.query("SELECT COUNT(*) n FROM packages WHERE type = 'placement'");
   const [exams] = await db.query('SELECT code FROM exams');
   const has = code => exams.some(e => e.code === code);
