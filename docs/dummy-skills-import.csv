@@ -1,5 +1,4 @@
-﻿sep=;
-program;section;tipe;pertanyaan;opsi_a;opsi_b;opsi_c;opsi_d;opsi_e;kunci;pembahasan;topik;kesulitan;bab;instruksi;passage;audio;untuk
+﻿program;section;tipe;pertanyaan;opsi_a;opsi_b;opsi_c;opsi_d;opsi_e;kunci;pembahasan;topik;kesulitan;bab;instruksi;passage;audio;untuk
 toefl;Structure;mc;The list of items _______ on the desk.;is;are;were;have been;;A;"Subjek utamanya ""The list"" (tunggal), bukan ""items"" → <b>is</b>.";Subject-Verb Agreement;mudah;t-str-sva;;;;skills
 toefl;Structure;error;Each of the {students} {have} {a} {laptop}.;;;;;;B;"""Each"" selalu tunggal → seharusnya <b>has</b>.";Subject-Verb Agreement;mudah;t-str-sva;;;;skills
 toefl;Structure;mc;Neither the manager nor the employees _______ happy with the decision.;was;were;is;has been;;B;"Pada neither… nor…, kata kerja mengikuti subjek terdekat: <b>the employees</b> (jamak) → were.";Subject-Verb Agreement;sedang;t-str-sva;;;;skills

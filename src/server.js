@@ -411,6 +411,29 @@ app.put('/api/admin/chapters/:id', admin, wrap(async (req, res) => {
   res.json(mapChapter(c));
 }));
 
+// Import materi Curriculum (dari CSV yang diolah di browser): tiap meeting + sub-bab-nya ditambahkan
+// di akhir daftar. Semua meeting diperiksa dulu; satu saja salah = tidak ada yang disimpan. dryRun = hanya periksa.
+app.post('/api/admin/chapters/import', admin, wrap(async (req, res) => {
+  const b = req.body || {}, E = (await loadExams())[b.exam], list = Array.isArray(b.meetings) ? b.meetings : [];
+  if (!E) fail(400, 'Program tidak valid');
+  if (!list.length) fail(400, 'Tidak ada meeting untuk diimport');
+  if (list.length > 300) fail(400, 'Maksimal 300 meeting sekali import');
+  const rows = [], errors = [];
+  list.forEach((m, i) => {
+    try {
+      if (!E.sections.some(s => s.id === m.section)) fail(400, `Section "${m.section ?? ''}" tidak ada di program ${E.name}`);
+      const subs = (Array.isArray(m.subs) ? m.subs : []).map(s => ({ title: text(s.title, 160, 'Judul sub-bab (sub_chapter)'), html: String(s.html || '') }));
+      if (!subs.length) fail(400, 'Minimal satu sub-bab');
+      const programs = PROGRAMS.filter(n => (Array.isArray(m.programs) ? m.programs : PROGRAMS).map(Number).includes(n));
+      rows.push([E.key, m.section, text(m.title, 160, 'Judul meeting'), String(m.desc || '').slice(0, 1000), Math.max(1, +m.minutes || 20), J(subs), m.draft ? 1 : 0, J(programs)]);
+    } catch (e) { if (!e.status) throw e; errors.push({ row: m?.row || i + 1, error: e.message }); }
+  });
+  if (errors.length || b.dryRun) return res.json({ ok: !errors.length, count: rows.length, errors });
+  const [{ sort }] = await q('SELECT COALESCE(MAX(sort), 0) sort FROM chapters'), stamp = Date.now().toString(36);
+  await q('INSERT INTO chapters (id, exam, section, title, descr, minutes, subs, draft, programs, sort) VALUES ?', [rows.map((r, i) => [`bab-${stamp}-${i + 1}`, ...r, sort + i + 1])]);
+  res.json({ ok: true, count: rows.length });
+}));
+
 // Periksa & rapikan satu soal. refs = { exams, chapters, passages, clips } untuk cek relasi.
 function questionRow(b, refs) {
   if (!['mc', 'error', 'fill'].includes(b.type)) fail(400, 'Tipe soal tidak valid (mc / error / fill)');
