@@ -2,6 +2,7 @@ const path = require('path'), fs = require('fs'), crypto = require('crypto');
 const express = require('express'), helmet = require('helmet'), cors = require('cors');
 const jwt = require('jsonwebtoken'), bcrypt = require('bcryptjs');
 const { pool } = require('./db');
+const { syncPlacement } = require('./defaults');
 const { scoreAttempt, isCorrect, isAnswered } = require('./scoring');
 const { accessOf, PANELS, FREE_PANELS, freeMockIds, isServiceToken } = require('./access');
 
@@ -436,6 +437,7 @@ app.put('/api/admin/questions/:id', admin, wrap(async (req, res) => {
   const [{ sort }] = await q('SELECT COALESCE(MAX(sort), 0) + 1 sort FROM questions');
   await q(`INSERT INTO questions (id, ${Q_COLS}, sort) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON DUPLICATE KEY UPDATE ${Q_COLS.split(', ').map(c => `${c} = VALUES(${c})`).join(', ')}`, [id, ...row, sort]);
+  await syncPlacement(pool);
   const [r] = await q('SELECT * FROM questions WHERE id = ?', [id]);
   res.json(mapQuestion(r, true));
 }));
@@ -451,6 +453,7 @@ app.post('/api/admin/questions/import', admin, wrap(async (req, res) => {
   if (errors.length || req.body.dryRun) return res.json({ ok: !errors.length, count: rows.length, errors });
   const [{ sort }] = await q('SELECT COALESCE(MAX(sort), 0) sort FROM questions'), stamp = Date.now().toString(36);
   await q(`INSERT INTO questions (id, ${Q_COLS}, sort) VALUES ?`, [rows.map((r, i) => [`q-${stamp}-${i + 1}`, ...r, sort + i + 1])]);
+  await syncPlacement(pool);
   const [added] = [await q('SELECT * FROM questions WHERE id LIKE ? ORDER BY sort', [`q-${stamp}-%`])];
   res.json({ ok: true, count: added.length, questions: added.map(r => mapQuestion(r, true)) });
 }));
@@ -459,6 +462,7 @@ for (const table of ['chapters', 'questions']) {
   app.delete(`/api/admin/${table}/:id`, admin, wrap(async (req, res) => {
     const r = await q(`DELETE FROM ${table} WHERE id = ?`, [req.params.id]);
     if (!r.affectedRows) fail(404, 'Data tidak ditemukan');
+    if (table === 'questions') await syncPlacement(pool);
     res.json({ ok: true });
   }));
 }

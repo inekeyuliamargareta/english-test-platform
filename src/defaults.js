@@ -130,7 +130,7 @@ async function applyDefaults(db) {
   const [[{ n }]] = await db.query("SELECT COUNT(*) n FROM packages WHERE type = 'placement'");
   const [exams] = await db.query('SELECT code FROM exams');
   const has = code => exams.some(e => e.code === code);
-  if (n) return;
+  if (n) return syncPlacement(db);
   for (const p of passages) await db.query('INSERT IGNORE INTO passages (id, title, html) VALUES (?, ?, ?)', [p.id, p.title, p.html]);
   const qs = questions.filter(q => has(q[1]));
   if (qs.length) await db.query(`INSERT IGNORE INTO questions (id, exam, section, chapter, topic, difficulty, type, q, options, answer, explanation, passage, pool, sort) VALUES ?`,
@@ -140,4 +140,16 @@ async function applyDefaults(db) {
     [ps.map((p, i) => [p.id, p.exam, p.name, 'placement', null, p.desc, J(p.sections), 100 + i])]);
 }
 
-module.exports = { applyDefaults };
+// Section paket placement mengikuti soal placement yang ada: section yang diberi soal (mis. Reading)
+// otomatis ikut tes, section yang soalnya habis dihapus. Waktu section lama dipertahankan
+// (minimal 1 menit per soal); section baru 1,5 menit per soal.
+async function syncPlacement(db) {
+  const [pkgs] = await db.query("SELECT id, exam, sections FROM packages WHERE type = 'placement'");
+  const [counts] = await db.query("SELECT q.exam, q.section, COUNT(*) n, MIN(s.sort) s FROM questions q LEFT JOIN exam_sections s ON s.exam_key = q.exam AND s.id = q.section WHERE q.pool = 'placement' GROUP BY q.exam, q.section ORDER BY s, q.section");
+  for (const p of pkgs) {
+    const old = new Map(p.sections), next = counts.filter(c => c.exam === p.exam).map(c => [c.section, old.has(c.section) ? Math.max(old.get(c.section), c.n) : Math.ceil(c.n * 1.5)]);
+    if (J(next) !== J(p.sections)) await db.query('UPDATE packages SET sections = ? WHERE id = ?', [J(next), p.id]);
+  }
+}
+
+module.exports = { applyDefaults, syncPlacement };
