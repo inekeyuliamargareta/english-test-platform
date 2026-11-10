@@ -525,9 +525,10 @@ app.delete('/api/admin/packages/:id', admin, wrap(async (req, res) => {
   if (!p) fail(404, 'Mock test tidak ditemukan');
   if (p.type === 'placement') fail(400, 'Placement test tidak bisa dihapus di sini');
   const [[{ a }], [{ n }]] = await Promise.all([q('SELECT COUNT(*) a FROM attempts WHERE package_id = ?', [id]), q('SELECT COUNT(*) n FROM questions WHERE pool = ?', [id])]);
-  if (a) fail(400, `Sudah dikerjakan ${a}× oleh siswa, jadi tidak bisa dihapus (riwayat nilainya tetap dibutuhkan)`);
   if (n) fail(400, `Masih ada ${n} soal di mock test ini. Hapus atau pindahkan soalnya dulu`);
-  await q('DELETE FROM packages WHERE id = ?', [id]);
+  // Sudah dikerjakan siswa: minta konfirmasi dulu (409 + jumlah), lalu ?withResults=1 menghapus paket beserta hasil siswanya
+  if (a && req.query.withResults !== '1') return res.status(409).json({ error: `Sudah dikerjakan ${a}× oleh siswa`, attempts: a });
+  await q('DELETE p, a FROM packages p LEFT JOIN attempts a ON a.package_id = p.id WHERE p.id = ?', [id]); // satu perintah: semua atau tidak sama sekali
   res.json({ ok: true });
 }));
 
