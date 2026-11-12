@@ -155,7 +155,8 @@ function detail() {
   document.title = c.title + ' — EnglishOn';
   return {
     c, sec: sectionMeta(c.exam, c.section), cur: 0, seen: [0], ans: {}, fill: {}, res: {}, practice: false,
-    items: DB.questions.filter(q => q.chapter === c.id),
+    // Hanya soal latihan Curriculum (pool bank); soal Skills dengan bab yang sama tetap di halaman Skills
+    items: DB.questions.filter(q => q.chapter === c.id && (q.pool || 'bank') === 'bank'),
     others: same.filter(x => x.id !== c.id),
     next: list[list.indexOf(c) + 1], no: meetingNo(c), total: list.length,
     get score() { return Object.values(this.res).filter(r => r.correct).length; },
