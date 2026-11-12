@@ -54,6 +54,7 @@
       <div class="mt-6 rounded-2xl bg-slate-50 p-5 text-left">
         <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Directions</p>
         <p class="mt-2 leading-relaxed text-slate-700" x-text="directions"></p>
+        <p x-show="stream" class="mt-3 flex gap-2 rounded-xl bg-accent-soft p-3 text-sm text-slate-700"><i data-lucide="headphones" class="mt-0.5 h-4 w-4 shrink-0 text-accent"></i><span>The audio <b>starts automatically</b> when you click Start and plays straight through, once. Answer while you listen. You can move to the next question at any time.</span></p>
       </div>
       <button @click="startSection()" class="mt-8 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-accent py-3.5 font-semibold text-white shadow-lg shadow-accent/25 transition hover:bg-accent-dark sm:w-auto sm:px-10">
         <i data-lucide="play" class="h-4 w-4"></i><span x-text="si===0 ? 'Start Test' : 'Start Section'"></span>
@@ -80,15 +81,15 @@
       <div class="mx-auto max-w-2xl space-y-5 p-4 sm:p-8">
         <div class="rounded-2xl bg-slate-900 p-5 text-white shadow-xl">
           <div class="flex items-center gap-4">
-            <button @click="playAudio(item.clip)" :disabled="clipSt.st !== 'idle'" class="grid h-14 w-14 shrink-0 place-items-center rounded-full transition"
-              :class="clipSt.st==='idle' ? 'bg-accent hover:scale-105 shadow-lg shadow-accent/40' : clipSt.st==='playing' ? 'bg-white/10' : 'bg-emerald-500'" :title="clipSt.st==='idle' ? 'Play audio' : ''">
-              <i x-show="clipSt.st==='idle'" data-lucide="play" class="ml-0.5 h-6 w-6 fill-white"></i>
+            <button @click="playAudio(item.clip)" :disabled="stream || clipSt.st !== 'idle'" class="grid h-14 w-14 shrink-0 place-items-center rounded-full transition"
+              :class="clipSt.st==='idle' ? (stream ? 'bg-white/10' : 'bg-accent hover:scale-105 shadow-lg shadow-accent/40') : clipSt.st==='playing' ? 'bg-white/10' : 'bg-emerald-500'" :title="clipSt.st==='idle' ? 'Play audio' : ''">
+              <i x-show="clipSt.st==='idle' && !stream" data-lucide="play" class="ml-0.5 h-6 w-6 fill-white"></i><i x-show="clipSt.st==='idle' && stream" data-lucide="hourglass" class="h-5 w-5 text-slate-400"></i>
               <span x-show="clipSt.st==='playing'" class="wave flex h-6 items-center gap-0.5"><span class="h-6 w-1 rounded bg-white"></span><span class="h-6 w-1 rounded bg-white [animation-delay:.2s]"></span><span class="h-6 w-1 rounded bg-white [animation-delay:.4s]"></span><span class="h-6 w-1 rounded bg-white [animation-delay:.1s]"></span></span>
               <i x-show="clipSt.st==='done'" data-lucide="check" class="h-6 w-6"></i>
             </button>
             <div class="min-w-0 flex-1">
               <p class="truncate font-semibold" x-text="DB.clips[item.clip].title"></p>
-              <p class="text-xs text-slate-400" x-text="clipSt.st==='idle' ? 'The audio can only be played once' : clipSt.st==='playing' ? 'Playing… listen carefully' : 'Audio finished'"></p>
+              <p class="text-xs text-slate-400" x-text="clipSt.st==='idle' ? (stream ? 'Coming up · plays automatically' : 'The audio can only be played once') : clipSt.st==='playing' ? (stream ? 'Playing… answer while you listen' : 'Playing… listen carefully') : 'Audio finished'"></p>
               <div class="mt-3 h-1.5 overflow-hidden rounded-full bg-white/15"><div class="h-full rounded-full bg-accent transition-all duration-200" :class="clipSt.st==='done' && '!bg-emerald-400'" :style="'width:' + clipSt.p*100 + '%'"></div></div>
               <div class="mt-1.5 flex justify-between font-mono text-[11px] text-slate-400"><span x-text="fmt(clipSt.t)"></span><span x-text="clipSt.dur ? fmt(clipSt.dur) : '--:--'"></span></div>
             </div>
@@ -97,12 +98,14 @@
           <div x-show="clipSt.st==='playing' && !DB.clips[item.clip].audio" class="mt-3 border-t border-white/10 pt-3 text-right"><button @click="skipAudio(item.clip)" class="text-xs text-slate-400 underline hover:text-white">Skip audio (demo mode)</button></div>
         </div>
 
-        <div x-show="exam==='toefl' && clipSt.st!=='done'" class="flex flex-col items-center rounded-2xl border-2 border-dashed border-slate-300 bg-white/60 px-6 py-12 text-center">
+        <div x-show="exam==='toefl' && !stream && clipSt.st!=='done'" class="flex flex-col items-center rounded-2xl border-2 border-dashed border-slate-300 bg-white/60 px-6 py-12 text-center">
           <i data-lucide="headphones" class="h-10 w-10 text-slate-300"></i>
           <p class="mt-3 font-semibold text-slate-700" x-text="clipSt.st==='idle' ? 'Play the audio to begin' : 'Listen until the end…'"></p>
           <p class="mt-1 text-sm text-slate-500">Questions appear after the audio finishes.</p>
         </div>
-        <div x-show="exam==='ielts' || clipSt.st==='done'" x-html="questionBlock()"></div>
+        <div x-show="exam==='ielts' || stream || clipSt.st==='done'" x-html="questionBlock()"></div>
+        <!-- Browser menahan audio (jarang, mis. di iPhone): siswa ketuk untuk melanjutkan -->
+        <button x-show="waiting" @click="resumeAudio()" class="fixed inset-x-4 bottom-24 z-30 mx-auto flex max-w-md items-center justify-center gap-2 rounded-2xl bg-slate-900 px-5 py-4 font-semibold text-white shadow-2xl"><i data-lucide="play" class="h-5 w-5 fill-white"></i>Tap to continue the audio</button>
       </div>
     </template>
 
@@ -271,6 +274,9 @@ function test() {
     get unanswered() { return this.sec.items.length - this.answeredCount; },
     get flagCount() { return this.sec.items.filter(it => this.flags.includes(it.id)).length; },
     get clipSt() { return this.clips[this.item.clip] || { st: 'idle', p: 0, t: 0, dur: 0 }; },
+    // Mock test: audio Listening berjalan otomatis berurutan dan soal bisa dijawab sambil mendengar. Placement tetap klik play per soal.
+    get stream() { return !placement && this.sec.items.some(it => it.clip); },
+    queue: [], waiting: null,
 
     init() {
       setInterval(() => this.tick(), 1000);
@@ -279,7 +285,13 @@ function test() {
     isTyping: e => ['INPUT', 'TEXTAREA'].includes(e.target.tagName),
 
     // --- navigasi ---
-    startSection() { this.phase = 'test'; this.cur = 0; this.left = this.sec.min * 60; this.timeUpNote = false; },
+    startSection() {
+      this.phase = 'test'; this.cur = 0; this.left = this.sec.min * 60; this.timeUpNote = false;
+      // Satu audio panjang dipakai banyak soal = diputar sekali; audio per soal = diputar berurutan
+      if (this.stream) { this.queue = [...new Set(this.sec.items.map(it => it.clip).filter(Boolean))]; this.playNext(); }
+    },
+    playNext() { const id = this.queue.shift(); if (id && this.phase === 'test') this.playAudio(id, () => this.playNext()); },
+    resumeAudio() { const id = this.waiting; this.waiting = null; delete this.clips[id]; this.playAudio(id, () => this.playNext()); },
     goto(i) { this.cur = i; this.$nextTick(() => document.querySelectorAll('[data-reset-scroll]').forEach(el => el.scrollTop = 0)); },
     next() { this.cur < this.sec.items.length - 1 ? this.goto(this.cur + 1) : (this.modal = true); },
     prev() { if (this.cur > 0) this.goto(this.cur - 1); },
@@ -303,7 +315,7 @@ function test() {
     // --- submit ---
     async submitSection() {
       this.modal = false; this.navOpen = false;
-      stopClip();
+      this.queue = []; this.waiting = null; stopClip();
       if (!this.last) { this.si++; this.cur = 0; this.phase = 'intro'; return; }
       this.finishing = true; this.phase = 'done';
       const body = { pkg: pkg.id, duration: Math.round((Date.now() - this.started) / 1000), answers: { ...this.answers }, flags: [...this.flags] };
@@ -321,14 +333,18 @@ function test() {
     },
 
     // --- audio (sekali putar) ---
-    playAudio(id) {
+    playAudio(id, then) {
       if (this.clips[id]) return;
-      this.clips[id] = { st: 'playing', p: 0, t: 0, dur: 0 };
+      this.clips[id] = { st: 'playing', p: 0, t: 0, dur: 0, then };
       const st = this.clips[id], t0 = Date.now();
-      st.dur = playClip(DB.clips[id], () => { st.st = 'done'; st.p = 1; st.t = st.dur; }, d => st.dur = d);
-      const iv = setInterval(() => { if (st.st === 'done') return clearInterval(iv); st.t = (Date.now() - t0) / 1000; st.p = Math.min(st.t / st.dur, .98); }, 200);
+      const end = () => { if (st.st !== 'playing') return; Object.assign(st, { st: 'done', p: 1, t: st.dur }); then && then(); };
+      st.dur = playClip(DB.clips[id], end, d => st.dur = d, then && (() => { st.st = 'blocked'; this.waiting = id; }));
+      const iv = setInterval(() => { if (st.st !== 'playing') return clearInterval(iv); st.t = (Date.now() - t0) / 1000; st.p = Math.min(st.t / st.dur, .98); }, 200);
     },
-    skipAudio(id) { stopClip(); Object.assign(this.clips[id], { st: 'done', p: 1, t: this.clips[id].dur }); },
+    skipAudio(id) {
+      const st = this.clips[id]; if (st?.st !== 'playing') return;
+      stopClip(); Object.assign(st, { st: 'done', p: 1, t: st.dur }); st.then && st.then(); // mode berjalan: lanjut ke audio berikutnya
+    },
 
     // --- render blok soal pilihan ganda / isian (HTML string, event via delegasi) ---
     questionBlock() {

@@ -165,14 +165,14 @@ function sectionItems(exam, sec, pool = 'bank') {
 
 // Putar audio Listening. Pakai file MP3 jika admin sudah mengunggah; jika belum, transkrip dibacakan
 // text-to-speech browser (mode demo). onend dipanggil sekali saat selesai; ondur saat durasi file diketahui.
-function playClip(clip, onend, ondur) {
+function playClip(clip, onend, ondur, onblock) {
   let done = false; const finish = () => { if (!done) { done = true; onend && onend(); } };
   const est = clip.lines.reduce((n, l) => n + words(l[1]), 0) / 2.4 + clip.lines.length * .6;
   if (clip.audio) {
     const a = new Audio(clip.audio);
     a.onloadedmetadata = () => ondur && ondur(a.duration);
     a.onended = a.onerror = finish;
-    a.play().catch(finish);
+    a.play().catch(e => onblock && e?.name === 'NotAllowedError' ? (done = true, onblock()) : finish());
     playClip.current = a;
     return est;
   }
