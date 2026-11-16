@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Sign In — EnglishOn</title>
+<title>Sign In — EnglishON!</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/app.css">
 <script src="https://cdn.jsdelivr.net/npm/lucide@0.460.0/dist/umd/lucide.min.js"></script>
@@ -16,12 +16,13 @@
   <div class="relative hidden overflow-hidden bg-gradient-to-br from-brand-600 via-brand-700 to-indigo-900 p-12 text-white lg:flex lg:flex-col">
     <div class="absolute -right-24 -top-24 h-96 w-96 rounded-full bg-white/10"></div>
     <div class="absolute -bottom-32 -left-16 h-80 w-80 rounded-full bg-ielts-500/20"></div>
-    <a href="index.html" class="relative self-start rounded-2xl bg-white px-3"><img src="logo.png" alt="EnglishOn" class="h-20 w-auto"></a>
+    <a href="index.html" class="relative self-start rounded-2xl bg-white px-3"><img src="logo.png" alt="EnglishON!" class="h-20 w-auto"></a>
     <div class="relative my-auto max-w-md">
-      <h2 class="text-4xl font-bold leading-tight">TOEFL & IELTS preparation with EnglishOn Ponorogo.</h2>
-      <p class="mt-4 text-brand-100">Lessons by chapter, practice questions with explanations, and mock tests just like the real exam.</p>
+      <!-- Teks diatur dari English Test → Configuration → Login page -->
+      <h2 class="text-4xl font-bold leading-tight" x-text="DB.login.headline"></h2>
+      <p x-show="DB.login.intro" class="mt-4 text-brand-100" x-text="DB.login.intro"></p>
       <ul class="mt-8 space-y-3 text-sm text-brand-50">
-        <li class="flex items-center gap-3"><span class="grid h-8 w-8 place-items-center rounded-lg bg-white/15"><i data-lucide="gauge" class="h-4 w-4"></i></span>Free placement test for new accounts</li>
+        <template x-for="p in DB.login.points"><li class="flex items-center gap-3"><span class="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-white/15"><i data-lucide="check" class="h-4 w-4"></i></span><span x-text="p"></span></li></template>
         <li class="flex items-center gap-3"><span class="grid h-8 w-8 place-items-center rounded-lg bg-white/15"><i data-lucide="map-pin" class="h-4 w-4"></i></span><span x-text="DB.contact.address"></span></li>
       </ul>
     </div>
@@ -56,7 +57,18 @@
             <input x-model="f.email" required type="email" autocomplete="email" placeholder="name@email.com" class="w-full rounded-xl border border-slate-200 py-2.5 pl-10 pr-3 text-sm outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-100"></div>
         </div>
         <div>
-          <div class="mb-1.5 flex justify-between"><label class="text-sm font-medium">Password</label><a :href="waLink('Hello EnglishOn, I forgot my platform account password.')" target="_blank" x-show="mode==='login'" class="text-sm font-medium text-brand-600 hover:underline">Forgot?</a></div>
+          <div class="mb-1.5 flex justify-between"><label class="text-sm font-medium">Password</label><button type="button" @click="forgot = !forgot; sent = false" x-show="mode==='login'" class="text-sm font-medium text-brand-600 hover:underline">Forgot?</button></div>
+          <!-- Lupa password: permintaan masuk ke admin (English Test → Students), password baru dikirim lewat WhatsApp -->
+          <div x-show="forgot && mode==='login'" x-cloak class="mb-3 rounded-xl border border-brand-100 bg-brand-50 p-3 text-sm">
+            <template x-if="!sent"><div>
+              <p class="text-slate-700">Type your email above, then send a request. EnglishON! staff will create a new password and send it to your WhatsApp.</p>
+              <button type="button" @click="requestReset()" :disabled="loading" class="mt-2 rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700 disabled:opacity-60">Request a new password</button>
+            </div></template>
+            <template x-if="sent"><div>
+              <p class="font-semibold text-emerald-700">Request sent.</p>
+              <p class="text-slate-700">We will send your new password via WhatsApp. Need it faster? <a :href="waLink('Hello EnglishON!, I forgot my password. My email: ' + f.email)" target="_blank" class="font-semibold text-brand-600 hover:underline">Chat with us</a>.</p>
+            </div></template>
+          </div>
           <div class="relative"><i data-lucide="lock" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"></i>
             <input x-model="f.password" required :minlength="mode==='register' ? 8 : null" :type="show ? 'text' : 'password'" :autocomplete="mode==='login' ? 'current-password' : 'new-password'" placeholder="At least 8 characters" class="w-full rounded-xl border border-slate-200 py-2.5 pl-10 pr-10 text-sm outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-100">
             <button type="button" @click="show=!show" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600" aria-label="Show password"><i data-lucide="eye" class="h-4 w-4"></i></button></div>
@@ -64,10 +76,11 @@
         <div x-show="mode==='register'" x-cloak>
           <label class="mb-1.5 block text-sm font-medium">Test you are preparing for</label>
           <div class="grid grid-cols-2 gap-2 text-sm">
-            <template x-for="e in Object.values(DB.exams)" :key="e.key">
-              <label class="flex items-center gap-2 rounded-xl border border-slate-200 p-3" :class="e.active ? 'cursor-pointer has-[:checked]:border-brand-600 has-[:checked]:bg-brand-50' : 'cursor-not-allowed opacity-50'">
-                <input type="radio" name="ex" :value="e.key" x-model="f.exam" :disabled="!e.active" class="accent-brand-600">
-                <span><span x-text="e.name"></span><span x-show="!e.active" class="block text-[11px] text-slate-500">Coming soon</span></span>
+            <!-- Hanya program aktif; program nonaktif tidak ditampilkan -->
+            <template x-for="e in activeExams()" :key="e.key">
+              <label class="flex cursor-pointer items-center gap-2 rounded-xl border border-slate-200 p-3 has-[:checked]:border-brand-600 has-[:checked]:bg-brand-50">
+                <input type="radio" name="ex" :value="e.key" x-model="f.exam" class="accent-brand-600">
+                <span x-text="e.name"></span>
               </label>
             </template>
           </div>
@@ -78,14 +91,22 @@
           <span x-text="loading ? 'Processing…' : (mode === 'login' ? 'Sign In' : 'Create Account')"></span>
         </button>
       </form>
-      <p class="mt-6 text-center text-sm text-slate-500">Need help? <a :href="waLink('Hello EnglishOn, I need help signing in to my account.')" target="_blank" class="font-semibold text-brand-600 hover:underline">Contact EnglishOn</a></p>
+      <p class="mt-6 text-center text-sm text-slate-500">Need help? <a :href="waLink('Hello EnglishON!, I need help signing in to my account.')" target="_blank" class="font-semibold text-brand-600 hover:underline">Contact EnglishON!</a></p>
     </div>
   </div>
 </div>
 <script>
 function login() {
   return {
-    mode: qs('mode') === 'register' ? 'register' : 'login', show: false, loading: false, error: '',
+    mode: qs('mode') === 'register' ? 'register' : 'login', show: false, loading: false, error: '', forgot: false, sent: false,
+    async requestReset() {
+      this.error = '';
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.f.email.trim())) return this.error = 'Type your email first.';
+      this.loading = true;
+      try { await api('POST', '/auth/forgot', { email: this.f.email }); this.sent = true; }
+      catch (e) { this.error = e.message; }
+      this.loading = false;
+    },
     f: { name: '', phone: '', email: '', password: '', exam: activeExams()[0].key },
     init() { if (DB.user) location.replace('program.html'); this.$watch('mode', () => this.error = ''); },
     async submit() {

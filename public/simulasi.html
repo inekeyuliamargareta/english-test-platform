@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Mock Test — EnglishOn</title>
+<title>Mock Test — EnglishON!</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/app.css">
 <script src="https://cdn.jsdelivr.net/npm/lucide@0.460.0/dist/umd/lucide.min.js"></script>
@@ -35,7 +35,7 @@
             <span x-html="ico(t.icon)"></span><span x-text="t.title"></span></button>
         </template>
       </div>
-      <p x-show="!access.full && pkgs.length" class="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800"><i data-lucide="gift" class="mt-0.5 h-4 w-4 shrink-0"></i><span><b>Mock Test 1</b> in each tab is free. Join an EnglishOn program to unlock the other mock tests.</span></p>
+      <p x-show="!access.full && pkgs.length" class="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800"><i data-lucide="gift" class="mt-0.5 h-4 w-4 shrink-0"></i><span><b>Mock Test 1</b> in each tab is free. Join an EnglishON! program to unlock the other mock tests.</span></p>
       <template x-for="g in groups.filter(x => x.key === tab)" :key="g.key">
         <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-soft">
           <div class="flex items-center gap-2 border-b border-slate-100 bg-slate-50 px-5 py-3">
@@ -57,7 +57,7 @@
                       <a :href="'hasil.html?id=' + last(p).id" @click.stop class="font-semibold text-accent hover:underline">Result</a> · <a :href="'review.html?id=' + last(p).id" @click.stop class="font-semibold text-accent hover:underline">Review</a></div>
                   </template>
                   <span x-show="!last(p) && isLocked(p)" class="flex items-center gap-1 font-semibold text-slate-400"><i data-lucide="lock" class="h-3.5 w-3.5"></i>Locked</span>
-                  <span x-show="!last(p) && !isLocked(p)" class="flex items-center gap-1 font-semibold text-accent">Start<i data-lucide="chevron-right" class="h-4 w-4"></i></span>
+                  <a x-show="!last(p) && !isLocked(p)" :href="'test.html?pkg=' + p.id" @click.stop class="flex items-center gap-1 rounded-lg bg-accent px-3 py-1.5 font-semibold text-white hover:bg-accent-dark">Start<i data-lucide="chevron-right" class="h-4 w-4"></i></a>
                 </div>
               </li>
             </template>
@@ -72,12 +72,17 @@
         <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Selected package</p>
         <h3 class="mt-1 text-lg font-bold" x-text="sel.name"></h3>
         <p x-show="sel.desc" class="mt-1 text-sm text-slate-500" x-text="sel.desc"></p>
-        <div class="mt-4 divide-y divide-slate-100 rounded-xl border border-slate-100">
+        <!-- Isi tes: satu kartu per section -->
+        <p class="mt-4 text-xs font-semibold uppercase tracking-wider text-slate-400" x-text="sel.sections.length > 1 ? 'This test has ' + sel.sections.length + ' sections' : 'This test covers'"></p>
+        <div class="mt-2 space-y-2">
           <template x-for="(s, i) in sel.sections" :key="s[0]">
-            <div class="flex items-center gap-3 px-4 py-3 text-sm">
-              <span class="grid h-6 w-6 place-items-center rounded-full bg-slate-100 text-xs font-semibold" x-text="i+1"></span>
-              <span class="flex-1 font-medium" x-text="sectionMeta(exam, s[0]).short"></span>
-              <span class="whitespace-nowrap text-xs text-slate-500" x-text="sectionItems(exam, s[0], pkgPool(sel)).length + ' questions · ' + s[1] + ' min'"></span>
+            <div class="rounded-xl border border-slate-200 p-3">
+              <div class="flex items-center gap-3">
+                <span class="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-accent-soft text-accent" x-html="ico(sectionMeta(exam, s[0])?.icon || 'file-question')"></span>
+                <div class="min-w-0 flex-1"><p class="truncate text-sm font-semibold" x-text="(i + 1) + '. ' + sectionMeta(exam, s[0]).name"></p>
+                  <p class="flex flex-wrap gap-x-3 text-xs text-slate-500"><span class="flex items-center gap-1"><i data-lucide="clock" class="h-3 w-3"></i><span x-text="s[1] + ' minutes'"></span></span><span class="flex items-center gap-1"><i data-lucide="file-question" class="h-3 w-3"></i><span x-text="sectionItems(exam, s[0], pkgPool(sel)).length + (sectionMeta(exam, s[0])?.tutor ? ' tasks' : ' questions')"></span></span></p></div>
+              </div>
+              <p x-show="SECTION_INFO[exam + '-' + s[0]]" class="mt-2 text-xs text-slate-600" x-text="SECTION_INFO[exam + '-' + s[0]]"></p>
             </div>
           </template>
         </div>
@@ -90,16 +95,10 @@
 
         <a x-show="isLocked(sel)" :href="joinLink('I would like to unlock the ' + sel.name + ' mock test.')" target="_blank" class="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3.5 text-sm font-semibold text-white hover:bg-emerald-700"><i data-lucide="lock-open" class="h-4 w-4"></i>Request Access</a>
         <div x-show="!isLocked(sel)">
-        <label class="mt-6 flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 p-3 text-sm transition has-[:checked]:border-accent has-[:checked]:bg-accent-soft">
-          <input type="checkbox" x-model="ready" class="mt-0.5 h-4 w-4 accent-[rgb(var(--accent))]">
-          <span>I have my <b>headphones</b>, a stable connection, and a quiet place ready.</span>
-        </label>
-        <a :href="ready ? 'test.html?pkg=' + sel.id : null" @click="if (!ready) shake = true; setTimeout(() => shake = false, 400)"
-          class="mt-4 flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-semibold transition"
-          :class="[ready ? 'bg-accent text-white shadow-lg shadow-accent/25 hover:bg-accent-dark cursor-pointer' : 'bg-slate-100 text-slate-400 cursor-not-allowed', shake ? 'animate-pulse' : '']">
+        <a :href="'test.html?pkg=' + sel.id" class="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-accent py-3.5 text-sm font-semibold text-white shadow-lg shadow-accent/25 transition hover:bg-accent-dark">
           <i data-lucide="play" class="h-4 w-4"></i> Start Test
         </a>
-        <p x-show="!ready" class="mt-2 text-center text-xs text-slate-400">Tick the confirmation above to start.</p>
+        <p class="mt-2 text-center text-xs text-slate-400">Use headphones and a quiet place for the Listening section.</p>
         </div>
       </div>
     </aside>
@@ -115,14 +114,14 @@ function lobby() {
     .map(g => ({ ...g, items: pkgs.filter(p => mockTab(p) === g.key) })).filter(g => g.items.length);
   const sel = pkgs.find(p => p.id === qs('pkg')) || pkgs[0] || { sections: [] };
   return {
-    exam, E, pkgs, groups, sel, tab: pkgs.length ? mockTab(sel) : '', ready: false, shake: false, locked: access.locked,
+    exam, E, pkgs, groups, sel, tab: pkgs.length ? mockTab(sel) : '', locked: access.locked,
     isLocked: p => !!p.id && mockLocked(p),
     last: p => hist.find(h => h.pkg === p.id),
     scoreText: h => { const v = attemptScore(h); return v == null ? 'by tutor' : exam === 'ielts' ? v.toFixed(1) : v; },
     minutes: p => p.sections.reduce((a, s) => a + s[1], 0),
     count: p => p.sections.reduce((a, [id]) => a + sectionItems(p.exam, id, pkgPool(p)).length, 0),
     // Paket terpilih diingat di alamat (?pkg=) agar tetap sama saat halaman dibuka ulang
-    choose(p, quiet) { this.sel = p; this.ready = false; history.replaceState(null, '', '?pkg=' + p.id); if (!quiet && innerWidth < 1024) document.getElementById('detail').scrollIntoView({ behavior: 'smooth' }); },
+    choose(p, quiet) { this.sel = p; history.replaceState(null, '', '?pkg=' + p.id); if (!quiet && innerWidth < 1024) document.getElementById('detail').scrollIntoView({ behavior: 'smooth' }); },
   };
 }
 </script>

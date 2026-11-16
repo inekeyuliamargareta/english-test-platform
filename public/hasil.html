@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Results — EnglishOn</title>
+<title>Results — EnglishON!</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/app.css">
 <script src="https://cdn.jsdelivr.net/npm/lucide@0.460.0/dist/umd/lucide.min.js"></script>
@@ -67,7 +67,7 @@
         <a :href="'review.html?id=' + att.id" class="flex items-center gap-3 rounded-xl bg-accent px-4 py-3 text-sm font-semibold text-white transition hover:bg-accent-dark"><i data-lucide="list-checks" class="h-5 w-5"></i>Review & Explanations<i data-lucide="arrow-right" class="ml-auto h-4 w-4"></i></a>
         <a :href="'review.html?filter=wrong&id=' + att.id" class="flex items-center gap-3 rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold transition hover:bg-slate-50"><i data-lucide="circle-x" class="h-5 w-5 text-rose-500"></i>See wrong answers <span class="ml-auto rounded-md bg-rose-50 px-2 text-xs text-rose-600" x-text="wrongCount"></span></a>
         <a x-show="!mockLocked(res.pkg)" :href="'test.html?pkg=' + res.pkg.id" class="flex items-center gap-3 rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold transition hover:bg-slate-50"><i data-lucide="rotate-ccw" class="h-5 w-5 text-slate-500"></i>Retake this test</a>
-        <a x-show="!access.full" :href="joinLink('I would like to unlock more mock tests.')" target="_blank" class="flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800 transition hover:bg-amber-100"><i data-lucide="lock" class="h-5 w-5"></i><span>Mock Test 2 and beyond are locked<span class="block text-xs font-normal">Contact EnglishOn to unlock</span></span></a>
+        <a x-show="!access.full" :href="joinLink('I would like to unlock more mock tests.')" target="_blank" class="flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800 transition hover:bg-amber-100"><i data-lucide="lock" class="h-5 w-5"></i><span>Mock Test 2 and beyond are locked<span class="block text-xs font-normal">Contact EnglishON! to unlock</span></span></a>
         <a href="dashboard.html" class="mt-auto text-center text-sm font-medium text-slate-500 hover:text-slate-900">Back to Dashboard</a>
       </div>
     </div>
@@ -87,6 +87,25 @@
             </div></template>
             <template x-if="s.pending"><p class="mt-4 flex items-center gap-2 text-lg font-bold text-amber-600"><i data-lucide="hourglass" class="h-5 w-5"></i>Graded by tutor</p></template>
             <p class="mt-2 text-xs text-slate-500" x-text="sectionDetail(s)"></p>
+          </div>
+        </template>
+      </div>
+    </div>
+
+    <!-- Rekomendasi: topik dengan jawaban salah terbanyak (dari topik soal yang diisi admin) -->
+    <div x-show="weak.length" x-cloak class="rounded-2xl border border-slate-200 bg-white p-6 shadow-soft">
+      <h3 class="flex items-center gap-2 font-semibold"><i data-lucide="target" class="h-5 w-5 text-accent"></i>Recommended topics to focus on</h3>
+      <p class="mt-1 text-sm text-slate-500">Based on the questions you got wrong in this test. Start with the top one.</p>
+      <div class="mt-4 space-y-2">
+        <template x-for="(w, i) in weak" :key="w.key">
+          <div class="flex items-center gap-4 rounded-xl border border-slate-100 p-3" :class="i === 0 && 'border-rose-200 bg-rose-50/60'">
+            <span class="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-rose-100 text-sm font-bold text-rose-700" x-text="i + 1"></span>
+            <div class="min-w-0 flex-1">
+              <p class="truncate font-semibold" x-text="w.topic"></p>
+              <p class="text-xs text-slate-500"><span x-text="w.section"></span> · <span x-text="w.wrong + ' of ' + w.total + ' wrong'"></span></p>
+              <div class="mt-1.5 h-1.5 overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full bg-rose-400" :style="'width:' + Math.round(w.wrong / w.total * 100) + '%'"></div></div>
+            </div>
+            <a x-show="access.can('skills')" :href="'skills.html?skill=' + w.sec" class="shrink-0 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-accent hover:bg-slate-50">Practise</a>
           </div>
         </template>
       </div>
@@ -137,6 +156,18 @@ function hasil() {
     pct: main == null ? 0 : ielts ? main / 9 : res.total !== null ? (main - 310) / 367 : (main - 31) / ((TOEFL_MAX[res.sections[0].id] || 67) - 31),
     targetText: main == null ? 'Waiting for tutor grading' : res.total === null ? 'Section test' : !target ? '' : main >= target ? 'Target ' + target + ' reached 🎉' : fmtScore(+(target - main).toFixed(1)) + ' below your target of ' + target,
     secPct: s => ielts ? s.score / 9 * 100 : (s.score - 31) / ((TOEFL_MAX[s.id] || 67) - 31) * 100,
+    // Topik lemah: kelompokkan soal per section + topik, urutkan dari salah terbanyak (maks. 5)
+    weak: [],
+    async init() {
+      try {
+        const { items } = await api('GET', '/attempts/' + att.id), by = {};
+        for (const it of items.filter(x => x.kind === 'q' && (x.topic || '').trim())) {
+          const k = it.section + '|' + it.topic.trim(), g = by[k] ||= { key: k, sec: it.section, section: sectionMeta(exam, it.section)?.short || it.section, topic: it.topic.trim(), wrong: 0, total: 0 };
+          g.total++; if (!it.ok) g.wrong++;
+        }
+        this.weak = Object.values(by).filter(g => g.wrong).sort((a, b) => b.wrong - a.wrong || b.wrong / b.total - a.wrong / a.total).slice(0, 5);
+      } catch { /* hasil belum dipublish / tidak ada akses: rekomendasi tidak ditampilkan */ }
+    },
   };
 }
 </script>

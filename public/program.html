@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>About the Program — EnglishOn</title>
+<title>About the Program — EnglishON!</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/app.css">
 <script src="https://cdn.jsdelivr.net/npm/lucide@0.460.0/dist/umd/lucide.min.js"></script>
@@ -81,17 +81,14 @@
             <div class="mt-3 flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-sm"><span x-text="sectionMeta(E.key, s.id)?.short || s.id"></span><b x-text="s.correct + ' / ' + s.total"></b></div>
           </template>
           <p x-show="track" class="mt-3 rounded-xl bg-accent-soft p-3 text-sm text-slate-800"><b x-text="track?.name"></b><span x-show="track?.target" x-text="' · target ' + track?.target"></span></p>
-          <div class="mt-3 grid grid-cols-2 gap-2">
-            <a :href="'placement.html?id=' + pl.id" class="rounded-xl border border-slate-200 py-2 text-center text-xs font-semibold hover:bg-slate-50">Details</a>
-            <a :href="'test.html?pkg=' + plPkg?.id" class="rounded-xl border border-slate-200 py-2 text-center text-xs font-semibold hover:bg-slate-50">Retake</a>
-          </div>
+          <a :href="'placement.html?id=' + pl.id" class="mt-3 block rounded-xl border border-slate-200 py-2 text-center text-xs font-semibold hover:bg-slate-50">Details</a>
         </div>
       </template>
 
       <div class="rounded-2xl border border-emerald-200 bg-emerald-50 p-6">
         <h3 class="font-semibold text-emerald-900">Want to learn with a tutor?</h3>
         <p class="mt-1 text-sm text-emerald-800" x-text="'Join the ' + E.name + ' class at ' + DB.contact.name + '.'"></p>
-        <a :href="joinLink(pl ? 'My ' + E.name + ' placement result: level ' + level.code + ' (' + pl.total + '% correct). I would like to join the ' + E.name + ' program.' : 'I would like to join the ' + E.name + ' program.')" target="_blank" class="mt-4 flex items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3 text-sm font-semibold text-white hover:bg-emerald-700"><i data-lucide="message-circle" class="h-4 w-4"></i>Join EnglishOn</a>
+        <a :href="joinLink(pl ? 'My ' + E.name + ' placement result: level ' + level.code + ' (' + pl.total + '% correct). I would like to join the ' + E.name + ' program.' : 'I would like to join the ' + E.name + ' program.')" target="_blank" class="mt-4 flex items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3 text-sm font-semibold text-white hover:bg-emerald-700"><i data-lucide="message-circle" class="h-4 w-4"></i>Join EnglishON!</a>
         <a x-show="DB.contact.instagram" :href="DB.contact.instagram" target="_blank" rel="noopener" class="mt-2 flex items-center justify-center gap-2 rounded-xl border border-emerald-300 bg-white py-3 text-sm font-semibold text-emerald-800 hover:bg-emerald-100"><i data-lucide="instagram" class="h-4 w-4"></i>Follow us on Instagram</a>
         <p class="mt-3 text-xs text-emerald-800/80"><b class="block" x-text="DB.contact.name"></b><span class="block" x-text="DB.contact.address"></span><span x-text="DB.contact.hours"></span></p>
       </div>

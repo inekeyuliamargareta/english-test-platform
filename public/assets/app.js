@@ -59,7 +59,7 @@ const lockedHTML = (title = 'This feature is locked') => `
   <div class="mx-auto max-w-xl rounded-3xl border border-slate-200 bg-white p-6 text-center shadow-soft sm:p-10">
     <span class="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-amber-100 text-amber-600"><i data-lucide="lock" class="h-8 w-8"></i></span>
     <h2 class="mt-5 text-xl font-bold sm:text-2xl">${title}</h2>
-    <p class="mt-2 text-slate-500">${access.inactive ? 'Your program has ended, so this feature is no longer available.' : 'This feature is available for students enrolled in an EnglishOn program.'} Visit our office or contact ${DB.contact.name} to join a program.</p>
+    <p class="mt-2 text-slate-500">${access.inactive ? 'Your program has ended, so this feature is no longer available.' : 'This feature is available for students enrolled in an EnglishON! program.'} Visit our office or contact ${DB.contact.name} to join a program.</p>
     <div class="mt-6">
       <a href="${joinLink('I would like to join a program and unlock the learning features.')}" target="_blank" class="flex items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3 text-sm font-semibold text-white hover:bg-emerald-700"><i data-lucide="message-circle" class="h-4 w-4"></i>Contact us on WhatsApp</a>
     </div>
@@ -89,6 +89,7 @@ document.head.insertAdjacentHTML('beforeend', `<style>
   .content th { background: #f1f5f9; text-align: left; font-weight: 600; color: #0f172a; }
   .content th, .content td { padding: .6rem .8rem; border: 1px solid #e2e8f0; }
   .content .c-ex, .content .c-tip, .content .c-warn { border-radius: .75rem; padding: .9rem 1rem; margin: 1rem 0; font-size: .925rem; }
+  .side-notes .c-tip, .side-notes .c-warn { margin: 0 0 .75rem; }
   .content .c-ex { background: #f8fafc; border: 1px solid #e2e8f0; }
   .content .c-tip { background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46; }
   .content .c-warn { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; }
@@ -101,6 +102,21 @@ const qs = k => new URLSearchParams(location.search).get(k);
 const fmtSize = n => !n ? '—' : n < 1048576 ? Math.max(1, Math.round(n / 1024)) + ' KB' : (n / 1048576).toFixed(1) + ' MB';
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`);
 // HTML dari editor admin (englishone-backend): buang script/iframe, atribut on*, dan link javascript:
+// Ringkasan isi tiap section untuk halaman Mock Test (format tes resmi)
+const SECTION_INFO = {
+  'toefl-listening': 'Short conversations, longer conversations, and talks.',
+  'toefl-structure': 'Sentence completion and error identification.',
+  'toefl-reading': 'Reading passages and comprehension questions.',
+  'ielts-listening': 'Four recordings: conversations and monologues.',
+  'ielts-reading': 'Long academic passages with a range of question types.',
+  'ielts-writing': 'Task 1 (describe a chart or diagram) and Task 2 (essay). Graded by a tutor.',
+};
+// Kotak Tips (c-tip) & Warning (c-warn) dipisah dari teks materi agar di desktop tampil di kolom kanan
+function splitBoxes(html) {
+  const doc = new DOMParser().parseFromString(String(html || ''), 'text/html'), boxes = [...doc.querySelectorAll('.c-tip, .c-warn')];
+  boxes.forEach(b => b.remove());
+  return { main: doc.body.innerHTML, side: boxes.map(b => b.outerHTML).join('') };
+}
 function cleanHTML(html) {
   const doc = new DOMParser().parseFromString(String(html || ''), 'text/html');
   doc.querySelectorAll('script,style,iframe,object,embed,form,link,meta').forEach(n => n.remove());
@@ -242,9 +258,9 @@ function diagnostic(exam) {
   return null;
 }
 // Section yang dilakukan di kantor (mis. IELTS Speaking): instruksi dari admin + kontak
-const officeNote = s => s.note || 'This part is done face-to-face with an EnglishOn tutor. Contact us on WhatsApp to book your schedule, then come to our office.';
+const officeNote = s => s.note || 'This part is done face-to-face with an EnglishON! tutor. Contact us on WhatsApp to book your schedule, then come to our office.';
 const officeLink = (E, s) => joinLink(`I would like to book the ${E.name} ${s.name} session at the office.`);
-const joinLink = extra => waLink(`Hello EnglishOn, I am ${DB.user?.name || ''}${DB.user?.email ? ' (' + DB.user.email + ')' : ''}. ${extra}`);
+const joinLink = extra => waLink(`Hello EnglishON!, I am ${DB.user?.name || ''}${DB.user?.email ? ' (' + DB.user.email + ')' : ''}. ${extra}`);
 const attemptScore = a => a.total ?? a.sections.find(s => s.score != null)?.score ?? null;
 function scoreAttempt(att) {
   const pkg = DB.packages.find(p => p.id === att.pkg);
@@ -256,7 +272,7 @@ const NAV = {
   app: [['program', 'About the Program', 'info', 'program.html'], ['dashboard', 'Dashboard', 'layout-dashboard', 'dashboard.html'], ['materi', 'Curriculum', 'book-open', 'materi.html'], ['skills', 'Skills', 'target', 'skills.html'], ['simulasi', 'Mock Test', 'timer', 'simulasi.html'], ['hasil', 'Results & Review', 'bar-chart-3', 'hasil.html'], ['ebook', 'Ebooks', 'book-marked', 'ebook.html'], ['consult', 'Consultation', 'message-circle', 'consultation.html']],
 };
 const logo = () => `<a href="program.html" class="flex items-center">
-  <img src="logo.png" alt="EnglishOn" class="-ml-8 h-32 w-auto"></a>`;
+  <img src="logo.png" alt="EnglishON!" class="-ml-8 w-auto mt-8"></a>`;
 
 // ---------- Target skor siswa ----------
 // Dibuka dari kartu target di sidebar atau dashboard (event "open-target")
@@ -295,7 +311,7 @@ function mountShell() {
   const exam = getExam();
   // Panel terkunci: abu-abu + gembok, tidak bisa diklik
   const link = ([k, label, icon, href]) => !access.can(k)
-    ? `<span data-nav="${k}" title="Locked. Contact EnglishOn to unlock" aria-disabled="true" class="flex cursor-not-allowed select-none items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-300">
+    ? `<span data-nav="${k}" title="Locked. Contact EnglishON! to unlock" aria-disabled="true" class="flex cursor-not-allowed select-none items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-300">
       <i data-lucide="${icon}" class="h-[18px] w-[18px]"></i>${label}<i data-lucide="lock" class="ml-auto h-3.5 w-3.5"></i></span>`
     : `<a href="${href}" data-nav="${k}" @click="nav=false" class="nav-link group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${k === active ? 'bg-brand-50 text-brand-700' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'}">
       <i data-lucide="${icon}" class="h-[18px] w-[18px]"></i>${label}</a>`;

@@ -11,6 +11,11 @@ if (!SECRET) throw new Error('JWT_SECRET belum diisi di .env');
 const PUBLIC = path.join(__dirname, '..', 'public');
 const AUDIO_DIR = path.join(PUBLIC, 'uploads', 'audio');
 const EBOOK_DIR = path.join(__dirname, '..', 'storage', 'ebooks');
+const LOGIN_TEXT = {
+  headline: 'TOEFL & IELTS preparation with EnglishON! Ponorogo.',
+  intro: 'Lessons by chapter, practice questions with explanations, and mock tests just like the real exam.',
+  points: ['Free placement test for new accounts'],
+};
 const CONTACT = {
   name: process.env.CONTACT_NAME, address: process.env.CONTACT_ADDRESS, wa: process.env.CONTACT_WA,
   waLabel: process.env.CONTACT_WA_LABEL, hours: process.env.CONTACT_HOURS, instagram: process.env.CONTACT_INSTAGRAM || '',
@@ -104,10 +109,10 @@ async function settings() {
   const rows = await q('SELECT k, v FROM app_settings');
   const st = Object.fromEntries(rows.map(r => [r.k, r.v]));
   // Kontak kantor: diatur dari englishone-backend (Configuration); .env hanya nilai awal
-  return { free_panels: FREE_PANELS, placement_review: false, ...st, contact: { ...CONTACT, ...st.contact } };
+  return { free_panels: FREE_PANELS, placement_review: false, ...st, contact: { ...CONTACT, ...st.contact }, login: { ...LOGIN_TEXT, ...st.login } };
 }
 const userAccess = async u => accessOf(u, (await settings()).free_panels);
-const LOCKED_MSG = 'This feature is not part of your account yet. Contact EnglishOn to unlock it.';
+const LOCKED_MSG = 'This feature is not part of your account yet. Contact EnglishON! to unlock it.';
 // Tolak jika tidak satu pun panel yang disebut terbuka untuk siswa ini
 const panel = (...keys) => wrap(async (req, res, next) => {
   if (!req.user) return res.status(401).json({ error: 'Please sign in first' });
@@ -141,10 +146,18 @@ app.post('/api/auth/login', wrap(async (req, res) => {
   res.json({ token: sign(u.id) });
 }));
 
+// Selalu dijawab sama (email terdaftar atau tidak) agar daftar email tidak bisa ditebak
+app.post('/api/auth/forgot', wrap(async (req, res) => {
+  const email = String(req.body?.email || '').trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) fail(400, 'Please enter a valid email address');
+  await q("UPDATE users SET reset_requested_at = NOW() WHERE email = ? AND role = 'student'", [email]);
+  res.json({ ok: true });
+}));
+
 // ---------- Data awal halaman ----------
 // Tanpa login: kontak & daftar ujian. Siswa: konten tanpa kunci jawaban. Admin: semua termasuk draft & kunci.
 app.get('/api/bootstrap', wrap(async (req, res) => {
-  const out = { contact: (await settings()).contact, exams: await loadExams() }, u = req.user;
+  const st = await settings(), out = { contact: st.contact, login: st.login, exams: await loadExams() }, u = req.user;
   if (!u) return res.json(out);
   const admin = u.role === 'admin';
   if (admin && req.query.lite) {
@@ -264,6 +277,8 @@ app.post('/api/attempts', need(), wrap(async (req, res) => {
   // Satu siswa = satu program
   if (u.role !== 'admin' && u.exam && pkg.exam !== u.exam) fail(403, 'This test is not part of your program.');
   if (!E || (!E.active && !placement)) fail(400, 'This program is not available yet');
+  if (placement && u.role !== 'admin' && (await q("SELECT 1 FROM attempts a JOIN packages p ON p.id = a.package_id WHERE a.user_id = ? AND a.exam = ? AND p.type = 'placement' LIMIT 1", [u.id, pkg.exam])).length)
+    fail(409, 'You have already taken the placement test. It can only be taken once.');
   // Simpan hanya jawaban untuk soal di paket ini, dengan tipe yang benar
   const all = pkg.sections.flatMap(([id]) => items(id)), answers = {}, src = b.answers || {};
   for (const it of all) {
@@ -288,7 +303,7 @@ app.get('/api/attempts/:id', need(), wrap(async (req, res) => {
   if (!a || (a.user_id !== req.user.id && req.user.role !== 'admin')) fail(404, 'Test result not found');
   const { pkg, meta, items } = await packageContext(a.package_id);
   if (req.user.role !== 'admin') {
-    if (!a.published) fail(403, 'Your result is being reviewed by EnglishOn. It will appear here soon.');
+    if (!a.published) fail(403, 'Your result is being reviewed by EnglishON!. It will appear here soon.');
     const acc = await userAccess(req.user);
     if (!acc.panels.includes(pkg.type === 'placement' ? 'placement' : 'hasil')) fail(403, LOCKED_MSG);
   }
@@ -314,10 +329,11 @@ app.get('/api/admin/students', admin, wrap(async (req, res) => {
   const { limit, page: p, offset } = page(req), exam = String(req.query.exam || ''), where = ["u.role = 'student'"], args = [];
   if (exam) { where.push('(u.exam = ? OR EXISTS (SELECT 1 FROM attempts a WHERE a.user_id = u.id AND a.exam = ?))'); args.push(exam, exam); }
   if (req.query.q) { where.push('(u.name LIKE ? OR u.email LIKE ? OR u.phone LIKE ?)'); args.push(like(req.query.q), like(req.query.q), like(req.query.q)); }
+  if (req.query.reset) where.push('u.reset_requested_at IS NOT NULL');
   const w = 'WHERE ' + where.join(' AND ');
   const [[{ total }], users] = await Promise.all([
     q(`SELECT COUNT(*) total FROM users u ${w}`, args),
-    q(`SELECT u.id, u.name, u.email, u.phone, u.exam, u.full_access, u.program, u.status, u.unlocks, u.created_at FROM users u ${w} ORDER BY u.created_at DESC, u.id DESC LIMIT ? OFFSET ?`, [...args, limit, offset]),
+    q(`SELECT u.id, u.name, u.email, u.phone, u.exam, u.full_access, u.program, u.status, u.unlocks, u.reset_requested_at, u.created_at FROM users u ${w} ORDER BY u.created_at DESC, u.id DESC LIMIT ? OFFSET ?`, [...args, limit, offset]),
   ]);
   if (!users.length) return res.json({ total, page: p, limit, rows: [] });
   const ids = users.map(u => u.id);
@@ -334,7 +350,7 @@ app.get('/api/admin/students', admin, wrap(async (req, res) => {
     const n = counts.filter(c => c.exam === ex && inProgram(c, u.program)).length, sum = +(sums.find(x => x.user_id === u.id && x.exam === ex)?.s || 0);
     return {
       id: u.id, name: u.name, email: u.email, phone: u.phone, exam: u.exam, full: !!u.full_access, joined: u.created_at,
-      program: u.program, status: u.status, unlocks: u.unlocks || {},
+      program: u.program, status: u.status, unlocks: u.unlocks || {}, resetAt: u.reset_requested_at,
       tests: mine.length, last: mine.length ? score(mine[0]) : null, lastExam: mine[0]?.exam,
       progress: n ? Math.round(sum / n) : 0,
       placement: pl ? { exam: pl.exam, percent: +pl.total, date: pl.created_at } : null,
@@ -388,6 +404,31 @@ app.patch('/api/admin/students/:id', admin, wrap(async (req, res) => {
   const r = await q(`UPDATE users SET ${sets.join(', ')} WHERE id = ? AND role = 'student'`, [...args, +req.params.id || 0]);
   if (!r.affectedRows) fail(404, 'Siswa tidak ditemukan');
   res.json({ ok: true });
+}));
+
+// Password acak 10 karakter tanpa huruf/angka yang mirip (l, 1, o, 0); hanya hash-nya yang disimpan
+const newPassword = () => { const ABC = 'abcdefghjkmnpqrstuvwxyz23456789'; return [...require('crypto').randomBytes(10)].map(b => ABC[b % ABC.length]).join(''); };
+
+// Akun web untuk siswa kelas offline (master Students di englishone-backend): dibuat admin, password dikirim lewat WhatsApp
+app.post('/api/admin/students', admin, wrap(async (req, res) => {
+  const b = req.body || {}, email = String(b.email || '').trim().toLowerCase(), name = String(b.name || '').trim().slice(0, 120);
+  if (!name) fail(400, 'Nama siswa wajib diisi');
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 160) fail(400, 'Email tidak valid');
+  if (!(await loadExams())[b.exam]) fail(400, 'Program tidak valid');
+  const program = [20, 30, 40].includes(+b.program) ? +b.program : null, password = newPassword();
+  try {
+    const r = await q("INSERT INTO users (name, email, phone, password_hash, exam, program, status) VALUES (?, ?, ?, ?, ?, ?, 'aktif')",
+      [name, email, String(b.phone || '').slice(0, 30) || null, await bcrypt.hash(password, 10), b.exam, program]);
+    res.json({ id: r.insertId, password });
+  } catch (e) { if (e.code === 'ER_DUP_ENTRY') fail(409, 'Email ini sudah dipakai akun lain'); throw e; }
+}));
+
+// Password baru untuk siswa (dikirim admin lewat WhatsApp). Ditampilkan sekali; yang tersimpan hanya hash-nya.
+app.post('/api/admin/students/:id/password', admin, wrap(async (req, res) => {
+  const password = newPassword();
+  const r = await q("UPDATE users SET password_hash = ?, reset_requested_at = NULL WHERE id = ? AND role = 'student'", [await bcrypt.hash(password, 10), +req.params.id || 0]);
+  if (!r.affectedRows) fail(404, 'Siswa tidak ditemukan');
+  res.json({ password });
 }));
 
 // Program (20/30/40) yang membuka pertemuan ini
@@ -647,6 +688,12 @@ app.put('/api/admin/settings', admin, wrap(async (req, res) => {
     if (!str('name', 100) || !str('address', 300)) fail(400, 'Nama kantor dan alamat wajib diisi');
     await q('REPLACE INTO app_settings (k, v) VALUES (?, ?)', ['contact', J({ name: str('name', 100), address: str('address', 300), wa, waLabel: str('waLabel', 30), hours: str('hours', 100), instagram: ig })]);
   }
+  if ('login' in b) {
+    const l = b.login || {}, str = (v, max) => String(v ?? '').trim().slice(0, max);
+    const points = (Array.isArray(l.points) ? l.points : []).map(p => str(p, 120)).filter(Boolean).slice(0, 5);
+    if (!str(l.headline, 150)) fail(400, 'Judul halaman login wajib diisi');
+    await q('REPLACE INTO app_settings (k, v) VALUES (?, ?)', ['login', J({ headline: str(l.headline, 150), intro: str(l.intro, 400), points })]);
+  }
   res.json(await settings());
 }));
 
@@ -732,7 +779,7 @@ app.put('/api/admin/ebooks/:id/cover', admin, imageBody, wrap(async (req, res) =
 app.get('/api/ebooks/:id/file', panel('ebook'), wrap(async (req, res) => {
   const [e] = await q('SELECT * FROM ebooks WHERE id = ?', [req.params.id]);
   if (!e || !e.file) fail(404, 'Ebook not found');
-  if (e.access === 'paid' && !req.access.paid) fail(403, 'This ebook is for students with full access. Contact EnglishOn to unlock it.');
+  if (e.access === 'paid' && !req.access.paid) fail(403, 'This ebook is for students with full access. Contact EnglishON! to unlock it.');
   res.setHeader('Content-Type', 'application/pdf');
   res.setHeader('Content-Disposition', `inline; filename="${e.title.replace(/[^\w .-]+/g, '').slice(0, 80) || 'ebook'}.pdf"`);
   res.sendFile(path.join(EBOOK_DIR, e.file));

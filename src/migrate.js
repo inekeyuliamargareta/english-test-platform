@@ -20,6 +20,7 @@ const COLUMNS = [
   ['attempts', 'level_final', 'VARCHAR(5)'],
   ['ebooks', 'cover_url', 'VARCHAR(255)'],
   ['chapters', 'programs', 'JSON'],
+  ['users', 'reset_requested_at', 'DATETIME NULL'], // siswa klik "Forgot password" di halaman login
 ];
 
 (async () => {
