@@ -368,7 +368,8 @@ function mountShell() {
   if (!access.can(pnl)) { main.removeAttribute('x-data'); main.className = ''; main.innerHTML = lockedHTML(`${title || 'This page'} is locked`); }
   main.replaceWith(wrap);
   wrap.querySelector('#slot').replaceWith(main);
-  main.classList.add('mx-auto', 'max-w-7xl', 'px-4', 'py-6', 'sm:px-6', 'lg:px-8', 'lg:py-8');
+  // Isi selebar layar, rata kiri sejajar judul di header (padding sama dengan header)
+  main.classList.add('px-4', 'py-6', 'sm:px-6', 'lg:py-8');
 }
 
 // Lucide: render ulang ikon setiap kali Alpine menambahkan elemen baru.
