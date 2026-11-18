@@ -49,7 +49,7 @@
     <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
       <template x-for="b in groups" :key="b.id">
         <a :href="'skills.html?skill=' + skill.id + '&bab=' + b.id" class="flex items-center gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-soft transition hover:border-accent/50 hover:bg-accent-soft/40">
-          <span class="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-accent-soft text-sm font-bold text-accent" x-html="b.no || ico('book-open-check', 'h-5 w-5')"></span>
+          <span class="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-accent-soft text-sm font-bold text-accent" x-html="ico('book-open-check', 'h-5 w-5')"></span>
           <span class="min-w-0 flex-1"><span class="block truncate font-semibold" x-text="b.title"></span><span class="block text-xs text-slate-500" x-text="b.items.length + (b.items.length === 1 ? ' question' : ' questions')"></span></span>
           <i data-lucide="chevron-right" class="h-5 w-5 shrink-0 text-slate-400"></i>
         </a>

@@ -94,6 +94,7 @@ document.head.insertAdjacentHTML('beforeend', `<style>
   .content .c-tip { background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46; }
   .content .c-warn { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; }
   .passage p { margin-bottom: 1rem; } .passage mark { background: #fef08a; padding: 0 2px; border-radius: 3px; }
+  .stem { white-space: pre-line; } /* Enter di teks soal (admin) tampil sebagai baris baru */
   .stem u { text-decoration-thickness: 2px; text-underline-offset: 4px; } .stem sup { font-weight: 700; color: rgb(var(--accent)); margin: 0 2px 0 1px; }
 </style>`);
 
