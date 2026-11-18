@@ -84,11 +84,13 @@
             <span x-show="q.topic" class="rounded-md bg-slate-100 px-2 py-0.5 text-slate-600" x-text="q.topic"></span>
             <span class="rounded-md px-2 py-0.5" :class="diffClass[q.difficulty]" x-text="{ mudah: 'Easy', sedang: 'Medium', sulit: 'Hard' }[q.difficulty]"></span>
           </div>
-          <div x-show="q.clip" class="mt-4 flex flex-wrap items-center gap-3 rounded-xl bg-slate-50 p-3" x-data="{ t: false, playing: false }">
+          <div x-show="clipFirst(g.items, q)" class="mt-4 flex flex-wrap items-center gap-3 rounded-xl bg-slate-50 p-3" x-data="{ t: false, playing: false }">
+            <p x-show="clipLabel(g.items, q)" class="w-full text-xs font-semibold uppercase tracking-wider text-slate-500" x-text="clipLabel(g.items, q)"></p>
             <button @click="playing = true; playClip(DB.clips[q.clip], () => playing = false)" :disabled="playing" class="flex items-center gap-2 rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"><i data-lucide="volume-2" class="h-3.5 w-3.5"></i><span x-text="playing ? 'Playing…' : 'Play audio'"></span></button>
             <button x-show="res[q.id]" @click="t = !t" class="text-xs font-medium text-slate-600 hover:text-slate-900" x-text="t ? 'Hide transcript' : 'Show transcript'"></button>
             <div x-show="t" class="w-full space-y-1 text-sm text-slate-600"><template x-for="l in (DB.clips[q.clip]?.lines || [])"><p><b x-text="l[0] ? l[0] + ':' : ''"></b> <span x-text="l[1]"></span></p></template></div>
           </div>
+          <p x-show="q.clip && !clipFirst(g.items, q)" class="mt-3 flex items-center gap-1.5 text-xs text-slate-500"><i data-lucide="headphones" class="h-3.5 w-3.5"></i><span x-text="'Uses the audio in Question ' + clipRun(g.items, q)[0]"></span></p>
           <p x-show="q.instr" class="mt-4 text-xs font-semibold uppercase tracking-wide text-slate-500" x-text="q.instr"></p>
           <p class="stem mt-3 font-medium leading-relaxed text-slate-900" x-html="stemHTML(q)"></p>
           <!-- Sebelum submit: pilihan hanya ditandai. Setelah submit: benar hijau, jawaban salah merah. -->

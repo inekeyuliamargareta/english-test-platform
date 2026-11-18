@@ -157,6 +157,15 @@ const statusLabel = { done: 'Completed', progress: 'In progress', new: 'Not star
 const diffClass = { mudah: 'bg-emerald-50 text-emerald-700', sedang: 'bg-amber-50 text-amber-700', sulit: 'bg-rose-50 text-rose-700' };
 
 // Soal tipe "error": {kata} → digarisbawahi + huruf A-D
+// Soal berurutan yang memakai audio yang sama: [nomor pertama, nomor terakhir] (1-based) dalam daftar
+function clipRun(list, q) {
+  let a = list.indexOf(q), b = a;
+  while (a > 0 && list[a - 1].clip === q.clip) a--;
+  while (b < list.length - 1 && list[b + 1].clip === q.clip) b++;
+  return [a + 1, b + 1];
+}
+const clipFirst = (list, q) => !!q.clip && clipRun(list, q)[0] === list.indexOf(q) + 1;
+const clipLabel = (list, q) => { const [a, b] = clipRun(list, q); return a === b ? '' : 'Audio for Questions ' + a + '–' + b; };
 function stemHTML(q) {
   let i = 0;
   return q.q.replace(/\{(.+?)\}/g, (_, t) => `<u>${t}</u><sup>${L(i++)}</sup>`).replace(/_{3,}/g, '<span class="inline-block w-16 border-b-2 border-slate-400 align-baseline"></span>');
